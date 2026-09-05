@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging & distribution
+*.egg-info/
+.installed.cfg
+*.egg
+build/
+dist/
+wheels/
+*.tar.gz
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Testing & linting caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Operating System artifacts
+.DS_Store
+Thumbs.db
+
+# Scratch and local runtime logs
+*.log
+scratch/

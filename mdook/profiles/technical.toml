@@ -1,0 +1,33 @@
+# Technical profile — textbooks, technical manuals, programming books,
+# scientific reference works, academic monographs with heavy structure.
+# See Mdook-docs/PROFILES.md.
+
+[headings]
+min_font_size_ratio = 1.15   # technical books have subtler heading differences
+max_heading_words = 20       # section titles can be longer
+require_page_top = false     # sections often start mid-page
+position_weight = 0.3        # numbering pattern is a stronger signal than position
+number_pattern_weight = 0.9  # trust 1.1.2 numbering heavily
+
+[footnotes]
+prefer_style = "endnote"     # technical books more often use endnotes
+symbol_markers = false       # technical books almost always use numbers
+
+[paragraphs]
+merge_aggressiveness = "medium" # code blocks, tables, and figures interrupt paragraphs more
+detect_dialog = false           # technical books rarely have dialog
+
+[tables]
+detection_sensitivity = "high"  # actively look for tables on every page
+complex_fallback = true         # enable HTML table rendering for merged cells
+max_simple_columns = 8          # tables wider than 8 columns -> HTML
+
+[images]
+extract = true
+decorative_filter = "conservative" # technical books have fewer ornaments, more meaningful figures
+caption_search_radius = 40         # look farther for captions (technical layouts are varied)
+vector_rasterize = true            # rasterize vector diagrams
+
+[columns]
+detect = true          # actively check for multi-column layout
+min_column_gap = 20    # minimum horizontal gap (points) to count as separate columns
