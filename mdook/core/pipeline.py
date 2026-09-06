@@ -78,6 +78,35 @@ def convert(
             llm_review_applied=False,
         )
 
+    if suffix == ".docx":
+        report(5, "Reading DOCX manuscript...")
+        from mdook.core.formats.docx import parse_docx
+
+        manifest, tree = parse_docx(target_path, profile_override=profile)
+        report(20, f"Profile: {manifest.profile} | Parsed {len(tree.chapters)} chapter(s)")
+
+        report(70, "Writing Markdown files...")
+        render_result = render_vault(tree, manifest, output_dir)
+
+        report(90, "Validating output...")
+        processing_time = time.monotonic() - started_at
+        validation_report = run_validation(
+            tree, manifest, render_result, pages=None, processing_time_seconds=processing_time
+        )
+        report(100, "Done")
+
+        return ConversionResult(
+            success=True,
+            output_dir=render_result.vault_dir,
+            manifest=manifest,
+            validation_report=validation_report,
+            pages=manifest.total_pages,
+            chapters=len(tree.chapters),
+            footnotes=validation_report.total_footnotes,
+            images=validation_report.total_images,
+            llm_review_applied=False,
+        )
+
     effective_llm_config = llm_config if llm_config is not None else LLMConfig.from_env()
 
     report(5, "Reading document metadata...")
