@@ -2,15 +2,6 @@
 
 **Convert PDF books into structured, readable Obsidian vaults.**
 
-> **New AI assistant on this project? Read `Mdook-docs/HANDOFF.md` first.**
-> It covers traps a fresh read of these docs is likely to fall into.
-
-> **Status refreshed 2026-09-04** (see "Project Status" at the bottom —
-> this file's Vision/Target Users/Success Metrics sections below are
-> still the original pre-implementation plan and remain accurate as
-> aspiration; only "Distribution Plan," "Build Phases," and "Project
-> Status" described the wrong reality and have been corrected).
-
 ---
 
 ## Vision
@@ -153,26 +144,14 @@ active discussion is underway on:
 
 ## Project Status
 
-**As of 2026-09-04:** the full original implementation plan is complete —
-Phases 1-3 (literary + technical PDF conversion, multi-column, tables,
-footnotes/endnotes, and Tesseract-based OCR) plus a follow-on 6-batch
-program (Batches 14-19) that closed real structural/content/robustness
-gaps found by auditing `Mdook-docs/BOOK_ELEMENTS.md`'s ~333-element catalog
-against the actual codebase: Parts/Books/Volumes divisions, callout/
-sidebar boxes, citation-to-bibliography linking, image caption association
-and vector-diagram rasterization, math/formal notation (Obsidian MathJax),
-non-Latin script/RTL/vertical-text robustness, and encrypted/corrupt-PDF
-handling. 200+ tests passing, `ruff` clean. The desktop GUI has also had a
-full pass: a working light/dark theme, discoverable drag-and-drop, and a
-real sequential multi-file conversion queue.
+**Release 0.2.0:** Phases 1–3 and Phase 5 core polish items are complete:
+- **5-Stage Ingestion & Rendering Pipeline**: PDF validation, layout extraction, deterministic font-clustering heading hierarchy, chapter segmentation, Obsidian vault generation, and validation auditing.
+- **Rich Book Typography & Semantics**: Footnotes and endnotes with block anchors, numeric citation-to-bibliography links, Obsidian callout boxes (`> [!note]`), MathJax equations (`$$...$$`), table extraction via `pdfplumber`, caption association, and RTL script reading order.
+- **Hybrid OCR Fallback**: Automated per-page text-quality evaluation routing scanned pages to Tesseract OCR with fuzzy header deduplication.
+- **OpenAI-Compatible AI Structure Review**: Zero-dependency outline review supporting local (Ollama, LM Studio, vLLM) and cloud models (Groq, OpenAI, DeepSeek).
+- **Poetry & Verse Preservation (Rule 9.2)**: Exact lineation preservation with markdown double trailing spaces, blockquote rendering, stanza spacing clustering, and author attributions.
+- **Dedicated Back-Matter Files & Structured Glossaries (Rule 9.6)**: Split back-matter files (`Notes.md`, `Bibliography.md`, `Glossary.md`, `Appendix.md`) with term-definition parsing and alphabetical dividers (`## A`, `## B`).
+- **Desktop GUI & Headless CLI**: PySide6 dark/light interface with drag-and-drop queue, paired with a standalone headless CLI (`mdook convert`) featuring Rich terminal progress bars and validation tables.
+- **Quality & Testing**: 268 tests passing, clean Ruff linting, active Git repository with continuous integration.
 
-**Not started:** EPUB/multi-format input (Phase 4, deliberately deferred),
-most of Phase 5's polish items (AI structure review, poetry/verse
-handling, glossary/bibliography file structuring, profile auto-detection,
-custom profile file support), and everything in Phase 6 (distribution).
-**No git repository exists yet** for this project — version control and a
-GitHub push are planned once Phase 5 is further along, not before.
-
-See `Mdook-docs/ROADMAP.md` for the authoritative, continuously-updated
-phase-by-phase task list and completion status, and `Mdook-docs/RULES.md`
-for the full detection-rule catalog with real-book bug-fix history.
+See `Mdook-docs/ROADMAP.md` for phase-by-phase task tracking, and `Mdook-docs/RULES.md` for the semantic detection rules catalog.

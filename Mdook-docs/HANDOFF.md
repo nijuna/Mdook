@@ -1,15 +1,10 @@
-# Handoff Notes
+# Developer Handoff & Architecture Notes
 
-**For an AI assistant picking up this project with no memory of prior
-sessions.** Everything here was previously tracked only in Claude Code's
-private, per-machine memory system — invisible to any other tool or model.
-This file ports the useful, non-tool-specific parts of that into the repo
-itself, written 2026-09-04 when the project moved from Claude to Gemini.
+Engineering orientation, architectural invariants, and design trade-offs for developers
+working on the Mdook codebase.
 
-If anything in these docs is unclear, or contradicts what you find by
-reading the actual code in `mdook/`, say so and ask rather than guessing
-or silently picking one version — that's expected and welcome, not a sign
-you missed something you should already know.
+If anything in these docs is unclear or differs from the implementation in `mdook/`,
+the code and its accompanying test suite (`tests/`) serve as the source of truth.
 
 ---
 
