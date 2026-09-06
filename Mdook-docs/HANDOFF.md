@@ -17,7 +17,7 @@ you missed something you should already know.
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 250 passed
+uv run pytest -q         # should show 253 passed
 uv run ruff check .      # should show "All checks passed!"
 uv run python -m mdook   # launches the GUI
 ```
@@ -36,9 +36,12 @@ handoff describes — figure out why before trusting the rest of this file.
   and connection test latency measurement.
 - **Poetry & Verse Handling** — Implemented in Phase 5 via `mdook/core/rules/verse.py`
   (Rule 9.2), preserving line breaks and stanza structure.
+- **Back-Matter File Splitting** — Implemented in Phase 5 via `mdook/core/stages/rendering.py`,
+  splitting back-matter into dedicated notes (`Notes.md`, `Bibliography.md`, `Glossary.md`,
+  `Appendix.md`) with direct cross-file anchors (`^note-N`, `^ref-N`).
 - **~2,800 lines across 9 docs in `Mdook-docs/`**, all current as of
   2026-09-06 — see the reading order below.
-- **250 tests, `ruff` clean**, as of the same date.
+- **253 tests, `ruff` clean**, as of the same date.
 
 
 ---

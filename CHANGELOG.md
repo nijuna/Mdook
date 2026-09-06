@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Back-Matter File Splitting (Dedicated Notes)**:
+  - Decomposed back-matter content into dedicated Obsidian notes (`Glossary.md`, `Bibliography.md`, `Notes.md`, `Appendix.md`, etc.) rather than bundling everything into a single monolithic `99 - Back Matter.md`.
+  - Automatic collision deduplication for multiple sections with identical titles (e.g. `Appendix.md`, `Appendix 2.md`).
+  - Hierarchical sub-section preservation within dedicated back-matter divisions with root heading deduplication.
+  - Direct cross-file wikilink routing for endnotes (`[[Notes#^note-N|N]]`) and numeric citations (`[[Bibliography#^ref-N|N]]`), with fallback to generic back-matter division.
+  - Vault index file (`{title} - Index.md`) updated with a dedicated `## Back Matter` section linking each generated back-matter note.
 - **Poetry and Verse Handling (Rule 9.2)**:
   - Exact line break preservation in verse stanzas and multi-stanza poems via markdown double trailing spaces (`  \n`).
   - Obsidian blockquote formatting (`> `) for indented and quoted poems.

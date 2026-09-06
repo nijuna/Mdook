@@ -276,9 +276,10 @@ MyBook/
 ├── 01 - Chapter One.md
 ├── 02 - Chapter Two.md
 ├── ...
-├── 99 - Back Matter.md        # Notes/Bibliography/Glossary/etc., one shared
-│                               #   file today (see ROADMAP.md Phase 5 — a
-│                               #   dedicated Bibliography.md is still open)
+├── Notes.md                  # dedicated back-matter notes (if present)
+├── Bibliography.md           # dedicated bibliography/references (if present)
+├── Glossary.md               # dedicated glossary (if present)
+├── Appendix.md               # dedicated appendices (if present)
 └── attachments/
     ├── fig-2-1.png
     └── ...

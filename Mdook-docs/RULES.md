@@ -188,7 +188,7 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 
 - **Action:** Keep the in-text marker as a link to `Notes.md` with a block reference. Render the notes section as a separate file organized by chapter.
 
-> **Update: renders into the single `99 - Back Matter.md` file** (alongside glossary/bibliography/appendix content, whatever back matter the book has), not a dedicated per-chapter `Notes.md` — consistent with Rule 4.3's book-wide-numbering simplification above. `mdook/core/stages/rendering.py`'s `_render_endnote_markers`.
+> **Update: rendered into dedicated files per back-matter section** (e.g. `Notes.md`, `Bibliography.md`, `Glossary.md`), not a shared monolithic back-matter file. In-text endnote markers link directly to `[[Notes#^note-N|N]]` (or whatever the notes file's actual title stem is), and bibliography citations link to `[[Bibliography#^ref-N|N]]`. If a book only has untitled generic back matter, it falls back to `Back Matter.md`. `mdook/core/stages/rendering.py`.
 
 ### Rule 4.5 — Symbol Footnote Normalization
 

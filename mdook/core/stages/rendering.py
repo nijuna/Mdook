@@ -52,7 +52,66 @@ INVALID_FILENAME_CHARS_RE = re.compile(r'[\\/:*?"<>|]')
 FOOTNOTE_SENTINEL_RE = re.compile(f"{FOOTNOTE_MARKER_SENTINEL}(.+?){FOOTNOTE_MARKER_SENTINEL}")
 ENDNOTE_SENTINEL_RE = re.compile(f"{ENDNOTE_MARKER_SENTINEL}(.+?){ENDNOTE_MARKER_SENTINEL}")
 CITATION_SENTINEL_RE = re.compile(f"{CITATION_MARKER_SENTINEL}(.+?){CITATION_MARKER_SENTINEL}")
-BACK_MATTER_STEM = "99 - Back Matter"
+BACK_MATTER_STEM = "Back Matter"
+
+
+@dataclass
+class BackMatterDivision:
+    title: str
+    filename: str
+    stem: str
+    sections: list[Section]
+
+
+def _split_back_matter(sections: list[Section]) -> list[BackMatterDivision]:
+    if not sections:
+        return []
+
+    divisions: list[BackMatterDivision] = []
+    used_stems: set[str] = set()
+
+    def make_unique_stem(base_title: str) -> tuple[str, str]:
+        sanitized = _sanitize_filename(base_title) or "Back Matter"
+        candidate = sanitized
+        count = 2
+        while candidate.lower() in used_stems:
+            candidate = f"{sanitized} {count}"
+            count += 1
+        used_stems.add(candidate.lower())
+        return candidate, f"{candidate}.md"
+
+    current_title: str | None = None
+    current_sections: list[Section] = []
+
+    for section in sections:
+        if section.level == 1 or not current_sections:
+            if current_sections:
+                stem, filename = make_unique_stem(current_title or "Back Matter")
+                divisions.append(
+                    BackMatterDivision(
+                        title=current_title or "Back Matter",
+                        filename=filename,
+                        stem=stem,
+                        sections=current_sections,
+                    )
+                )
+            current_title = section.title
+            current_sections = [section]
+        else:
+            current_sections.append(section)
+
+    if current_sections:
+        stem, filename = make_unique_stem(current_title or "Back Matter")
+        divisions.append(
+            BackMatterDivision(
+                title=current_title or "Back Matter",
+                filename=filename,
+                stem=stem,
+                sections=current_sections,
+            )
+        )
+
+    return divisions
 
 
 @dataclass
@@ -60,6 +119,7 @@ class RenderResult:
     vault_dir: Path
     index_path: Path
     chapter_paths: list[Path] = field(default_factory=list)
+    back_matter_paths: list[Path] = field(default_factory=list)
     attachments_dir: Path = field(default_factory=Path)
     attachment_filenames: set[str] = field(default_factory=set)
 
@@ -76,17 +136,40 @@ def render_vault(tree: DocumentTree, manifest: BookManifest, output_dir: Path) -
 
     attachment_filenames: set[str] = set()
 
-    # Computed up front (before any file is rendered) so an inline endnote
-    # reference (Rule 4.3) spliced into chapter or front-matter text can
-    # link to the Notes section's file, whichever order things get written
-    # in -- an endnote marker only ever gets detected if a Notes/Endnotes
-    # back-matter section actually exists, so this is never a dangling link.
-    back_matter_stem = BACK_MATTER_STEM if tree.back_matter else None
+    back_matter_divisions = _split_back_matter(tree.back_matter)
+
+    # Computed up front so inline endnote and citation references spliced into
+    # chapters or front-matter can link directly to their dedicated files.
+    notes_stem: str | None = None
+    bibliography_stem: str | None = None
+    for div in back_matter_divisions:
+        normalized = _normalize_matter_title(div.title)
+        if notes_stem is None and normalized in NOTE_SECTION_LABELS:
+            notes_stem = div.stem
+        if bibliography_stem is None and normalized in BIBLIOGRAPHY_SECTION_LABELS:
+            bibliography_stem = div.stem
+
+    # Fallback to generic Back Matter division if no keyword-labeled division was found
+    if notes_stem is None:
+        for div in back_matter_divisions:
+            if _normalize_matter_title(div.title) in ("back matter", "untitled"):
+                notes_stem = div.stem
+                break
+    if bibliography_stem is None:
+        for div in back_matter_divisions:
+            if _normalize_matter_title(div.title) in ("back matter", "untitled"):
+                bibliography_stem = div.stem
+                break
 
     front_matter_path: Path | None = None
     if tree.front_matter:
         body, used = _render_matter(
-            "Front Matter", tree.front_matter, manifest, attachments_dir, back_matter_stem
+            "Front Matter",
+            tree.front_matter,
+            manifest,
+            attachments_dir,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
         )
         front_matter_path = vault_dir / "00 - Front Matter.md"
         front_matter_path.write_text(body, encoding="utf-8")
@@ -97,29 +180,35 @@ def render_vault(tree: DocumentTree, manifest: BookManifest, output_dir: Path) -
         filename = f"{chapter.number:02d} - {_sanitize_filename(chapter.title)}.md"
         path = vault_dir / filename
         body, used_attachments = _render_chapter(
-            chapter, manifest, attachments_dir, back_matter_stem
+            chapter,
+            manifest,
+            attachments_dir,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
         )
         path.write_text(body, encoding="utf-8")
         chapter_paths.append(path)
         attachment_filenames.update(used_attachments)
 
-    back_matter_path: Path | None = None
-    if tree.back_matter:
-        body, used = _render_matter(
-            "Back Matter",
-            tree.back_matter,
+    back_matter_files: list[tuple[str, Path]] = []
+    back_matter_paths: list[Path] = []
+    for div in back_matter_divisions:
+        path = vault_dir / div.filename
+        body, used = _render_back_matter_division(
+            div,
             manifest,
             attachments_dir,
-            back_matter_stem,
-            is_back_matter_file=True,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
         )
-        back_matter_path = vault_dir / f"{BACK_MATTER_STEM}.md"
-        back_matter_path.write_text(body, encoding="utf-8")
+        path.write_text(body, encoding="utf-8")
+        back_matter_files.append((div.title, path))
+        back_matter_paths.append(path)
         attachment_filenames.update(used)
 
     index_path = vault_dir / f"{_sanitize_filename(manifest.title)} - Index.md"
     index_path.write_text(
-        _render_index(tree, manifest, chapter_paths, front_matter_path, back_matter_path),
+        _render_index(tree, manifest, chapter_paths, front_matter_path, back_matter_files),
         encoding="utf-8",
     )
 
@@ -127,6 +216,7 @@ def render_vault(tree: DocumentTree, manifest: BookManifest, output_dir: Path) -
         vault_dir=vault_dir,
         index_path=index_path,
         chapter_paths=chapter_paths,
+        back_matter_paths=back_matter_paths,
         attachments_dir=attachments_dir,
         attachment_filenames=attachment_filenames,
     )
@@ -142,7 +232,7 @@ def _render_index(
     manifest: BookManifest,
     chapter_paths: list[Path],
     front_matter_path: Path | None,
-    back_matter_path: Path | None,
+    back_matter_files: list[tuple[str, Path]] | Path | None,
 ) -> str:
     frontmatter = ["---", f"title: {tree.metadata.title}", f"author: {tree.metadata.author}"]
     if tree.metadata.isbn:
@@ -167,8 +257,17 @@ def _render_index(
                 body.append("")
                 body.append(f"## {current_part}")
         body.append(f"- [[{path.stem}|{chapter.title}]]")
-    if back_matter_path is not None:
-        body.append(f"- [[{back_matter_path.stem}|Back Matter]]")
+
+    if back_matter_files:
+        files: list[tuple[str, Path]]
+        if isinstance(back_matter_files, Path):
+            files = [("Back Matter", back_matter_files)]
+        else:
+            files = back_matter_files
+        body.append("")
+        body.append("## Back Matter")
+        for title, path in files:
+            body.append(f"- [[{path.stem}|{title}]]")
 
     return "\n".join(frontmatter + body) + "\n"
 
@@ -179,7 +278,11 @@ def _render_index(
 
 
 def _render_chapter(
-    chapter: Chapter, manifest: BookManifest, attachments_dir: Path, back_matter_stem: str | None
+    chapter: Chapter,
+    manifest: BookManifest,
+    attachments_dir: Path,
+    notes_stem: str | None,
+    bibliography_stem: str | None,
 ) -> tuple[str, set[str]]:
     footnotes_by_page = _group_footnotes_by_page(chapter.footnotes)
     lines, used_attachments = _render_sections(
@@ -187,8 +290,10 @@ def _render_chapter(
         footnotes_by_page,
         page_label=lambda page: f"p. {page} · {manifest.title}, Ch. {chapter.number}",
         attachments_dir=attachments_dir,
-        back_matter_stem=back_matter_stem,
-        is_back_matter_file=False,
+        notes_stem=notes_stem,
+        bibliography_stem=bibliography_stem,
+        anchor_prefix=None,
+        skip_first_heading=False,
     )
     return "\n".join([f"# {chapter.title}", ""] + lines).rstrip() + "\n", used_attachments
 
@@ -198,25 +303,55 @@ def _render_matter(
     sections: list[Section],
     manifest: BookManifest,
     attachments_dir: Path,
-    back_matter_stem: str | None,
+    notes_stem: str | None = None,
+    bibliography_stem: str | None = None,
+    back_matter_stem: str | None = None,
     is_back_matter_file: bool = False,
 ) -> tuple[str, set[str]]:
-    """Front/back matter has no per-section footnote list the way a
-    `Chapter` does (Rule 4.4's page-bottom definitions aren't threaded this
-    far for these zones yet), so an inline marker spliced into this text by
-    Stage 3 will render as `[^n]` with no matching definition -- Stage 5
-    surfaces that as an orphan-marker warning rather than silently dropping
-    it. Footnotes inside front/back matter are rare enough that this is an
-    acceptable gap for now."""
+    """Front matter has no per-section footnote list the way a `Chapter`
+    does, so an inline marker spliced into this text by Stage 3 will render
+    as `[^n]` with no matching definition -- Stage 5 surfaces that as an
+    orphan-marker warning rather than silently dropping it."""
+    effective_notes = notes_stem or back_matter_stem
+    effective_bib = bibliography_stem or back_matter_stem
     lines, used_attachments = _render_sections(
         sections,
         footnotes_by_page={},
         page_label=lambda page: f"p. {page} · {manifest.title}",
         attachments_dir=attachments_dir,
-        back_matter_stem=back_matter_stem,
-        is_back_matter_file=is_back_matter_file,
+        notes_stem=effective_notes,
+        bibliography_stem=effective_bib,
+        anchor_prefix=None,
+        skip_first_heading=False,
     )
     return "\n".join([f"# {title}", ""] + lines).rstrip() + "\n", used_attachments
+
+
+def _render_back_matter_division(
+    division: BackMatterDivision,
+    manifest: BookManifest,
+    attachments_dir: Path,
+    notes_stem: str | None,
+    bibliography_stem: str | None,
+) -> tuple[str, set[str]]:
+    normalized_title = _normalize_matter_title(division.title)
+    anchor_prefix: str | None = None
+    if normalized_title in NOTE_SECTION_LABELS:
+        anchor_prefix = "note"
+    elif normalized_title in BIBLIOGRAPHY_SECTION_LABELS:
+        anchor_prefix = "ref"
+
+    lines, used_attachments = _render_sections(
+        division.sections,
+        footnotes_by_page={},
+        page_label=lambda page: f"p. {page} · {manifest.title}",
+        attachments_dir=attachments_dir,
+        notes_stem=notes_stem,
+        bibliography_stem=bibliography_stem,
+        anchor_prefix=anchor_prefix,
+        skip_first_heading=True,
+    )
+    return "\n".join([f"# {division.title}", ""] + lines).rstrip() + "\n", used_attachments
 
 
 def _render_sections(
@@ -224,32 +359,23 @@ def _render_sections(
     footnotes_by_page: dict[int, list[Footnote]],
     page_label,
     attachments_dir: Path,
-    back_matter_stem: str | None,
-    is_back_matter_file: bool,
+    notes_stem: str | None,
+    bibliography_stem: str | None,
+    anchor_prefix: str | None = None,
+    skip_first_heading: bool = False,
 ) -> tuple[list[str], set[str]]:
     lines: list[str] = []
     used_attachments: set[str] = set()
     current_page: int | None = None
 
-    for section in sections:
+    for idx, section in enumerate(sections):
         if section.title:
-            # The file's own "#" (H1) title consumes level 0; section.level=1
-            # is the first tier below it ("##" / H2), level=2 is "###" / H3.
-            lines.append(f"{'#' * (section.level + 1)} {section.title}")
-            lines.append("")
-
-        # Rule 4.3/4.4: only the back-matter file's own Notes/Endnotes
-        # section gets `^note-N` block anchors -- an ordinary numbered list
-        # elsewhere (a recipe's steps, a glossary aside) must not be tagged.
-        # Batch 15 extends the same mechanism to `^ref-N` anchors on a
-        # Bibliography/References section.
-        anchor_prefix: str | None = None
-        if is_back_matter_file and section.title is not None:
-            normalized_title = _normalize_matter_title(section.title)
-            if normalized_title in NOTE_SECTION_LABELS:
-                anchor_prefix = "note"
-            elif normalized_title in BIBLIOGRAPHY_SECTION_LABELS:
-                anchor_prefix = "ref"
+            if idx == 0 and skip_first_heading:
+                pass
+            else:
+                heading_level = max(section.level, 2) if skip_first_heading else section.level + 1
+                lines.append(f"{'#' * heading_level} {section.title}")
+                lines.append("")
 
         for item in section.content:
             item_page = getattr(item, "page_number", None)
@@ -264,7 +390,12 @@ def _render_sections(
 
             lines.extend(
                 _render_content_item(
-                    item, attachments_dir, used_attachments, back_matter_stem, anchor_prefix
+                    item,
+                    attachments_dir,
+                    used_attachments,
+                    notes_stem=notes_stem,
+                    bibliography_stem=bibliography_stem,
+                    anchor_prefix=anchor_prefix,
                 )
             )
             lines.append("")
@@ -290,15 +421,25 @@ def _render_content_item(
     item: SectionContent,
     attachments_dir: Path,
     used_attachments: set[str],
-    back_matter_stem: str | None,
+    notes_stem: str | None,
+    bibliography_stem: str | None,
     anchor_prefix: str | None,
 ) -> list[str]:
     if isinstance(item, Paragraph):
-        return [_render_inline_markers(item.text, back_matter_stem)]
+        return [
+            _render_inline_markers(
+                item.text, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+            )
+        ]
     if isinstance(item, BlockQuote):
         template = "> *{}*" if item.italic else "> {}"
         quote_lines = [
-            template.format(_render_inline_markers(line, back_matter_stem)) for line in item.lines
+            template.format(
+                _render_inline_markers(
+                    line, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+                )
+            )
+            for line in item.lines
         ]
         if item.attribution:
             quote_lines.append(f"> — {item.attribution}")
@@ -313,14 +454,21 @@ def _render_content_item(
     if isinstance(item, TableData):
         return _render_table(item)
     if isinstance(item, ListData):
-        return _render_list(item, back_matter_stem, anchor_prefix)
+        return _render_list(
+            item,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            anchor_prefix=anchor_prefix,
+        )
     if isinstance(item, CodeBlock):
         return ["```", *item.lines, "```"]
     if isinstance(item, CalloutBlock):
         callout_type = obsidian_callout_type(item.label)
         lines = [f"> [!{callout_type}] {item.label}"]
         lines.extend(
-            f"> {_render_inline_markers(p, back_matter_stem)}" for p in item.paragraphs if p
+            f"> {_render_inline_markers(p, notes_stem, bibliography_stem)}"
+            for p in item.paragraphs
+            if p
         )
         return lines
     if isinstance(item, MathBlock):
@@ -331,18 +479,27 @@ def _render_content_item(
             return lines
         return [f"${item.latex_or_text}$"]
     if isinstance(item, VerseBlock):
-        return _render_verse(item, back_matter_stem)
+        return _render_verse(item, notes_stem=notes_stem, bibliography_stem=bibliography_stem)
     return []
 
 
-def _render_verse(item: VerseBlock, back_matter_stem: str | None) -> list[str]:
+def _render_verse(
+    item: VerseBlock,
+    notes_stem: str | None = None,
+    bibliography_stem: str | None = None,
+    back_matter_stem: str | None = None,
+) -> list[str]:
+    effective_notes = notes_stem or back_matter_stem
+    effective_bib = bibliography_stem or back_matter_stem
     rendered_lines: list[str] = []
     prefix = "> " if item.is_quoted else ""
     for line in item.lines:
         if not line:
             rendered_lines.append(prefix.rstrip())
         else:
-            processed = _render_inline_markers(line, back_matter_stem)
+            processed = _render_inline_markers(
+                line, notes_stem=effective_notes, bibliography_stem=effective_bib
+            )
             rendered_lines.append(f"{prefix}{processed}  ")
     if item.attribution:
         rendered_lines.append(f"{prefix}— {item.attribution}")
@@ -350,27 +507,44 @@ def _render_verse(item: VerseBlock, back_matter_stem: str | None) -> list[str]:
 
 
 def _render_list(
-    list_data: ListData, back_matter_stem: str | None, anchor_prefix: str | None
+    list_data: ListData,
+    notes_stem: str | None,
+    bibliography_stem: str | None,
+    anchor_prefix: str | None,
 ) -> list[str]:
     lines: list[str] = []
     for item in list_data.items:
         indent = "    " * item.level
-        text = _render_inline_markers(item.text, back_matter_stem)
+        text = _render_inline_markers(
+            item.text, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+        )
         marker = f"{item.marker}." if item.ordered and item.marker else "-"
         line = f"{indent}{marker} {text}"
         if anchor_prefix is not None and item.ordered and item.marker:
-            # Rule 4.3/4.4 (and its Batch 15 extension to `^ref-N`): gives an
-            # inline endnote/citation reference elsewhere in the vault
-            # something to link to.
             line += f" ^{anchor_prefix}-{item.marker}"
         lines.append(line)
     return lines
 
 
-def _render_inline_markers(text: str, back_matter_stem: str | None) -> str:
+def _render_inline_markers(
+    text: str,
+    notes_stem: str | None = None,
+    bibliography_stem: str | None = None,
+    back_matter_stem: str | None = None,
+) -> str:
+    if back_matter_stem is not None:
+        effective_notes = notes_stem or back_matter_stem
+        effective_bib = bibliography_stem or back_matter_stem
+    elif bibliography_stem is not None:
+        effective_notes = notes_stem
+        effective_bib = bibliography_stem
+    else:
+        effective_notes = notes_stem
+        effective_bib = notes_stem
+
     text = _render_footnote_markers(text)
-    text = _render_endnote_markers(text, back_matter_stem)
-    return _render_citation_markers(text, back_matter_stem)
+    text = _render_endnote_markers(text, effective_notes)
+    return _render_citation_markers(text, effective_bib)
 
 
 def _render_footnote_markers(text: str) -> str:
@@ -378,29 +552,26 @@ def _render_footnote_markers(text: str) -> str:
     return FOOTNOTE_SENTINEL_RE.sub(lambda m: f"[^{m.group(1)}]", text)
 
 
-def _render_endnote_markers(text: str, back_matter_stem: str | None) -> str:
+def _render_endnote_markers(text: str, notes_stem: str | None) -> str:
     """Rule 4.3/4.4 — turn a sentinel-wrapped endnote reference into a
     wiki-link at the Notes section's `^note-N` block anchor, since Obsidian
     footnotes are file-scoped and can't point at a definition living in a
-    different file. `back_matter_stem` is only None if no endnote marker
-    was ever detected in the first place, so the sentinel can't appear."""
-    if back_matter_stem is None:
+    different file."""
+    if notes_stem is None:
         return text
     return ENDNOTE_SENTINEL_RE.sub(
-        lambda m: f"[[{back_matter_stem}#^note-{m.group(1)}|{m.group(1)}]]", text
+        lambda m: f"[[{notes_stem}#^note-{m.group(1)}|{m.group(1)}]]", text
     )
 
 
-def _render_citation_markers(text: str, back_matter_stem: str | None) -> str:
+def _render_citation_markers(text: str, bibliography_stem: str | None) -> str:
     """Batch 15 — turn a sentinel-wrapped numeric citation into a wiki-link
     at the Bibliography/References section's `^ref-N` block anchor, the
-    same mechanism `_render_endnote_markers` uses for `^note-N`.
-    `back_matter_stem` is only None if no citation was ever spliced in the
-    first place, so the sentinel can't appear."""
-    if back_matter_stem is None:
+    same mechanism `_render_endnote_markers` uses for `^note-N`."""
+    if bibliography_stem is None:
         return text
     return CITATION_SENTINEL_RE.sub(
-        lambda m: f"[[{back_matter_stem}#^ref-{m.group(1)}|{m.group(1)}]]", text
+        lambda m: f"[[{bibliography_stem}#^ref-{m.group(1)}|{m.group(1)}]]", text
     )
 
 
