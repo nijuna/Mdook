@@ -68,6 +68,7 @@ from mdook.core.rules import callouts as callout_rules
 from mdook.core.rules import citations as citation_rules
 from mdook.core.rules import code as code_rules
 from mdook.core.rules import footnotes as footnote_rules
+from mdook.core.rules import glossary as glossary_rules
 from mdook.core.rules import headings as heading_rules
 from mdook.core.rules import images as image_rules
 from mdook.core.rules import lists as list_rules
@@ -893,9 +894,11 @@ def _collect_matter_sections(
 
     sections: list[Section] = [Section(title=None, level=1, content=[])]
     image_index = 0
+    current_matter_label: str | None = None
 
     for kind, payload in runs:
         if kind == "heading":
+            current_matter_label = payload
             sections.append(Section(title=payload, level=1, content=[]))
             continue
         if kind == "image":
@@ -910,6 +913,19 @@ def _collect_matter_sections(
             continue
         if kind == "table":
             sections[-1].content.append(_table_block_to_data(payload))
+            continue
+
+        if current_matter_label and glossary_rules.is_glossary_title(current_matter_label):
+            intro_content, letter_sections = glossary_rules.process_glossary_text_run(
+                payload,
+                footnote_result,
+                body_font_size,
+                body_left_margin,
+                body_right_margin,
+                bibliography_markers,
+            )
+            sections[-1].content.extend(intro_content)
+            sections.extend(letter_sections)
             continue
 
         sections[-1].content.extend(

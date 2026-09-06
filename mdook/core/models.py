@@ -243,6 +243,22 @@ class VerseBlock(BaseModel):
     """Optional attribution (e.g. poet name), if followed by an attribution line."""
 
 
+class GlossaryItem(BaseModel):
+    term: str
+    """The defined term, stripped of bold markers and trailing delimiters."""
+    definition: str
+    """The definition text, with leading/trailing delimiters stripped."""
+    page_number: int
+    """The page number where this glossary entry starts."""
+
+
+class GlossaryBlock(BaseModel):
+    content_type: Literal["glossary_block"] = "glossary_block"
+    items: list[GlossaryItem] = Field(default_factory=list)
+    page_number: int
+    """The page number where this glossary block starts."""
+
+
 SectionContent = Union[
     Paragraph,
     ImageRef,
@@ -253,6 +269,7 @@ SectionContent = Union[
     CalloutBlock,
     MathBlock,
     VerseBlock,
+    GlossaryBlock,
 ]
 
 

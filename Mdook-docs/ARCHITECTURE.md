@@ -235,6 +235,7 @@ Section:
 
 SectionContent = Paragraph | ImageRef | TableData | BlockQuote
                 | ListData | CodeBlock | CalloutBlock | MathBlock
+                | VerseBlock | GlossaryBlock
 
 Paragraph:      text: str; page_number: int
 ImageRef:       source_path: str; caption: str | None; figure_id: str | None
@@ -245,6 +246,9 @@ ListData:       items: list[ListItem]; page_number: int
 CodeBlock:      lines: list[str]; page_number: int
 CalloutBlock:   label: str; paragraphs: list[str]; page_number: int
 MathBlock:      latex_or_text: str; display: bool; numbering: str | None; page_number: int
+VerseBlock:     lines: list[str]; attribution: str | None; is_quoted: bool; page_number: int
+GlossaryBlock:  items: list[GlossaryItem]; page_number: int
+GlossaryItem:   term: str; definition: str; page_number: int
 Footnote:       marker: str; text: str; page_number: int; style: "page_bottom" | "endnote"
 ```
 

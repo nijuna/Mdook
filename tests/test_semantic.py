@@ -290,9 +290,7 @@ def test_bare_roman_numeral_chapter_title_does_not_swallow_body_text(tmp_path: P
     doc = pymupdf.open()
     page = doc.new_page(width=400, height=600)
     page.insert_text((72, 80), "IX", fontsize=24, fontname="helv")
-    page.insert_text(
-        (72, 120), "It was a dark and stormy night.", fontsize=11, fontname="helv"
-    )
+    page.insert_text((72, 120), "It was a dark and stormy night.", fontsize=11, fontname="helv")
     for i in range(8):
         page.insert_text(
             (72, 150 + i * 16), f"Body sentence number {i}.", fontsize=11, fontname="helv"
@@ -358,8 +356,10 @@ def test_indented_paragraph_becomes_general_block_quote(tmp_path: Path) -> None:
             (72, 100 + i * 16), f"Ordinary body sentence number {i}.", fontsize=11, fontname="helv"
         )
     page.insert_text(
-        (110, 180), "A deeply indented quotation set apart from the body text.",
-        fontsize=11, fontname="helv",
+        (110, 180),
+        "A deeply indented quotation set apart from the body text.",
+        fontsize=11,
+        fontname="helv",
     )
     for i in range(4):
         page.insert_text(
@@ -559,7 +559,7 @@ def test_front_matter_preface_becomes_named_section(tmp_path: Path) -> None:
 def test_back_matter_glossary_becomes_named_section(tmp_path: Path) -> None:
     import pymupdf
 
-    from mdook.core.models import Paragraph as ParagraphModel
+    from mdook.core.models import GlossaryBlock
 
     pdf_path = tmp_path / "glossary_book.pdf"
     doc = pymupdf.open()
@@ -594,10 +594,12 @@ def test_back_matter_glossary_becomes_named_section(tmp_path: Path) -> None:
     assert [c.title for c in tree.chapters] == ["Chapter One", "Chapter Two"]
     glossary_section = next((s for s in tree.back_matter if s.title == "Glossary"), None)
     assert glossary_section is not None
-    glossary_text = " ".join(
-        c.text for c in glossary_section.content if isinstance(c, ParagraphModel)
-    )
-    assert "Term 0: a definition." in glossary_text
+    glossary_blocks = [c for c in glossary_section.content if isinstance(c, GlossaryBlock)]
+    assert len(glossary_blocks) >= 1
+    items = [item for block in glossary_blocks for item in block.items]
+    assert items[0].term == "Term 0"
+    assert items[0].definition == "a definition."
+    assert len(items) == 4
 
 
 def test_degenerate_short_chapter_titles_do_not_wipe_out_every_page(tmp_path: Path) -> None:

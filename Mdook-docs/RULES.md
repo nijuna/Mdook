@@ -371,6 +371,19 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Condition:** Small centered text or symbol between sections (§, *, ❧, ◆, or ornamental dingbats). Often used as section breaks in literary books.
 - **Action:** Replace with a horizontal rule (`---`) in markdown. Do not preserve the specific ornament character.
 
+### Rule 9.6 — Structured Glossary Processing
+
+- **Condition:** A back-matter section titled "Glossary", "Definitions", "Vocabulary", or similar keyword containing term-definition pairs.
+- **Signals:**
+  1. **Font-Styling Signal**: Bold terms (`is_bold=True`) at line start followed by normal-weight definitions.
+  2. **Syntactic Delimiter Signal**: Lines formatted as `Term: Definition`, `Term — Definition`, or `Term – Definition`.
+  3. **Geometric Hanging Indent Signal**: Flush terms at baseline column margin ($x_0$) followed by indented definition lines ($x_0 + \Delta$).
+  4. **Alphabetical Letter Dividers**: Standalone single-letter headings (`A`, `B`, `— C —`, `[D]`) preserved as level-2 markdown sub-headings (`## A`, `## B`).
+- **Action:** Pull entries into `GlossaryBlock` and `GlossaryItem` models. Render as clean `**Term** — Definition` paragraphs in dedicated `Glossary.md` notes. Multi-line definitions rejoin hyphenated line breaks. Inline footnote and citation sentinels are preserved within definitions, linking directly to `[[Notes.md]]` and `[[Bibliography.md]]`.
+- **Safeguards:** Unstructured or narrative text under a Glossary heading cleanly degrades to standard markdown paragraphs with zero loss of content.
+
+`mdook/core/rules/glossary.py`.
+
 ---
 
 ## 10. Profile-Specific Rule Activation

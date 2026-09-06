@@ -34,6 +34,7 @@ from mdook.core.models import (
     CodeBlock,
     DocumentTree,
     Footnote,
+    GlossaryBlock,
     ImageRef,
     ListData,
     MathBlock,
@@ -480,7 +481,31 @@ def _render_content_item(
         return [f"${item.latex_or_text}$"]
     if isinstance(item, VerseBlock):
         return _render_verse(item, notes_stem=notes_stem, bibliography_stem=bibliography_stem)
+    if isinstance(item, GlossaryBlock):
+        return _render_glossary_block(
+            item, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+        )
     return []
+
+
+def _render_glossary_block(
+    item: GlossaryBlock,
+    notes_stem: str | None = None,
+    bibliography_stem: str | None = None,
+) -> list[str]:
+    lines: list[str] = []
+    for entry in item.items:
+        rendered_def = _render_inline_markers(
+            entry.definition, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+        )
+        if rendered_def:
+            lines.append(f"**{entry.term}** — {rendered_def}")
+        else:
+            lines.append(f"**{entry.term}**")
+        lines.append("")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
 
 
 def _render_verse(

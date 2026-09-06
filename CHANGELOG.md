@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Structured Glossary Processing (Rule 9.6)**:
+  - Added deterministic term-definition pair detection for back-matter glossary sections via `mdook/core/rules/glossary.py`.
+  - Multi-signal detection supporting font-styling cues (bold terms), delimiter conventions (`Term: Definition`, `Term — Definition`, `Term – Definition`), and geometric hanging indents.
+  - Formatted entries as clean markdown paragraphs (`**Term** — Definition`) within dedicated `Glossary.md` notes.
+  - Alphabetical letter divider detection (`A`, `B`, `— C —`, `Section D`) generating structured markdown sub-headings (`## A`, `## B`).
+  - Multi-line definition merging with hyphenated word rejoining (Rule 5.2).
+  - Preservation of inline footnote and numeric citation sentinels within definitions, linking directly to `[[Notes.md]]` and `[[Bibliography.md]]`.
+  - Automatic preservation of introductory prose and graceful fallback for unstructured narrative sections.
 - **Back-Matter File Splitting (Dedicated Notes)**:
   - Decomposed back-matter content into dedicated Obsidian notes (`Glossary.md`, `Bibliography.md`, `Notes.md`, `Appendix.md`, etc.) rather than bundling everything into a single monolithic `99 - Back Matter.md`.
   - Automatic collision deduplication for multiple sections with identical titles (e.g. `Appendix.md`, `Appendix 2.md`).
