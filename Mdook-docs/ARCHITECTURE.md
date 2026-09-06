@@ -330,22 +330,30 @@ covered), file size sanity.
 
 ---
 
-## GUI (`mdook/gui/`)
+## Interfaces: GUI & CLI
 
-The project is **GUI-first**, not a CLI tool — this was a pivot from the
-original plan very early on and never reverted. `mdook/__main__.py` launches
-a PySide6 desktop app.
+Mdook offers both a rich desktop graphical user interface and a headless command-line interface:
 
+### Desktop GUI (`mdook/gui/`)
+Launched via `mdook`, `mdook gui`, or `python -m mdook`:
 - `window.py` — `MainWindow`: file pickers, drag-and-drop (multiple PDFs
-  at once), a light/dark theme toggle, and a real sequential queue (drop
-  or queue several books; they convert one after another automatically,
-  not just the most recently added one).
-- `worker.py` — `ConversionWorker`: a `QThread` wrapper around
-  `mdook.core.pipeline.convert()`, translating its plain progress callback
-  into Qt signals so the GUI thread never blocks.
-- `queue_manager.py` — `QueueManager`/`QueueItem`: plain-Python queue state,
-  no Qt dependency, easy to unit test in isolation.
+  at once), a light/dark theme toggle, a real sequential queue (drop
+  or queue several books; they convert one after another automatically),
+  collapsible AI Structure Review settings panel, and a summary card
+  that displays `ConversionResult` statistics and enables the "Open Vault" button.
+- `worker.py` — `ConversionWorker`, `ConnectionTestWorker`, `ModelFetchWorker`:
+  non-blocking `QThread` workers keeping the UI responsive.
+- `queue_manager.py` — `QueueManager`/`QueueItem`: plain-Python queue state.
 - `styles.py` — `DARK_STYLE`/`LIGHT_STYLE` QSS stylesheets.
+
+### Headless CLI (`mdook/cli.py`)
+Terminal-first and headless server automation:
+- `mdook convert <pdf...> -o <vaults/> [--profile literature|technical] [--ai]`:
+  converts books with Rich spinners, progress bars, and formatted validation summary tables.
+- `mdook gui`: explicitly launches the PySide6 desktop GUI.
+- `mdook --version` / `mdook version`: displays version information.
+- Display-aware dispatch: running `mdook` with no arguments automatically opens the
+  desktop GUI on graphical environments, while displaying help in headless/remote environments.
 
 `ConversionResult` (returned by `convert()`, consumed by the GUI's
 `conversion_finished` signal):

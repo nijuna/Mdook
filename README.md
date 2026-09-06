@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-238%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-268%20passed-brightgreen.svg)]()
 
 </div>
 
@@ -119,10 +119,30 @@ cd mdook
 uv sync --extra dev
 ```
 
-### 3. Launch the Application
+### 3. Usage
 
+#### Desktop GUI
+Launch the PySide6 application:
 ```bash
-uv run python -m mdook
+uv run mdook
+# or: uv run python -m mdook
+```
+
+#### Headless CLI
+Convert PDF books directly from your terminal:
+```bash
+# Convert a single book into an Obsidian vault:
+uv run mdook convert book.pdf -o ./vaults/
+
+# Convert with technical profile:
+uv run mdook convert textbook.pdf -o ./vaults/ --profile technical
+
+# Convert with AI structure review:
+uv run mdook convert book.pdf -o ./vaults/ --ai --ai-model gpt-4o-mini
+
+# Display version or help:
+uv run mdook --version
+uv run mdook convert --help
 ```
 
 ---

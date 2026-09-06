@@ -17,9 +17,9 @@ you missed something you should already know.
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 260 passed
+uv run pytest -q         # should show 268 passed
 uv run ruff check .      # should show "All checks passed!"
-uv run python -m mdook   # launches the GUI
+uv run python -m mdook   # launches the GUI (or: uv run mdook convert ...)
 ```
 
 If any of these don't match, the environment differs from what this
@@ -27,7 +27,8 @@ handoff describes — figure out why before trusting the rest of this file.
 
 ### Quick facts
 
-- **GUI app, not a CLI** — PySide6, launched via `python -m mdook`.
+- **Both Desktop GUI and Headless CLI** — PySide6 GUI (`mdook`, `mdook gui`,
+  `python -m mdook`) and Rich headless CLI (`mdook convert book.pdf -o ./vaults/`).
 - **OCR engine is Tesseract** (a system package, not pip-installed —
   `sudo dnf install tesseract` / `sudo apt install tesseract-ocr`),
   routed per-page, not per-book.
@@ -42,9 +43,11 @@ handoff describes — figure out why before trusting the rest of this file.
 - **Structured Glossary Processing** — Implemented in Phase 5 via `mdook/core/rules/glossary.py`
   (Rule 9.6), structuring glossary entries into clean `**Term** — Definition` paragraphs,
   preserving letter dividers (`## A`, `## B`), and rejoining hyphenated multi-line definitions.
+- **Headless CLI Command** — Implemented in Phase 5 via `mdook/cli.py`, supporting
+  `mdook convert <pdf...> -o <vaults/>` with Rich progress bars and validation tables.
 - **~2,800 lines across 9 docs in `Mdook-docs/`**, all current as of
   2026-09-06 — see the reading order below.
-- **260 tests, `ruff` clean**, as of the same date.
+- **268 tests, `ruff` clean**, as of the same date.
 
 
 ---

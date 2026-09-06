@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Headless CLI Command (`mdook convert`)**:
+  - Implemented standalone command-line interface in `mdook/cli.py` with entry point `mdook` / `python -m mdook`.
+  - Added `convert` subcommand supporting single or multi-PDF conversion with custom output directories (`-o`), profiles (`-p literature|technical`), and AI review flags (`--ai`, `--ai-model`, `--ai-base-url`, `--ai-api-key`).
+  - Added real-time progress feedback via `rich.progress.Progress` and detailed tabular validation summaries with `rich.table.Table`.
+  - Added shorthand command execution (`mdook book.pdf -o ./vaults/`).
+  - Added environment-aware dispatch: opens the desktop GUI when run without arguments on graphical displays, and prints CLI help in headless environments.
 - **Structured Glossary Processing (Rule 9.6)**:
   - Added deterministic term-definition pair detection for back-matter glossary sections via `mdook/core/rules/glossary.py`.
   - Multi-signal detection supporting font-styling cues (bold terms), delimiter conventions (`Term: Definition`, `Term — Definition`, `Term – Definition`), and geometric hanging indents.

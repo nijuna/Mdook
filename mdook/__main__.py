@@ -1,20 +1,14 @@
-"""Entry point: `python -m mdook` launches the GUI."""
+"""Entry point for `python -m mdook` and the `mdook` console command."""
 
 from __future__ import annotations
 
 import sys
 
+from mdook.cli import run_cli
+
 
 def main() -> None:
-    from PySide6.QtWidgets import QApplication
-
-    from mdook.gui.window import MainWindow
-
-    app = QApplication(sys.argv)
-    app.setApplicationName("Mdook")
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+    sys.exit(run_cli(sys.argv[1:]))
 
 
 if __name__ == "__main__":
