@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-09-07
 
 ### Added
+- **Multi-Format Input Support (Phase 4)**:
+  - **EPUB3 / EPUB2 Ingestion (`mdook/core/formats/epub.py`)**:
+    - Ingests `.epub` archives directly into `DocumentTree` and `BookManifest`, bypassing PDF-specific extraction and heuristics.
+    - Full container parsing using `ebooklib` and `BeautifulSoup4` (OPF manifest/spine, Dublin Core metadata, nav.xhtml / toc.ncx navigation documents).
+    - Direct semantic mapping of XHTML tags: `<h1>`–`<h6>` (chapter & section hierarchy), `<p>` (paragraphs with bold, italic, code, links), `<blockquote>` (with attributions), `<ul>`/`<ol>` (lists with items), `<table>` (tables with merged-cell complexity detection), `<pre>`/`<code>` (code blocks), `<img>` (image references), `<aside>` (callouts), and `<math>` (formal notation).
+    - EPUB3 footnote extraction (`epub:type="footnote"` / `epub:type="noteref"` and `<a href="#fn...">`) mapped into bidirectional footnotes.
+    - Embedded image extraction to temporary cache with automatic Stage 4 attachment copying.
+  - **DOCX Manuscript Ingestion (`mdook/core/formats/docx.py`)**:
+    - Ingests Word `.docx` manuscripts directly into `DocumentTree` and `BookManifest` using `python-docx` and OpenXML ZIP parsing.
+    - Maps Word paragraph styles: Heading 1 (chapter boundary or front/back matter), Heading 2–6 (section hierarchy), Quote / Intense Quote (blockquotes), List Bullet / List Number (lists), Code / Preformatted (code blocks).
+    - Extracts run-level inline formatting (bold, italic, strikethrough, monospace fonts, hyperlinks).
+    - Extracts Word tables into `TableData` with merged cell (`gridSpan`, `vMerge`) complexity classification.
+    - Extracts embedded drawings/blips into `ImageRef` and attachments.
+    - Extracts Word footnotes from `word/footnotes.xml` (`<w:footnoteReference>`) into `Footnote` objects.
+  - **Pipeline Routing**:
+    - `mdook.core.pipeline.convert()` dynamically routes based on file extension (`.pdf`, `.epub`, `.docx`), feeding into Stage 4 (Rendering) and Stage 5 (Validation) with zero format-specific changes in Stages 4 & 5.
+- **Profile Auto-Detection**:
+  - Implemented heuristic profile classifier (`mdook/core/rules/profiles.py`) evaluating table density, numbered section headings (`1.1`, `1.2.3`), monospaced code blocks, and math notation density.
+  - Automatically resolves `literature` vs `technical` profile when `--profile auto` or `auto` is specified.
+  - Added "Auto-Detect" option as the default profile in the PySide6 desktop GUI dropdown.
+  - Supported `-p/--profile {auto,literature,technical}` in the headless CLI (default: `auto`).
 - **Headless CLI Command (`mdook convert`)**:
   - Implemented standalone command-line interface in `mdook/cli.py` with entry point `mdook` / `python -m mdook`.
   - Added `convert` subcommand supporting single or multi-PDF conversion with custom output directories (`-o`), profiles (`-p literature|technical`), and AI review flags (`--ai`, `--ai-model`, `--ai-base-url`, `--ai-api-key`).

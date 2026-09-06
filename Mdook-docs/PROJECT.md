@@ -74,84 +74,46 @@ The goal is not pixel fidelity. It is semantic fidelity — preserving the struc
 
 ## Build Phases
 
-**This section is superseded by `Mdook-docs/ROADMAP.md`, which is the
-current, actively-maintained phase tracker with real completion status.**
-The original 4-phase sketch below is kept for historical context only —
-don't treat it as current; `ROADMAP.md` has since grown to 6 phases plus a
-completed 6-batch gap-filling program (Batches 14-19) that this sketch
-never anticipated.
+Detailed task and milestone tracking is maintained in `Mdook-docs/ROADMAP.md`:
 
-### Phase 1 — Literary Books with Text Layer *(done)*
-### Phase 2 — Technical Profile *(done)*
-### Phase 3 — OCR Fallback *(done, via Tesseract — see `STACK.md`)*
-### Phase 4 — Polish & Edge Cases *(originally planned here; in `ROADMAP.md` this became Batches 14-19, now complete, plus a still-open Phase 5)*
+- **Phase 1 — Literary Books with Text Layer** *(Complete)*
+- **Phase 2 — Technical Profile** *(Complete)*
+- **Phase 3 — OCR Fallback (Tesseract CPU Engine)** *(Complete)*
+- **Phase 4 — Multi-Format Input Support (EPUB3 & DOCX)** *(Complete)*
+- **Phase 5 — Polish & Edge Cases (AI Review, Poetry, Glossaries, Dedicated Back-Matter)** *(Complete)*
+- **Phase 6 — Distribution (Obsidian Plugin & Packaging)** *(Future)*
 
 ---
 
 ## Success Metrics
 
-- A converted book is readable *as a book* — you'd actually sit and read it in Obsidian, not just search it
-- An AI given a chapter file can discuss its content without confusion from formatting artifacts
-- The tool handles structural variety (chapters, modules, parts, named sections, unnumbered divisions) without hardcoded assumptions about what books "should" look like
-- The GitHub repo earns genuine engagement (stars, issues, PRs) from the Obsidian/PKM community — not yet applicable, no repo exists yet
+- A converted book is readable *as a book* — comfortable for human reading in Obsidian, not just searching.
+- An AI given a chapter file can reason over its content without confusion from layout artifacts.
+- The tool handles structural variety (chapters, modules, parts, named sections, unnumbered divisions) without hardcoded assumptions about what books "should" look like.
+- Open-source health: clean tests, comprehensive documentation, and straightforward local installation.
 
 ---
 
-## Vision Discussion — What's Left (as of 2026-09-04)
+## Future Extensions & Vision
 
-Beyond `ROADMAP.md`'s Phase 5 (polish) and Phase 6 (distribution ideas),
-active discussion is underway on:
-
-- **Multi-format input** — EPUB3 first (already scoped as Phase 4 in
-  `ROADMAP.md`, deliberately deferred until Phase 5 and a GitHub push are
-  done), with the `DocumentTree` abstraction meant to make a second format
-  a real test of whether it's genuinely format-agnostic.
-- **AI/LLM integration, broadened to OpenAI-compatible APIs** — the
-  original "AI structure review" idea (`ROADMAP.md` Phase 5) named Claude
-  API or local Ollama specifically. Direction now under discussion:
-  target the OpenAI-compatible chat-completions API shape generically
-  (base URL + API key + model name, configurable) instead of a
-  provider-specific client, since OpenAI itself, Ollama, LM Studio, vLLM,
-  Groq, and most local inference servers all speak that same shape — one
-  HTTP client covers all of them with no extra dependency per provider.
-- **Long-term testing and improvement** — an ongoing practice, not a
-  single feature: keep growing the real-book test library (`ROADMAP.md`'s
-  "Testing Strategy" section) as new edge cases turn up, the same way
-  every batch so far has been real-book-verified, not just unit-tested.
-- **Website / hosted service support** — revisits the "Phase 3 — Web
-  Service" idea above (upload a PDF, get a vault back). Not yet scoped in
-  detail; worth a dedicated design pass before committing to it, since it
-  implies real infrastructure (hosting, storage, possibly billing) that
-  the rest of this project doesn't need.
-- **Visual "presentation templates" for the rendered vault** — a newer
-  idea, not yet designed: rendering a book into more visually distinctive
-  Obsidian notes (via CSS snippets and/or richer use of Obsidian's own
-  markdown extensions) rather than the current plain, uniformly-styled
-  output, for both Obsidian and the user's own custom Obsidian-like
-  application. This has a real tension with this project's founding
-  principle — "efficient for AI models to reason about without wasting
-  tokens on layout noise" — that needs to be resolved deliberately, not
-  accidentally: the leaning discussed so far is to keep the plain,
-  semantic markdown as the non-negotiable default output, and add any
-  visual theming as a strictly optional, additive layer (e.g. a companion
-  CSS snippet file shipped alongside the vault) rather than embedding
-  heavy inline HTML/CSS into the content itself. Not yet started; revisit
-  once the target application's actual rendering capabilities (does it
-  support CSS snippets? custom markdown syntax? plain HTML embeds?) are
-  known.
+- **Obsidian Plugin Wrapper**: A lightweight Obsidian community plugin to trigger conversions directly within an existing vault.
+- **Visual Presentation Templates**: Optional CSS snippets bundled alongside the vault for customized typography themes without cluttering markdown bodies with inline HTML.
+- **Recursive Directory Batching**: CLI and GUI capabilities to ingest entire folders or multi-level directories of books.
+- **Hosted / Web Conversion**: An optional headless web service endpoint for remote book conversion workflows.
 
 ---
 
 ## Project Status
 
-**Release 0.2.0:** Phases 1–3 and Phase 5 core polish items are complete:
-- **5-Stage Ingestion & Rendering Pipeline**: PDF validation, layout extraction, deterministic font-clustering heading hierarchy, chapter segmentation, Obsidian vault generation, and validation auditing.
-- **Rich Book Typography & Semantics**: Footnotes and endnotes with block anchors, numeric citation-to-bibliography links, Obsidian callout boxes (`> [!note]`), MathJax equations (`$$...$$`), table extraction via `pdfplumber`, caption association, and RTL script reading order.
+**Release 0.2.0:** Multi-format book conversion engine:
+- **Multi-Format Input Support**: Ingests PDF documents, EPUB3 / EPUB2 publications, and Word DOCX manuscripts into a unified `DocumentTree` contract.
+- **Profile Auto-Detection**: Heuristic signal classifier evaluating table density, numbered headings (`1.2.3`), code blocks, and math density.
+- **Rich Book Typography & Semantics**: Footnotes and endnotes with block anchors, numeric citation-to-bibliography links, Obsidian callouts (`> [!note]`), MathJax equations (`$$...$$`), table extraction with merged-cell complexity classification, caption association, and RTL script reading order.
 - **Hybrid OCR Fallback**: Automated per-page text-quality evaluation routing scanned pages to Tesseract OCR with fuzzy header deduplication.
-- **OpenAI-Compatible AI Structure Review**: Zero-dependency outline review supporting local (Ollama, LM Studio, vLLM) and cloud models (Groq, OpenAI, DeepSeek).
+- **OpenAI-Compatible AI Structure Review**: Zero-dependency outline review supporting local (Ollama, LM Studio, vLLM) and cloud providers (Groq, OpenAI, DeepSeek).
 - **Poetry & Verse Preservation (Rule 9.2)**: Exact lineation preservation with markdown double trailing spaces, blockquote rendering, stanza spacing clustering, and author attributions.
 - **Dedicated Back-Matter Files & Structured Glossaries (Rule 9.6)**: Split back-matter files (`Notes.md`, `Bibliography.md`, `Glossary.md`, `Appendix.md`) with term-definition parsing and alphabetical dividers (`## A`, `## B`).
 - **Desktop GUI & Headless CLI**: PySide6 dark/light interface with drag-and-drop queue, paired with a standalone headless CLI (`mdook convert`) featuring Rich terminal progress bars and validation tables.
-- **Quality & Testing**: 268 tests passing, clean Ruff linting, active Git repository with continuous integration.
+- **Quality & Testing**: 283 unit and integration tests passing, clean Ruff linting, active Git repository with continuous integration.
 
 See `Mdook-docs/ROADMAP.md` for phase-by-phase task tracking, and `Mdook-docs/RULES.md` for the semantic detection rules catalog.

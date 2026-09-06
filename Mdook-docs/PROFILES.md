@@ -12,27 +12,24 @@ Mdook uses processing profiles to tune its heuristics for different book types. 
 
 ### GUI Dropdown (Always Wins)
 
-The Profile dropdown in the main window (Literature / Technical) sets
-`BookManifest.profile` for the conversion. There is no config-file or
-command-line override today — see the update note above.
+The Profile dropdown in the main window (Auto-Detect / Literature / Technical) sets
+`BookManifest.profile` for the conversion. The headless CLI supports `-p/--profile {auto,literature,technical}`
+(defaulting to `auto`).
 
 ### Auto-Detection (Default when no explicit choice is made)
 
-**Not implemented.** `mdook.core.stages.intake.run_intake` uses the
-caller-supplied profile as-is, defaulting to `literature` — see
-`ROADMAP.md` Phase 5's "Profile auto-detection" item. The table below
-describes the intended future signal set, not current behavior:
+Implemented via `mdook/core/rules/profiles.py`. When `profile="auto"`, `mdook.core.stages.intake.run_intake`
+(and the EPUB/DOCX ingestion modules) evaluate structural signals across the document:
 
 | Signal                                        | Literature | Technical |
 | --------------------------------------------- | ---------- | --------- |
 | Table density (tables per 100 pages)          | < 2        | ≥ 2       |
 | Numbered section headings (1.1.2 pattern)     | Absent     | Present   |
 | Figure/table captions ("Figure X", "Table X") | Rare       | Frequent  |
-| Footnotes per chapter                         | Higher     | Lower     |
-| Multi-column pages                            | < 5%       | ≥ 5%      |
+| Monospaced code blocks / syntax keywords      | Absent     | Present   |
 | Math symbols / equations                      | Absent     | Present   |
 
-If signals are mixed, default to `literature` — it's the safer, less aggressive profile.
+If signals are mixed or inconclusive, Mdook defaults to `literature` — it is the safer, less aggressive profile.
 
 ---
 

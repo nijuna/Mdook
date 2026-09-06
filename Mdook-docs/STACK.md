@@ -66,13 +66,11 @@ pip install pydantic
 
 ## OCR Engines (Fallback Path — Phase 3)
 
-These are only invoked when a page has no usable text layer.
-
-> **Update: implemented with Tesseract, not Marker.** Phase 3 was planned and built with the user directly (see the discussion preserved in the project's conversation history / `/home/azzy/.claude/plans/federated-napping-toast.md`) once the target machine turned out to be CPU-only, no GPU. Two things drove the choice away from this section's original recommendation:
-> 1. **Hardware.** Marker's models (PyTorch, built on Surya) run noticeably slower on CPU than GPU — usable, but a real cost for a personal library with many scanned books.
-> 2. **Schema fit.** Tesseract's plain word-plus-bounding-box output (via `pytesseract`) maps almost directly onto Mdook's own `TextBlock` model, so an OCR'd page becomes "a noisier native page" to the *existing* Stage 2/3 rule pipeline rather than a second structural format needing its own reconciliation logic. This directly contradicts this section's "What We're NOT Using" table further down, which argued *against* raw Tesseract for exactly the layout-understanding reasons that turned out to be a non-issue once the normalize-to-`TextBlock` design was chosen.
+> **Implementation Decision: Tesseract (CPU-first).** Mdook implements OCR using Tesseract via `pytesseract` (`mdook/core/rules/ocr.py`) rather than heavy deep-learning layout models. Two primary reasons drove this architecture:
+> 1. **Hardware portability:** Runs efficiently on standard CPUs without requiring GPU dependencies or PyTorch runtimes.
+> 2. **Schema fit:** Tesseract's word-level bounding box output maps directly into Mdook's `TextBlock` model, allowing Stage 3's semantic rules (headings, footnotes, tables, columns) to run unchanged on OCR-processed pages.
 >
-> Implemented in `mdook/core/rules/ocr.py` (Tesseract wrapper + `TextBlock` normalization) and `mdook/core/rules/text_quality.py` (the per-page quality score below, built as planned). Marker remains a reasonable *optional* engine for a future session with GPU access, and the "trust the OCR/layout tool's own structure" idea below is preserved as a deliberately deferred enhancement (see `Mdook-docs/ROADMAP.md`'s Phase 3 section) — not abandoned, just not built yet.
+> Implemented in `mdook/core/rules/ocr.py` (Tesseract wrapper + `TextBlock` normalization) and `mdook/core/rules/text_quality.py` (per-page text quality assessment).
 
 ### Marker (Primary Recommendation)
 **Role:** Deep-learning OCR with layout understanding.

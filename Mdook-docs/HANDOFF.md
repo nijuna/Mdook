@@ -136,42 +136,12 @@ right and the doc needs fixing — that's true even of this file eventually.
   least one real-book (or realistic synthetic) check before considering
   it done. A passing unit test on invented data is not the same claim as
   "this works."
-- **Batches, not files.** Work was scoped into small, independently
-  testable batches (see `ROADMAP.md`'s "Batches 14-19" section for the
-  clearest example) — each one lands with its own tests, its own
-  real-book verification, and its own doc updates, rather than large
-  unreviewed changes.
-- **Docs get updated in the same batch as the code**, not after the fact
-  in bulk. If you build something, update the relevant `RULES.md` section
-  (or add a new numbered section, following the existing pattern) and
-  `ROADMAP.md`'s checklist in the same piece of work.
+- **Incremental development.** Work is scoped into small, independently testable units — each landing with its own tests, its own verification, and its own doc updates.
+- **Documentation integrity.** When adding or modifying rules or features, keep `RULES.md` and `ROADMAP.md` synchronized in the same change.
 
 ---
 
-## Open questions the user still needs to answer (don't assume)
+## Future Design Considerations
 
-From `PROJECT.md`'s "Vision Discussion" section, as of 2026-09-04:
-
-1. **Visual presentation templates** — the user wants to explore making
-   converted books render more visually distinctively (CSS/HTML-based
-   "themes") for Obsidian and their own custom Obsidian-like app. This is
-   explicitly *not yet designed*, and has a real, acknowledged tension
-   with the project's founding principle of staying maximally AI-readable
-   (heavy inline HTML/CSS makes markdown noisier for a model to parse).
-   The recommended direction so far — keep plain semantic markdown as the
-   default, add theming as an optional companion layer (e.g. a separate
-   CSS snippet file) rather than embedding it in content — is a
-   *recommendation*, not a decision. **Genuinely blocking question:** what
-   does the user's custom Obsidian-like app actually support rendering-
-   wise (CSS snippets? its own markdown extensions? raw HTML embeds?).
-   Ask before designing anything here.
-2. **Website/hosted service support** — revisits `PROJECT.md`'s original
-   "Phase 3 — Web Service" idea. The user said "maybe" and wanted to
-   discuss it further; it hasn't been decided whether this is still
-   wanted or just legacy content from the pre-implementation plan.
-3. **OpenAI-compatible LLM API** — this one *is* a settled direction (not
-   open): generalize the "AI structure review" idea beyond Claude/Ollama
-   to any OpenAI-compatible chat-completions endpoint (configurable base
-   URL + API key + model name), so one HTTP client covers OpenAI, Ollama,
-   LM Studio, vLLM, Groq, etc. Not implemented yet, but the shape is
-   agreed — just needs building.
+1. **Visual presentation templates** — Rendering books into visually distinctive Obsidian notes (via CSS snippets or Obsidian markdown extensions) rather than plain semantic output. The recommended direction is keeping semantic markdown as the clean default and providing visual styling via companion CSS snippets in the vault.
+2. **Website / hosted service support** — Providing an upload endpoint and conversion queue as an optional deployment option.

@@ -68,13 +68,11 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
   
   5. Require at least a 1.5pt difference between tiers to count as distinct. Tiers within 1pt are merged.
 
-> **Update: two real behaviors added that this rule doesn't mention at all, both found through real books, not anticipated in the plan.**
-> 1. **Body-zone scoping.** Step 1's "all text blocks" is now specifically all text blocks in the `body` zone (per Rule 1's update above) for the font-clustering path — bookmark-based heading detection (Rule 2.1) stays whole-book, since it doesn't need this and bookmarks are already authoritative.
-> 2. **Chapter-tier selection.** "Tier 1 → H1 candidate" assumes the largest font tier is always the chapter-heading tier. A real book (a lucid-dreaming guide) broke that: its single largest-tier text turned out to be a stray oversized page number, with all 18 real chapter headings one tier down — blindly using tier 1 collapsed the whole 200-page book into one chapter. Fixed by picking the *smallest* tier with at least 2 occurrences as the chapter tier, falling back to tier 1 only if nothing qualifies (`mdook/core/stages/semantic.py`'s `_pick_chapter_tier`).
->
-> Also: sub-heading nesting. Whatever tier(s) aren't chosen as the chapter tier aren't just discarded — they nest into the chapter as real sub-`Section`s (H2/H3 in the rendered file), which this Goal statement's mention of "sub-headings" implies but never actually specifies a mechanism for.
->
-> **Batch 14 addendum:** implementing Part/Book/Volume support (see section 13 below) surfaced a real gap in "pick the smallest tier with enough occurrences" itself — a genuine Parts tier (say, 2 parts) and a genuine Subheadings tier one level below a genuine Chapters tier (say, 40 subheadings) are statistically identical shapes ("a smaller-count tier sitting above a larger-count one"), so the existing rule could not tell "2 Parts, 4 Chapters" apart from a normal "4 Chapters, 40 Subheadings" book — it would have quietly mis-picked the Parts tier as chapter_level in the former case. Fixed by gating tier selection on the heading text itself: a tier is only skipped as "Parts, not chapters" if its own headings actually read like Part/Book/Volume labels (`mdook/core/stages/semantic.py`'s `PART_LABEL_RE`/`_looks_like_part_tier`), the same English-keyword-gated approach `CHAPTER_LABEL_ONLY_RE` already uses elsewhere in this file.
+> **Implementation details:**
+> 1. **Body-zone scoping.** Text blocks are analyzed specifically within the `body` zone for the font-clustering path; bookmark-based heading detection (Rule 2.1) operates whole-book.
+> 2. **Chapter-tier selection.** Rather than assuming the single largest font tier is always the chapter heading, Mdook picks the smallest tier with at least 2 occurrences as the chapter tier, falling back to tier 1 only if nothing qualifies (`mdook/core/stages/semantic.py`'s `_pick_chapter_tier`).
+> 3. **Sub-heading nesting.** Tiers not chosen as the chapter tier nest as sub-sections (`H2`/`H3`).
+> 4. **Part/Book tier gating:** A tier is only skipped as "Parts, not chapters" if its headings match Part/Book/Volume patterns (`PART_LABEL_RE` / `_looks_like_part_tier`), ensuring true multi-part divisions are preserved above chapters.
 
 ### Rule 2.3 — Positional Confirmation
 
@@ -87,9 +85,9 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
   - Is bold, uppercase, small-caps, or uses a different font family than body text
 - **Failure mode:** Chapter titles that appear mid-page (some literary books don't start chapters on new pages). Lower the positional requirement for H2/H3 — only H1 should strongly prefer page-top.
 
-> **Update: a different failure mode than the one predicted above, found converting a real scanned book (Phase 3/OCR).** Not mid-page chapter titles — the opposite: an *ordinary body line* getting confirmed as a heading. OCR font size (`mdook/core/rules/ocr.py`) is approximated from each line's own bbox height, which jitters several points from plain ascender/descender variation — an unlucky tall line coincidentally tier-matched into Rule 2.2's heading clusters purely by chance. Once that happens, this rule's other signals don't help: "top 30% + short + first-on-page" are satisfied by nearly any short first line of a physically scanned page, and `is_bold` is always False for OCR text (Tesseract exposes no style flags), so the "bold, uppercase, ... " signal degrades to uppercase-only. Real chapter/section titles are near-universally uppercase in practice, so `mdook/core/stages/../rules/headings.py`'s `_confirm_heading` now makes uppercase *mandatory* (not just one of several) whenever `PageData.was_ocrd` is true — trading a rare missed heading for no longer corrupting chapter structure with mid-sentence OCR garbage as a title.
->
-> **Batch 18 addendum:** the uppercase-mandatory rule above has no way to fire correctly on a case-less script (CJK, Arabic, Hebrew, Devanagari, Thai) — `str.isupper()` is always False for text made of those characters (Python's Unicode database assigns them no case property at all), so the guard would reject *every* heading candidate on an OCR'd case-less-script page, not just the noisy ones it was built for. Fixed with a script-aware exception (`mdook/core/rules/scripts.py`'s `is_caseless_text`): a case-less-script candidate falls back to the plain signal-count threshold instead. Justified beyond just "uppercase doesn't exist there": the ascender/descender jitter this guard exists to catch is largely Latin-specific in the first place — CJK ideographs occupy a uniform em-box with nothing to vary line height, so the original failure mode barely applies to them regardless.
+> **OCR & Script Considerations:**
+> - On OCR-processed pages (`PageData.was_ocrd`), font height variation from ascenders/descenders can produce false heading candidates. In `_confirm_heading`, uppercase is mandatory when `was_ocrd` is true.
+> - For caseless scripts (CJK, Arabic, Hebrew, Devanagari, Thai) where `str.isupper()` does not apply (`mdook/core/rules/scripts.py`'s `is_caseless_text`), this guard is exempted, falling back to signal-count scoring.
 
 ### Rule 2.4 — Numbered Section Detection (Technical Profile)
 
@@ -274,14 +272,14 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Condition:** A page region contains PDF drawing operators (paths, fills) but no extracted image covers that region. The region is larger than 50×50 points.
 - **Action:** Rasterize just that region of the page at 300 DPI. Save as PNG.
 
-> **Update: implemented in Batch 16, with one real design decision beyond what's specified above.** `page.get_drawings()` returns one rect *per individual path* (a flowchart's two boxes and connecting line are three separate rects, not one), so a real diagram needs its pieces clustered into a single region first. Initial version used a single greedy pass (each rect joins the first existing cluster it's close to); a synthetic two-box-plus-connecting-line test caught that this fails exactly the ordinary flowchart case — the line touches both boxes but was only checked against clusters that existed *before* it was processed, so the two boxes never merged. Fixed with proper union-find clustering over all pairwise-close rects (`mdook/core/rules/images.py`'s `cluster_drawing_regions`), which handles transitive bridging correctly. A resulting region is excluded if it overlaps an already-extracted raster image *or* a detected table's bbox — tables are drawn with vector gridlines too, and would otherwise get rasterized as a spurious duplicate of themselves.
+> **Implementation details:** `page.get_drawings()` returns one rect *per individual path* (a flowchart's two boxes and connecting line are three separate rects, not one), so diagrams have their pieces clustered into a single region using union-find clustering over all pairwise-close rects (`mdook/core/rules/images.py`'s `cluster_drawing_regions`). A resulting region is excluded if it overlaps an already-extracted raster image *or* a detected table's bbox, preventing vector gridlines from rasterizing duplicate tables.
 
 ### Rule 7.3 — Caption Association
 
 - **Condition:** A text block within 30pt vertically of an image's bounding box matches patterns: "Figure \d+", "Fig. \d+", "Diagram \d+", "Illustration", or is italic/smaller text directly below the image
 - **Action:** Associate as the image's caption. Use figure number for filename: `fig-3-2.png`
 
-> **Update: implemented in Batch 16.** `mdook/core/rules/images.py`'s `find_caption` checks both below *and* above an image (some books set plate captions above, not just below), matching a fixed English label set (Figure/Fig./Diagram/Illustration/Plate) rather than a style-based signal (italic/smaller text was dropped as a primary signal — too easy to collide with ordinary body text set the same way). The matched caption `TextBlock` is removed from the page's ordinary text flow once captured, the same pattern already used for footnote definitions, so the caption doesn't render twice (once as a stray paragraph, once as the image's own caption line). The figure-number-based filename (`extract_figure_number`) is used when a caption has one; otherwise falls back to the original chapter/index-based scheme (`mdook/core/stages/semantic.py`'s `_figure_id`).
+> **Implementation details:** `mdook/core/rules/images.py`'s `find_caption` checks both below *and* above an image (accommodating plate captions set above), matching a fixed label set (Figure/Fig./Diagram/Illustration/Plate). The matched caption `TextBlock` is removed from the page's ordinary text flow to prevent duplicate paragraphs. The figure-number-based filename (`extract_figure_number`) is used when available, falling back to chapter/index-based schemes (`mdook/core/stages/semantic.py`'s `_figure_id`).
 
 ### Rule 7.4 — Decorative Image Filtering
 
@@ -317,7 +315,7 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Action:** Treat as a column-spanning element (typically a heading or figure). Process it at the y-position where it appears, before continuing with the columns below it.
 - **Extended in practice:** images and tables are treated as spanning anchors too, purely by vertical position — Rule 8.1/8.2's text doesn't classify them by column membership at all, so they always interrupt the reading order rather than risk being folded into the wrong column. Implemented and confirmed against a real 2-column dictionary in the user's collection: reordered output read as one coherent alphabetical sequence end to end.
 
-> **Update (Batch 18): column order is right-to-left when the page's dominant script is RTL.** Rule 8.1's "concatenate columns left-to-right" assumed Latin-style reading direction unconditionally. `mdook/core/rules/scripts.py`'s `page_is_rtl` checks each page's own text against the Hebrew/Arabic Unicode ranges (checked per page, not whole-book, so a hybrid book doesn't force one direction everywhere), and `reorder_columns` reverses which column is read first — each column's own internal top-to-bottom order is unaffected either way. A page whose lines are flagged vertical-writing-mode (traditional CJK typesetting, via PyMuPDF's per-line `wmode`) skips column reordering entirely instead — full vertical-layout reading order is out of scope; see section 16.
+> **RTL script handling:** Rule 8.1's "concatenate columns left-to-right" applies to Latin and LTR scripts. When a page's dominant script is RTL (`mdook/core/rules/scripts.py`'s `page_is_rtl`), `reorder_columns` reverses the reading order to right-to-left while preserving internal column top-to-bottom order. Vertical writing mode pages skip column reordering.
 
 ### Rule 8.3 — Literature Profile Shortcut
 
@@ -444,7 +442,7 @@ Tuning: More lenient heading detection (technical books vary more in layout), ta
 
 ---
 
-## 13. Structural Divisions & Callout Boxes *(new — Batch 14, `Mdook-docs/BOOK_ELEMENTS.md` section 2.1/3.3, Tier A; not in the original plan)*
+## 13. Structural Divisions & Callout Boxes
 
 ### Rule 13.1 — Part/Book/Volume Division
 
@@ -466,7 +464,7 @@ Tuning: More lenient heading detection (technical books vary more in layout), ta
 
 ---
 
-## 14. Citation-to-Bibliography Linking *(new — Batch 15, `Mdook-docs/BOOK_ELEMENTS.md` section 9, Tier A; not in the original plan)*
+## 14. Citation-to-Bibliography Linking
 
 ### Rule 14.1 — Numeric Citation Detection & Linking
 
@@ -480,7 +478,7 @@ Tuning: More lenient heading detection (technical books vary more in layout), ta
 
 ---
 
-## 15. Mathematics & Formal Notation *(new — Batch 17, `Mdook-docs/BOOK_ELEMENTS.md` section 7, Tier B; not in the original plan)*
+## 15. Mathematics & Formal Notation
 
 **Goal, and its explicit limit:** handle the *text-layer* math case — Unicode math symbols already present in extracted text (Word-equation-editor exports, OCR'd math via Tesseract's Latin+symbol recognition, older typeset technical books). A PDF built from real LaTeX frequently draws equations as vector paths or Type3 glyph shapes with no extractable Unicode at all; recovering semantic math from a pure vector drawing is out of scope (a specialized tool in its own right, e.g. Mathpix/pix2tex, not a generic heuristic rule) — the region still gets rasterized as an ordinary image via Rule 7.2.
 
@@ -514,7 +512,7 @@ Tuning: More lenient heading detection (technical books vary more in layout), ta
 
 ---
 
-## 16. Non-Latin Script & Vertical-Text Robustness *(new — Batch 18, `Mdook-docs/BOOK_ELEMENTS.md` section 14; not in the original plan)*
+## 16. Non-Latin Script & Vertical-Text Robustness
 
 **Goal:** make the existing structural rules (columns, headings) behave correctly — or at minimum not corrupt content — for RTL, case-less, and vertically-typeset scripts, without inventing genre/language-specific shortcuts. This section documents robustness fixes to *existing* rules (8 and 2.3, both updated above) plus one new detect-and-don't-corrupt behavior.
 
@@ -524,7 +522,7 @@ See Rule 8.1's update above. `mdook/core/rules/scripts.py`'s `page_is_rtl` check
 
 ### Rule 16.2 — Case-Less Script Heading Confirmation
 
-See Rule 2.3's Batch 18 addendum above. `mdook/core/rules/scripts.py`'s `is_caseless_text` exempts CJK/Arabic/Hebrew/Devanagari/Thai text from the OCR-page uppercase-mandatory gate.
+See Rule 2.3's OCR & Script Considerations above. `mdook/core/rules/scripts.py`'s `is_caseless_text` exempts CJK/Arabic/Hebrew/Devanagari/Thai text from the OCR-page uppercase-mandatory gate.
 
 ### Rule 16.3 — Vertical Text Detection (Detect-and-Don't-Corrupt)
 
@@ -536,9 +534,9 @@ See Rule 2.3's Batch 18 addendum above. `mdook/core/rules/scripts.py`'s `is_case
 
 ---
 
-## 17. Pathological PDF Robustness *(new — Batch 19, `Mdook-docs/BOOK_ELEMENTS.md` section 16; not in the original plan)*
+## 17. Pathological PDF Robustness
 
-**Goal:** handle corrupt, encrypted, oversized, or degenerate real-world PDFs regardless of subject/language — the last of the six gap-filling batches (14-19).
+**Goal:** Handle corrupt, encrypted, oversized, or degenerate real-world PDFs regardless of subject or language.
 
 ### Rule 17.1 — Encrypted PDF Detection
 
@@ -552,13 +550,13 @@ See Rule 2.3's Batch 18 addendum above. `mdook/core/rules/scripts.py`'s `is_case
 
 `mdook/core/errors.py`, `mdook/core/stages/intake.py`.
 
-### Rule 17.3 — CID-Keyed Fonts / Mojibake (Verified, No Change Needed)
+### Rule 17.3 — CID-Keyed Fonts / Mojibake
 
-Investigated per this batch's plan and confirmed already correctly scoped: `mdook.core.rules.text_quality`'s `SUSPICIOUS_CHAR_RE` already catches the replacement-character/private-use-area corruption signature and routes it through the existing per-page OCR fallback (Batches 11-12) — no new code needed. The *other* CID-font failure mode — glyphs that map to other *valid* characters ("^", "AWOKE", a bare "H", per this module's own docstring) rather than replacement/PUA codepoints — is not detectable from character validity alone by construction, and was already fixed at the structural level in earlier real-book testing (chapter-tier selection, TOC-page hardening) rather than as a per-page OCR-routing signal. Building real mojibake detection would need dictionary/language-model-level validation, a materially different (and much heavier) kind of check than anything else in this rule set, not attempted here.
+`mdook.core.rules.text_quality`'s `SUSPICIOUS_CHAR_RE` catches the replacement-character/private-use-area corruption signature and routes it through the per-page OCR fallback. Glyphs mapping to other valid characters are handled at the structural level via chapter-tier selection and TOC-page hardening.
 
 ### Rule 17.4 — Very Large PDFs
 
-- **Action:** Log an informational note at intake once a book reaches 1000 pages, so an unusually slow conversion (especially one needing heavy OCR) has an explanation up front. Not a hard limit, and no extraction-path rewrite — `mdook/core/rules/headers_footers.py`'s fuzzy-clustering (Batch 13) and `mdook/core/rules/columns.py`'s per-page reordering were both spot-checked for anything quadratic in page count; neither is (clusters/columns stay small regardless of book length, so both are effectively linear in total blocks).
+- **Action:** Log an informational note at intake once a book reaches 1000 pages, so an unusually slow conversion (especially one needing heavy OCR) has an explanation up front. Algorithms for header/footer clustering and column reordering are linear in total blocks and scale reliably.
 
 `mdook/core/stages/intake.py`'s `LARGE_BOOK_PAGE_COUNT`.
 

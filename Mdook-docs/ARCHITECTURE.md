@@ -1,98 +1,65 @@
 # Architecture
 
-> **Rewritten 2026-09-04.** The original version of this file described the
-> project as planned before implementation started: a Typer CLI, a
-> Marker/pdf-craft OCR path, and a much smaller data model. None of that
-> matches what was actually built — the project became GUI-first
-> (`mdook/gui/`, PySide6) very early, the OCR engine ended up being
-> Tesseract (see `STACK.md`'s evolution note for why), and the data model
-> grew substantially across 19 implementation batches. Rather than layer
-> another dozen "**Update:**" callouts on a description that was wrong
-> in its bones, this file was rewritten from the real code — this is what
-> actually exists today. `RULES.md` and `STACK.md` still use the
-> preserve-and-annotate convention for their rule-by-rule/tool-by-tool
-> detail; read those for the "how did we get here" history. This file is
-> the current-state reference.
+Mdook is designed around a clean, typed contract architecture where pipeline stages
+produce and consume strongly typed Pydantic models (`mdook/core/models.py`).
+The system supports both deterministic PDF extraction through a 5-stage pipeline
+and direct structured ingestion for EPUB3 and DOCX formats into `DocumentTree`.
 
 ---
 
 ## Pipeline Overview
 
-Mdook processes a PDF through five sequential stages, each with a clear
-input/output contract (Pydantic models, `mdook/core/models.py`). No stage
-reaches back to modify an earlier stage's output.
+Mdook processes documents through a format-aware pipeline:
+
+- **PDF Documents**: Routed through the 5-stage sequential heuristic pipeline.
+- **EPUB3 Publications**: Directly parsed via `mdook/core/formats/epub.py` into `DocumentTree`.
+- **DOCX Manuscripts**: Directly parsed via `mdook/core/formats/docx.py` into `DocumentTree`.
+
+Stages 4 (Rendering) and 5 (Validation) consume `DocumentTree` and `BookManifest`
+identically across all input formats with zero format-specific branching.
 
 ```
-PDF File
+Input File (.pdf / .epub / .docx)
    │
-   ▼
-┌──────────────────────────┐
-│  Stage 1: INTAKE         │  mdook/core/stages/intake.py
-│                          │  → BookManifest (metadata + zone map + profile)
-└──────────────────────────┘
-   │
-   ▼
-┌──────────────────────────┐
-│  Stage 2: EXTRACTION     │  mdook/core/stages/extraction.py
-│                          │  → list[PageData] (text/image/table blocks,
-│                          │    OCR-routed per page where needed)
-└──────────────────────────┘
-   │
-   ▼
-┌──────────────────────────┐
-│  Stage 3: SEMANTIC       │  mdook/core/stages/semantic.py
-│          ANALYSIS        │  → DocumentTree (chapters → sections → content)
-└──────────────────────────┘
-   │
-   ▼
-┌──────────────────────────┐
-│  Stage 4: RENDERING      │  mdook/core/stages/rendering.py
-│                          │  → Markdown files + attachments (the vault)
-└──────────────────────────┘
-   │
-   ▼
-┌──────────────────────────┐
-│  Stage 5: VALIDATION     │  mdook/core/stages/validation.py
-│                          │  → ValidationReport (warnings, errors, stats)
-└──────────────────────────┘
-   │
-   ▼
-Obsidian Vault (output directory)
+   ├── [PDF] ──► Stage 1 (Intake) ──► Stage 2 (Extraction) ──► Stage 3 (Semantics)
+   │                                                                 │
+   ├── [EPUB] ─► ebooklib / bs4 Direct Mapping to DocumentTree ──────┤
+   │                                                                 │
+   └── [DOCX] ─► python-docx / OpenXML Direct Mapping to DocumentTree ┤
+                                                                     ▼
+                                                         Stage 4 (Vault Rendering)
+                                                                     │
+                                                                     ▼
+                                                         Stage 5 (Validation Audit)
+                                                                     │
+                                                                     ▼
+                                                         Obsidian Vault Output
 ```
 
-`mdook/core/pipeline.py`'s `convert()` orchestrates all five stages and
-reports progress via a plain `on_progress(percent, message) -> None`
-callback — the GUI (`mdook/gui/worker.py`'s `ConversionWorker`, a `QThread`)
-is the only thing that turns that into Qt signals. The core pipeline has no
-Qt dependency at all.
-
-Almost all of the actual *detection logic* — is this a heading, is this a
-citation, is this text right-to-left — lives in `mdook/core/rules/*.py`,
-one pure module per concern, with no I/O. The `stages/*.py` files are thin
-orchestrators that call into `rules/*.py` in the right order. See
-`RULES.md` for the full rule-by-rule catalog; this file only summarizes.
+`mdook/core/pipeline.py`'s `convert()` orchestrates the pipeline and reports progress
+via a plain `on_progress(percent, message) -> None` callback. Both the PySide6 GUI
+(`mdook/gui/worker.py`'s `ConversionWorker`) and the headless CLI (`mdook/cli.py`)
+consume this callback.
 
 ---
 
 ## Stage 1 — Intake (`mdook/core/stages/intake.py`)
 
-**Input:** PDF file path + optional profile override
+**Input:** PDF file path + optional profile override (`auto`, `literature`, `technical`)
 **Output:** `BookManifest`
 
 - Opens the PDF with PyMuPDF. Fails fast with a clear, typed error
   (`mdook.core.errors.EncryptedPDFError` / `CorruptPDFError`) rather than
-  producing garbage or an opaque traceback if the file is password-
-  protected or too damaged to read.
-- Samples pages to flag `needs_ocr` (a cheap whole-book estimate; the real
-  per-page OCR decision happens in Stage 2 — see Rule 4.1-style routing
-  below).
-- Extracts the PDF's own bookmark/outline tree (`doc.get_toc()`) — the
-  preferred source for heading hierarchy when it exists (`Mdook-docs/RULES.md`
-  Rule 2.1).
-- Detects zones (front matter / body / back matter) via
-  `mdook.core.rules.zones`.
-- Logs an informational note for very large books (1000+ pages) — not a
-  hard limit.
+  producing garbage or an opaque traceback if the file is password-protected or corrupt.
+- Samples pages to flag `needs_ocr` (a whole-book estimate; per-page OCR routing
+  occurs in Stage 2).
+- Extracts the PDF's own bookmark/outline tree (`doc.get_toc()`) — the preferred source
+  for heading hierarchy when available (Rule 2.1).
+- Detects zones (front matter / body / back matter) via `mdook.core.rules.zones`.
+- **Profile Auto-Detection (`mdook/core/rules/profiles.py`)**: When profile is `auto` (default),
+  evaluates structural signals across sampled pages (table density, numbered section headings
+  `1.1`, monospaced code blocks, and math symbol density) to automatically classify the document
+  as `technical` or `literature`.
 
 ```
 BookManifest:
@@ -106,10 +73,6 @@ BookManifest:
   bookmarks: list[Bookmark] | None
   metadata: dict[str, Any]        # ISBN, publisher, edition, etc.
 ```
-
-**Not implemented:** signal-based profile auto-detection (the table above
-in the original plan) — the caller-supplied profile is used as-is,
-defaulting to `literature`. See `Mdook-docs/ROADMAP.md` Phase 5.
 
 ---
 
@@ -191,7 +154,7 @@ PageData:
 **Output:** `DocumentTree`
 
 This is the brain of the pipeline — see `RULES.md` for the full ruleset
-(17 numbered rule sections as of Batch 19). Summary of what happens, in
+(17 numbered rule sections). Summary of what happens, in
 order:
 
 1. Drop-cap immunity, then heading detection — bookmark-based (trusted
@@ -414,44 +377,61 @@ Mdook/
 │   │   ├── worker.py            # ConversionWorker (QThread)
 │   │   ├── queue_manager.py     # QueueManager / QueueItem
 │   │   └── styles.py            # DARK_STYLE / LIGHT_STYLE
+│   │   ├── rules/               # 20 pure detection modules (headings, columns, tables, profiles, etc.)
+│   │   ├── stages/              # 5 pipeline stage orchestrators
+│   │   ├── formats/             # Non-PDF format ingestion (epub.py, docx.py)
+│   │   ├── llm/                 # OpenAI-compatible AI review client & prompts
+│   │   ├── errors.py
+│   │   ├── models.py            # Typed Pydantic contracts across stages
+│   │   └── pipeline.py          # Unified convert() orchestrator
 │   │
-│   └── profiles/
-│       ├── literature.toml
-│       └── technical.toml       # see PROFILES.md's evolution note — most
-│                                 #   newer rules don't actually read these yet
+│   ├── gui/                     # PySide6 desktop GUI (window, worker, queue)
+│   ├── cli.py                   # Headless CLI entry point (mdook convert)
+│   └── __main__.py              # Entry point dispatch (GUI or CLI)
 │
-├── tests/                       # one test file per rule/stage module,
-│                                 #   plus test_gui_window.py
-│
-├── Mdook-docs/                  # this folder
+├── tests/                       # Test suite (280+ tests)
+├── Mdook-docs/                  # Documentation
 ├── pyproject.toml
 ├── uv.lock
 └── README.md
 ```
 
-There is no `cli.py`, no `config.py`, no `ocr/` subpackage, and no `ai/`
-subpackage — those were part of the original pre-implementation plan and
-were superseded by the structure above.
+---
+
+## Multi-Format Ingestion Architecture
+
+Non-PDF formats (`.epub`, `.docx`) bypass PDF-specific Stages 1–3 (intake heuristics,
+PyMuPDF extraction, and font-size clustering). Instead, format-specific ingestion modules
+in `mdook/core/formats/` parse the container markup and populate `BookManifest` and
+`DocumentTree` directly:
+
+- **EPUB3 (`mdook/core/formats/epub.py`)**: Uses `ebooklib` to read the container, OPF manifest,
+  and spine. Parses navigation documents (`nav.xhtml`/`toc.ncx`) into chapter bookmarks,
+  extracts embedded image assets, and maps XHTML tags (`h1-h6`, `p`, `blockquote`, `table`,
+  `pre/code`, `aside`, `math`) directly to `DocumentTree` content types.
+- **DOCX (`mdook/core/formats/docx.py`)**: Uses `python-docx` and OpenXML ZIP parsing to read
+  document properties, styles (Headings 1–6, Quote, Lists, Code), inline runs (bold, italic,
+  monospace code, hyperlinks), Word tables (with merged-cell complexity classification),
+  embedded drawings/blips, and footnotes (`word/footnotes.xml`).
+
+Both ingestion modules feed their output directly into **Stage 4 (Rendering)** and
+**Stage 5 (Validation)**, verifying that `DocumentTree` serves as a true format-agnostic
+contract for vault generation.
 
 ---
 
 ## Data Flow Summary
 
 ```
-PDF → [Intake] → BookManifest
-                      │
-                      ▼
-PDF + Manifest → [Extraction] → list[PageData]
-                                     │
-                                     ▼
-Manifest + Pages → [Semantic] → DocumentTree
-                                     │
-                                     ▼
-DocumentTree → [Rendering] → Vault files on disk
-                                     │
-                                     ▼
-Vault + Tree + Pages → [Validation] → ValidationReport
+PDF Document  ──► [Stage 1: Intake] ──► [Stage 2: Extraction] ──► [Stage 3: Semantics] ──┐
+EPUB3 Book    ──► [formats/epub.py: Ingestion] ──────────────────────────────────────────┼──► DocumentTree + BookManifest
+DOCX File     ──► [formats/docx.py: Ingestion] ──────────────────────────────────────────┘           │
+                                                                                                     ▼
+                                                                                       [Stage 4: Vault Rendering]
+                                                                                                     │
+                                                                                                     ▼
+                                                                                       [Stage 5: Validation Audit]
+                                                                                                     │
+                                                                                                     ▼
+                                                                                          Obsidian Vault Output
 ```
-
-Each stage is independently testable — and is: `tests/` has dedicated
-files per stage and per rule module (200+ tests as of Batch 19).

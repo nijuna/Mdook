@@ -2,13 +2,13 @@
 
 # Mdook
 
-**Convert PDF books into structured, readable Obsidian vaults.**
+**Convert books (PDF, EPUB, DOCX) into structured, readable Obsidian vaults.**
 
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-268%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-283%20passed-brightgreen.svg)]()
 
 </div>
 
@@ -16,35 +16,31 @@
 
 ## Overview
 
-Most PDF-to-Markdown tools produce a single, messy text dump with broken paragraphs, leaked running headers, lost footnotes, and fractured tables.
+Most document-to-Markdown tools produce a single, messy text dump with broken paragraphs, leaked running headers, lost footnotes, and fractured tables.
 
-**Mdook** is a desktop application designed specifically for **books**. It extracts text, diagrams, and metadata from PDF files, analyzes typography and reading order through deterministic heuristics, and generates a structured, multi-file **Obsidian vault** ready for reading and personal knowledge management.
+**Mdook** is an application designed specifically for **books**. It ingests PDF documents, EPUB3 publications, and Word (DOCX) manuscripts, analyzes typography and document structure through deterministic heuristics or native markup, and generates a structured, multi-file **Obsidian vault** ready for reading and personal knowledge management.
 
 ```text
-Input: Book.pdf 
+Input: Book (.pdf / .epub / .docx)
    │
-   ▼
-[Stage 1: Intake]       ── Validation, metadata extraction, fail-fast corruption checks
-   │
-   ▼
-[Stage 2: Extraction]   ── Text blocks, font metrics, pdfplumber tables, image & vector drawings
-   │
-   ▼
-[Stage 3: Semantics]    ── Heading clustering, chapter splitting, footnotes, callouts, MathJax
-   │                       └─ Optional: OpenAI-compatible AI Structure Review (~200 tokens)
-   ▼
-[Stage 4: Rendering]    ── Multi-file Obsidian vault, YAML frontmatter, Index/MOC, backlinks
-   │
-   ▼
-[Stage 5: Validation]   ── Automated structural audit (ValidationReport)
-   │
-   ▼
-Output: /My-Book-Vault/
-        ├── 00 - Index.md
-        ├── 01 - Chapter 1.md
-        ├── 02 - Chapter 2.md
-        ├── 99 - Back Matter.md
-        └── attachments/
+   ├── [PDF Path] ──────────► [Stage 1: Intake] ──► [Stage 2: Extraction] ──► [Stage 3: Semantics]
+   │                                                                               │
+   ├── [EPUB3 Path] ────────► Direct XHTML & TOC Parsing into DocumentTree ────────┤
+   │                                                                               │
+   └── [DOCX Path] ─────────► Direct OpenXML & Styles Parsing into DocumentTree ───┤
+                                                                                   ▼
+                                                                       [Stage 4: Vault Rendering]
+                                                                                   │
+                                                                                   ▼
+                                                                       [Stage 5: Validation Audit]
+                                                                                   │
+                                                                                   ▼
+                                                                       Output: /My-Book-Vault/
+                                                                               ├── Title - Index.md
+                                                                               ├── 00 - Front Matter.md
+                                                                               ├── 01 - Chapter 1.md
+                                                                               ├── Appendix.md
+                                                                               └── attachments/
 ```
 
 ---
@@ -131,11 +127,18 @@ uv run mdook
 #### Headless CLI
 Convert PDF books directly from your terminal:
 ```bash
-# Convert a single book into an Obsidian vault:
+# Convert a single PDF book:
 uv run mdook convert book.pdf -o ./vaults/
 
-# Convert with technical profile:
+# Convert an EPUB3 book:
+uv run mdook convert novel.epub -o ./vaults/
+
+# Convert a Word manuscript:
+uv run mdook convert manuscript.docx -o ./vaults/
+
+# Convert with explicit or auto-detected profile:
 uv run mdook convert textbook.pdf -o ./vaults/ --profile technical
+uv run mdook convert book.epub -o ./vaults/ --profile auto
 
 # Convert with AI structure review:
 uv run mdook convert book.pdf -o ./vaults/ --ai --ai-model gpt-4o-mini
