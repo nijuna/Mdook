@@ -167,11 +167,11 @@ class MainWindow(QMainWindow):
         form_layout.setContentsMargins(16, 16, 16, 16)
         form_layout.setSpacing(12)
 
-        pdf_row, self.pdf_path_edit, pdf_button = _field_row("PDF File")
+        pdf_row, self.pdf_path_edit, pdf_button = _field_row("Book File")
         pdf_button.clicked.connect(self.browse_pdf)
         form_layout.addWidget(pdf_row)
 
-        drop_hint = QLabel("or drag and drop one or more PDFs anywhere in this window")
+        drop_hint = QLabel("or drag and drop books (.pdf, .epub, .docx) anywhere in this window")
         drop_hint.setObjectName("DropHint")
         form_layout.addWidget(drop_hint)
 
@@ -377,9 +377,14 @@ class MainWindow(QMainWindow):
     # -- File pickers --------------------------------------------------------
 
     def browse_pdf(self) -> None:
-        path_str, _filter = QFileDialog.getOpenFileName(
-            self, "Select PDF Book", "", "PDF Files (*.pdf)"
+        filters = (
+            "Supported Books (*.pdf *.epub *.docx);;"
+            "PDF Files (*.pdf);;"
+            "EPUB Books (*.epub);;"
+            "Word Documents (*.docx);;"
+            "All Files (*)"
         )
+        path_str, _filter = QFileDialog.getOpenFileName(self, "Select Book", "", filters)
         if path_str:
             self.pdf_path_edit.setText(path_str)
 
@@ -401,7 +406,8 @@ class MainWindow(QMainWindow):
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls() and any(
-            url.toLocalFile().lower().endswith(".pdf") for url in event.mimeData().urls()
+            url.toLocalFile().lower().endswith((".pdf", ".epub", ".docx"))
+            for url in event.mimeData().urls()
         ):
             self._set_dragging(True)
             event.acceptProposedAction()
@@ -416,7 +422,7 @@ class MainWindow(QMainWindow):
         pdf_paths = [
             Path(url.toLocalFile())
             for url in event.mimeData().urls()
-            if url.toLocalFile().lower().endswith(".pdf")
+            if url.toLocalFile().lower().endswith((".pdf", ".epub", ".docx"))
         ]
         if not pdf_paths:
             event.ignore()
@@ -425,7 +431,9 @@ class MainWindow(QMainWindow):
 
         output_dir_str = self.output_dir_edit.text().strip()
         if not output_dir_str:
-            self.status_label.setText("Select an output folder first, then drop your PDF(s) again.")
+            self.status_label.setText(
+                "Select an output folder first, then drop your book(s) again."
+            )
             return
 
         output_dir = Path(output_dir_str)
@@ -550,7 +558,7 @@ class MainWindow(QMainWindow):
         output_dir_str = self.output_dir_edit.text().strip()
 
         if not pdf_path_str or not output_dir_str:
-            self.status_label.setText("Select a PDF file and an output folder first.")
+            self.status_label.setText("Select a book file and an output folder first.")
             return
 
         self.queue_manager.add(

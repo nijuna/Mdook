@@ -25,34 +25,68 @@ ProgressCallback = Callable[[int, str], None]
 
 
 def convert(
-    pdf_path: Path,
-    output_dir: Path,
+    book_path: Path | None = None,
+    output_dir: Path | None = None,
     profile: str = "auto",
     on_progress: ProgressCallback | None = None,
     llm_config: LLMConfig | None = None,
     llm_client: Any | None = None,
+    *,
+    pdf_path: Path | None = None,
 ) -> ConversionResult:
-    """Convert a PDF book into an Obsidian vault, writing it to `output_dir`."""
+    """Convert a PDF, EPUB, or DOCX book into an Obsidian vault, writing it to `output_dir`."""
+    target_path = book_path if book_path is not None else pdf_path
+    if target_path is None or output_dir is None:
+        raise ValueError("Both input book path and output_dir must be provided.")
+
+    target_path = Path(target_path)
+    output_dir = Path(output_dir)
 
     def report(percent: int, message: str) -> None:
         if on_progress is not None:
             on_progress(percent, message)
 
-    effective_llm_config = llm_config if llm_config is not None else LLMConfig.from_env()
-
+    suffix = target_path.suffix.lower()
     started_at = time.monotonic()
 
+    if suffix == ".epub":
+        report(5, "Reading EPUB package...")
+        from mdook.core.formats.epub import parse_epub
+
+        manifest, tree = parse_epub(target_path, profile_override=profile)
+        report(20, f"Profile: {manifest.profile} | Parsed {len(tree.chapters)} chapter(s)")
+
+        report(70, "Writing Markdown files...")
+        render_result = render_vault(tree, manifest, output_dir)
+
+        report(90, "Validating output...")
+        processing_time = time.monotonic() - started_at
+        validation_report = run_validation(
+            tree, manifest, render_result, pages=None, processing_time_seconds=processing_time
+        )
+        report(100, "Done")
+
+        return ConversionResult(
+            success=True,
+            output_dir=render_result.vault_dir,
+            manifest=manifest,
+            validation_report=validation_report,
+            pages=manifest.total_pages,
+            chapters=len(tree.chapters),
+            footnotes=validation_report.total_footnotes,
+            images=validation_report.total_images,
+            llm_review_applied=False,
+        )
+
+    effective_llm_config = llm_config if llm_config is not None else LLMConfig.from_env()
+
     report(5, "Reading document metadata...")
-    manifest = run_intake(pdf_path, profile_override=profile)
+    manifest = run_intake(target_path, profile_override=profile)
     report(10, f"Profile: {manifest.profile}")
 
     report(25, "Extracting text and images...")
 
     def on_page_extracted(done: int, total: int) -> None:
-        # Spread across the 25-50% band reserved for extraction, rather than
-        # one flat "25%" for however long extraction takes -- a scanned
-        # book's per-page OCR pass (Phase 3) can otherwise look frozen for
-        # minutes on end.
         percent = 25 + int(25 * done / total) if total else 25
         report(percent, f"Extracting text and images... (page {done}/{total})")
 
