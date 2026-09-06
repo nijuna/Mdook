@@ -17,7 +17,7 @@ you missed something you should already know.
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 238 passed
+uv run pytest -q         # should show 250 passed
 uv run ruff check .      # should show "All checks passed!"
 uv run python -m mdook   # launches the GUI
 ```
@@ -34,9 +34,11 @@ handoff describes — figure out why before trusting the rest of this file.
 - **AI Structure Review** — Implemented in Phase 5 via `mdook/core/llm/`
   with zero-dependency OpenAI-compatible client, `/models` discovery,
   and connection test latency measurement.
+- **Poetry & Verse Handling** — Implemented in Phase 5 via `mdook/core/rules/verse.py`
+  (Rule 9.2), preserving line breaks and stanza structure.
 - **~2,800 lines across 9 docs in `Mdook-docs/`**, all current as of
-  2026-09-05 — see the reading order below.
-- **238 tests, `ruff` clean**, as of the same date.
+  2026-09-06 — see the reading order below.
+- **250 tests, `ruff` clean**, as of the same date.
 
 
 ---
@@ -108,10 +110,9 @@ right and the doc needs fixing — that's true even of this file eventually.
   "Lists (bulleted)" as `[new]` when they'd been implemented for a while).
   If you need to know whether something is really implemented, grep the
   code or check `RULES.md`/`ROADMAP.md`, not this file's status column.
-- **No git repository exists for this project.** Not `git init`'d, no
-  commit history, nothing pushed anywhere. The user's plan is to do that
-  once Phase 5 (polish) is further along — don't assume version control
-  exists, and don't initialize one unless asked.
+- **Git repository initialized and hosted on GitHub.** The repository is
+  version-controlled at `origin` (`https://github.com/nijuna/Mdook`), on
+  branch `main`. Releases and CI workflows are active via GitHub Actions.
 
 ---
 

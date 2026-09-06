@@ -41,6 +41,7 @@ from mdook.core.models import (
     Section,
     SectionContent,
     TableData,
+    VerseBlock,
 )
 from mdook.core.rules.callouts import obsidian_callout_type
 from mdook.core.rules.citations import BIBLIOGRAPHY_SECTION_LABELS, CITATION_MARKER_SENTINEL
@@ -329,7 +330,23 @@ def _render_content_item(
                 lines.append(f"({item.numbering})")
             return lines
         return [f"${item.latex_or_text}$"]
+    if isinstance(item, VerseBlock):
+        return _render_verse(item, back_matter_stem)
     return []
+
+
+def _render_verse(item: VerseBlock, back_matter_stem: str | None) -> list[str]:
+    rendered_lines: list[str] = []
+    prefix = "> " if item.is_quoted else ""
+    for line in item.lines:
+        if not line:
+            rendered_lines.append(prefix.rstrip())
+        else:
+            processed = _render_inline_markers(line, back_matter_stem)
+            rendered_lines.append(f"{prefix}{processed}  ")
+    if item.attribution:
+        rendered_lines.append(f"{prefix}— {item.attribution}")
+    return rendered_lines
 
 
 def _render_list(

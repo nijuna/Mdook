@@ -73,9 +73,15 @@ from mdook.core.rules import images as image_rules
 from mdook.core.rules import lists as list_rules
 from mdook.core.rules import math as math_rules
 from mdook.core.rules import tables as table_rules
+from mdook.core.rules import verse as verse_rules
 from mdook.core.rules.footnotes import FootnoteDetectionResult
 from mdook.core.rules.headings import Heading
-from mdook.core.rules.paragraphs import MergedParagraph, find_body_left_margin, merge_text_blocks
+from mdook.core.rules.paragraphs import (
+    MergedParagraph,
+    find_body_left_margin,
+    find_body_right_margin,
+    merge_text_blocks,
+)
 
 MIN_HEADINGS_FOR_CHAPTER_TIER = 2
 MAX_EPIGRAPH_WORDS = 40
@@ -150,6 +156,7 @@ def run_semantic(
 
     body_font_size = heading_rules.find_body_font_size(pages)
     body_left_margin = find_body_left_margin(pages)
+    body_right_margin = find_body_right_margin(pages)
     heading_rules.merge_drop_caps(pages, body_font_size)  # Rule 2.5
 
     front_pages, body_pages, back_pages = _split_zones(pages, manifest.zone_map)
@@ -229,6 +236,7 @@ def run_semantic(
             body_left_margin,
             part_headings,
             bibliography_markers,
+            body_right_margin,
         )
     else:
         # No tier reached chapter status at all -- nest whatever headings
@@ -245,6 +253,7 @@ def run_semantic(
                 body_font_size,
                 body_left_margin,
                 bibliography_markers,
+                body_right_margin,
             )
         ]
 
@@ -266,6 +275,7 @@ def run_semantic(
         body_font_size,
         body_left_margin,
         bibliography_markers,
+        body_right_margin,
     )
     back_matter = _collect_matter_sections(
         [p for p in back_pages if p.page_number not in covered_pages],
@@ -276,6 +286,7 @@ def run_semantic(
         body_font_size,
         body_left_margin,
         bibliography_markers,
+        body_right_margin,
     )
 
     metadata = BookMetadata(
@@ -470,6 +481,7 @@ def _segment_chapters(
     body_left_margin: float | None,
     part_headings: list[Heading] | None = None,
     bibliography_markers: set[str] | None = None,
+    body_right_margin: float | None = None,
 ) -> list[Chapter]:
     last_page_number = max(page.page_number for page in pages)
     chapters: list[Chapter] = []
@@ -503,6 +515,7 @@ def _segment_chapters(
             body_font_size=body_font_size,
             body_left_margin=body_left_margin,
             bibliography_markers=bibliography_markers,
+            body_right_margin=body_right_margin,
         )
         chapters.append(
             Chapter(
@@ -527,6 +540,7 @@ def _build_single_chapter(
     body_font_size: float | None,
     body_left_margin: float | None,
     bibliography_markers: set[str] | None = None,
+    body_right_margin: float | None = None,
 ) -> Chapter:
     start_page = pages[0].page_number
     end_page = pages[-1].page_number
@@ -543,6 +557,7 @@ def _build_single_chapter(
         body_font_size=body_font_size,
         body_left_margin=body_left_margin,
         bibliography_markers=bibliography_markers,
+        body_right_margin=body_right_margin,
     )
     return Chapter(
         number=1,
@@ -577,6 +592,7 @@ def _collect_content(
     body_font_size: float | None,
     body_left_margin: float | None,
     bibliography_markers: set[str] | None = None,
+    body_right_margin: float | None = None,
 ) -> list[Section]:
     """Splits the chapter's page range into `Section`s at each detected
     sub-heading (any heading tier below `chapter_level`), instead of
@@ -654,6 +670,7 @@ def _collect_content(
                 footnote_result,
                 body_font_size,
                 body_left_margin,
+                body_right_margin,
                 bibliography_markers,
             )
         )
@@ -671,13 +688,15 @@ def _content_items_from_text_run(
     footnote_result: FootnoteDetectionResult,
     body_font_size: float | None,
     body_left_margin: float | None,
+    body_right_margin: float | None = None,
     bibliography_markers: set[str] | None = None,
 ) -> list[SectionContent]:
     """Splits a run of raw text blocks into unbroken bullet/numbered lists,
-    monospace-font code blocks, and merged paragraphs (Rules 5.1-5.4),
-    classifying each merged paragraph as a block quote (Rule 9.3) or
-    ordinary paragraph by its left-margin indent relative to the book's
-    baseline. Shared by chapter and front/back matter content collection."""
+    monospace-font code blocks, verse/poetry blocks (Rule 9.2), and merged
+    paragraphs (Rules 5.1-5.4), classifying each merged paragraph as a block
+    quote (Rule 9.3) or ordinary paragraph by its left-margin indent relative
+    to the book's baseline. Shared by chapter and front/back matter content
+    collection."""
     items: list[SectionContent] = []
     for kind, sub_payload in list_rules.split_list_run(blocks_with_pages):
         if kind == "list":
@@ -687,14 +706,25 @@ def _content_items_from_text_run(
             if text_or_code == "code":
                 items.append(code_rules.build_code_block(text_payload))
                 continue
-            _append_paragraph_items(
+            for text_or_verse, verse_payload in verse_rules.split_verse_runs(
                 text_payload,
-                footnote_result,
-                body_font_size,
-                body_left_margin,
-                items,
-                bibliography_markers,
-            )
+                body_font_size=body_font_size,
+                body_left_margin=body_left_margin,
+                body_right_margin=body_right_margin,
+                inline_marker_ids=footnote_result.inline_marker_ids,
+                endnote_marker_ids=footnote_result.endnote_marker_ids,
+            ):
+                if text_or_verse == "verse":
+                    items.append(verse_payload)
+                    continue
+                _append_paragraph_items(
+                    verse_payload,
+                    footnote_result,
+                    body_font_size,
+                    body_left_margin,
+                    items,
+                    bibliography_markers,
+                )
     return items
 
 
@@ -820,6 +850,7 @@ def _collect_matter_sections(
     body_font_size: float | None,
     body_left_margin: float | None,
     bibliography_markers: set[str] | None = None,
+    body_right_margin: float | None = None,
 ) -> list[Section]:
     """Shared by front- and back-matter processing: splits a zone's pages
     into named `Section`s at recognized structural labels ("Preface",
@@ -883,7 +914,12 @@ def _collect_matter_sections(
 
         sections[-1].content.extend(
             _content_items_from_text_run(
-                payload, footnote_result, body_font_size, body_left_margin, bibliography_markers
+                payload,
+                footnote_result,
+                body_font_size,
+                body_left_margin,
+                body_right_margin,
+                bibliography_markers,
             )
         )
 
@@ -966,15 +1002,23 @@ def _extract_epigraph(
         return None, blocks_with_pages
 
     lines = [first_block.text.strip()]
+    total_words = len(first_block.text.split())
     consumed = 1
     attribution: str | None = None
 
-    if len(blocks_with_pages) > 1:
-        _, second_block = blocks_with_pages[1]
-        text = second_block.text.strip()
-        if text.startswith(("—", "--", "- ")):
-            attribution = text.lstrip("—- ").strip()
-            consumed = 2
+    while consumed < len(blocks_with_pages):
+        _, next_block = blocks_with_pages[consumed]
+        next_text = next_block.text.strip()
+        if next_text.startswith(("—", "--", "- ")) and len(next_text.split()) <= 15:
+            attribution = next_text.lstrip("—- ").strip()
+            consumed += 1
+            break
+        if next_block.is_italic and total_words + len(next_text.split()) <= MAX_EPIGRAPH_WORDS:
+            lines.append(next_text)
+            total_words += len(next_text.split())
+            consumed += 1
+        else:
+            break
 
     quote = BlockQuote(lines=lines, attribution=attribution, page_number=first_page)
     return quote, blocks_with_pages[consumed:]

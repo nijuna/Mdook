@@ -231,8 +231,28 @@ class MathBlock(BaseModel):
     page_number: int
 
 
+class VerseBlock(BaseModel):
+    content_type: Literal["verse_block"] = "verse_block"
+    lines: list[str]
+    """Preserved verbatim lines of verse, with empty strings representing stanza breaks."""
+    page_number: int
+    """The page this verse block starts on."""
+    is_quoted: bool = False
+    """True if indented/quoted within prose (renders with '> '), False for standalone poem/verse."""
+    attribution: str | None = None
+    """Optional attribution (e.g. poet name), if followed by an attribution line."""
+
+
 SectionContent = Union[
-    Paragraph, ImageRef, TableData, BlockQuote, ListData, CodeBlock, CalloutBlock, MathBlock
+    Paragraph,
+    ImageRef,
+    TableData,
+    BlockQuote,
+    ListData,
+    CodeBlock,
+    CalloutBlock,
+    MathBlock,
+    VerseBlock,
 ]
 
 

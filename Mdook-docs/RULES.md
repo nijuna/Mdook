@@ -340,9 +340,17 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 
 ### Rule 9.2 — Poetry / Verse Detection
 
-- **Condition:** Multiple short lines (< 50 chars each) with irregular right margins, not matching body text font size/style patterns. Often indented.
-- **Action:** Preserve line breaks exactly. Do not merge into paragraphs. Render with two trailing spaces per line (markdown hard line break) or as a blockquote block.
-- **Not implemented.** Deliberately deferred: it needs a bigger structural change than the other Rule 9 items — detecting a run of consecutive short lines *before* paragraph merging ever sees them, rather than classifying a whole already-merged paragraph after the fact (which is how Rule 9.3 below works). A poem will currently get merged into flowing prose like ordinary text, losing its line breaks.
+- **Condition:** Multiple short lines (< 68 chars, average < 52 chars) with irregular right margins (not reaching body right margin), consistent left margin alignment, and high ratio of capitalized initial characters. May be indented relative to body text.
+- **Action:** Preserve line breaks exactly. Do not merge into paragraphs. Render with two trailing spaces per line (`  \n`) for hard line breaks in markdown. If indented relative to the body text left margin, render enclosed in Obsidian blockquotes (`> `). Blank lines between stanzas are preserved as blank lines (`\n\n`).
+- **Implemented in Phase 5** (`mdook/core/rules/verse.py`, models in `mdook/core/models.py`, integrated into `mdook/core/stages/semantic.py` and `mdook/core/stages/rendering.py`).
+
+> **Update: implemented with five domain-specific guards against false positives.**
+> Detecting verse before paragraph merging without corrupting standard prose required several critical safeguards:
+> 1. **Terminal Punctuation Discriminator**: In synthetic test fixtures and certain short-sentence prose passages, individual lines are short (< 40 chars) but represent full discrete sentences ending in periods, exclamation points, or question marks. In authentic verse, enjambment causes sentences to span multiple lines, with lines terminating in commas, semicolons, dashes, or unpunctuated words. If > 50% of lines in a ≥ 3-line block end in terminal punctuation (`.`, `?`, `!`), the block is classified as prose, preventing synthetic tests and staccato dialogue from being misidentified as poetry.
+> 2. **Dialogue & Speech Verb Guard**: Lines with opening/closing dialogue quotes followed by speech attribution verbs (`said`, `whispered`, `asked`, etc.) are explicitly rejected from verse clustering.
+> 3. **Glossary / Definition Guard**: Two or more lines following the dictionary/glossary pattern `^[^:]{1,30}:\s+\S` are rejected to prevent term glossaries from converting into verse stanzas.
+> 4. **Multi-Stanza Continuity & Attribution**: Vertical gaps between 1.7× and 3.5× line height are treated as stanza breaks. Successive stanzas are aggregated into a single `VerseBlock` with blank line separators. Trailing attribution lines (e.g. `— Robert Frost`, `-- Author`, `(by Author)`) are recognized, extracted to `VerseBlock.attribution`, and rendered cleanly as `— Attribution` at the end of the poem.
+> 5. **Inline Footnote Splicing**: Superscript footnote markers positioned at the ends of poetic lines are spliced directly into the line text via sentinels (`FOOTNOTE_MARKER_SENTINEL`), ensuring footnote links like `[^1]` are preserved accurately in rendered verse.
 
 ### Rule 9.3 — Block Quote Detection
 

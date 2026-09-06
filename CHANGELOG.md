@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Poetry and Verse Handling (Rule 9.2)**:
+  - Exact line break preservation in verse stanzas and multi-stanza poems via markdown double trailing spaces (`  \n`).
+  - Obsidian blockquote formatting (`> `) for indented and quoted poems.
+  - Multi-stanza aggregation with blank-line stanza separators (`\n\n`) and vertical spacing clustering (1.7×–3.5× line height).
+  - Trailing author attribution extraction (e.g. `— Robert Frost`, `-- Author`, `(by Author)`) rendered cleanly with standard em-dash format (`— Author`).
+  - Domain safeguards against false positives: terminal punctuation discriminator against discrete prose sentences, dialogue quote & speech verb filters, and glossary term definition guards.
+  - Direct splicing of inline superscript footnote markers in verse lines.
+
 ## [0.1.0] - 2026-09-05
 
 ### Added

@@ -65,6 +65,20 @@ def find_body_left_margin(pages: list[PageData]) -> float | None:
     return max(weighted_counts, key=weighted_counts.get)
 
 
+def find_body_right_margin(pages: list[PageData]) -> float | None:
+    """The most frequent right-edge x-position, weighted by character count,
+    is the body's ordinary paragraph right margin -- used by verse detection
+    (Rule 9.2) to confirm that lines end well short of the column boundary."""
+    weighted_counts: dict[float, int] = defaultdict(int)
+    for page in pages:
+        for block in page.blocks:
+            if isinstance(block, TextBlock):
+                weighted_counts[round(block.bbox[2])] += max(len(block.text), 1)
+    if not weighted_counts:
+        return None
+    return max(weighted_counts, key=weighted_counts.get)
+
+
 def merge_text_blocks(
     blocks_with_pages: list[tuple[int, TextBlock]],
     inline_marker_ids: set[int] | None = None,
