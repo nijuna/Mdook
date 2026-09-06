@@ -51,32 +51,32 @@ Output: /My-Book-Vault/
 
 ## Key Features
 
-### 📐 Deterministic Layout & Semantic Engine
+###  Deterministic Layout & Semantic Engine
 - **Font-Clustering Heading Hierarchy**: Reconstructs book structure even when the PDF lacks bookmarks or a table of contents.
 - **Part / Book / Volume Segmentation**: Recognizes multi-tier books and groups chapters under Part divisions in the vault Index.
 - **Front & Back Matter Isolation**: Automatically isolates Preface, Introduction, Notes, Bibliography, and Appendices into dedicated sections.
 - **Multi-Column & Bidirectional Reading Order**: Column detection with right-to-left (RTL) reading order for Hebrew and Arabic scripts.
 
-### 🔍 Scanned Book OCR Fallback (Tesseract)
+###  Scanned Book OCR Fallback (Tesseract)
 - Evaluates text-layer quality per page.
 - Automatically routes scanned or damaged pages to **Tesseract OCR** while keeping native vector pages fast.
 - Fuzzy sequence matching prevents noisy OCR headers from leaking into chapter prose.
 
-### 📚 Rich Book Elements
+###  Rich Book Elements
 - **Footnotes & Endnotes**: Bidirectional links between body text and notes using Obsidian block references (`[[#^note-1|1]]` and `^note-1`).
 - **Citation-to-Bibliography Linking**: Correlates in-text numeric citations (`[1]`, `[1-3]`) directly to matching bibliography entries.
 - **Obsidian Callouts**: Detects Note, Warning, Tip, and Caution sidebars and renders native `> [!note]` callouts.
 - **Math & Formal Notation**: Detects Unicode math symbols and renders inline and display equations via native Obsidian MathJax (`$$...$$`).
 - **Tables & Figures**: Extracts tables using `pdfplumber`, extracts embedded illustrations, rasterizes vector schematics, and correlates captions.
 
-### 🤖 OpenAI-Compatible AI Structure Review (Optional)
+###  OpenAI-Compatible AI Structure Review (Optional)
 - **Token Efficient**: Sends only an ultra-compact outline skeleton (~200–500 tokens), never generating or rewriting book contents.
 - **Broad Provider Reach**: Works with **Groq**, **OpenAI**, **local Ollama**, **LM Studio**, **vLLM**, **DeepSeek**, and **OpenRouter**.
 - **Model Discovery**: Dynamically queries the provider's `/models` endpoint to populate an editable, searchable dropdown.
 - **Latency & Reachability Testing**: Non-blocking connection test measuring roundtrip latency in milliseconds.
 - **Fail-Safe Fallback**: Guardrails discard invalid suggestions; network failures gracefully fall back to deterministic heuristics.
 
-### 🖥️ Modern Desktop GUI (PySide6)
+###  Modern Desktop GUI (PySide6)
 - Dark and Light theme toggle with instant stylesheet switching.
 - Drag-and-drop PDF ingestion.
 - Sequential multi-file conversion queue with real-time status indicators (`•`, `▶`, `✓`, `✗`).
