@@ -25,7 +25,7 @@ class ConversionWorker(QThread):
         self,
         pdf_path: Path,
         output_dir: Path,
-        profile: str = "literature",
+        profile: str = "auto",
         llm_config=None,
         parent=None,
     ) -> None:
@@ -41,9 +41,7 @@ class ConversionWorker(QThread):
                 self.pdf_path,
                 self.output_dir,
                 profile=self.profile,
-                on_progress=lambda percent, message: self.progress_updated.emit(
-                    percent, message
-                ),
+                on_progress=lambda percent, message: self.progress_updated.emit(percent, message),
                 llm_config=self.llm_config,
             )
         except Exception as exc:  # noqa: BLE001 — surface any pipeline failure to the GUI
@@ -110,5 +108,3 @@ class ModelFetchWorker(QThread):
             self.models_ready.emit(models, "")
         except Exception as exc:  # noqa: BLE001
             self.models_ready.emit([], str(exc))
-
-

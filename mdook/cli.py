@@ -83,9 +83,9 @@ Examples:
     convert_parser.add_argument(
         "-p",
         "--profile",
-        choices=["literature", "technical"],
-        default="literature",
-        help="Book profile: 'literature' (default) or 'technical'.",
+        choices=["auto", "literature", "technical"],
+        default="auto",
+        help="Book profile: 'auto' (default: auto-detect), 'literature', or 'technical'.",
     )
     convert_parser.add_argument(
         "--ai",

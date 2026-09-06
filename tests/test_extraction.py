@@ -47,9 +47,7 @@ def test_table_is_extracted_and_not_duplicated_as_text(tmp_path: Path) -> None:
     doc = fitz.open()
     page = doc.new_page(width=400, height=300)
     page.insert_text((50, 30), "Text before the table.", fontsize=11, fontname="helv")
-    add_grid_table(
-        page, (50, 50, 350, 200), [["Name", "Age", "City"], ["Alice", "30", "NYC"]]
-    )
+    add_grid_table(page, (50, 50, 350, 200), [["Name", "Age", "City"], ["Alice", "30", "NYC"]])
     page.insert_text((50, 230), "Text after the table.", fontsize=11, fontname="helv")
     doc.save(str(pdf_path))
     doc.close()
@@ -61,9 +59,7 @@ def test_table_is_extracted_and_not_duplicated_as_text(tmp_path: Path) -> None:
     assert len(table_blocks) == 1
     assert table_blocks[0].cells == [["Name", "Age", "City"], ["Alice", "30", "NYC"]]
 
-    all_text = " ".join(
-        b.text for b in pages[0].blocks if isinstance(b, TextBlock)
-    )
+    all_text = " ".join(b.text for b in pages[0].blocks if isinstance(b, TextBlock))
     assert "Alice" not in all_text  # already captured in the table's own cells
     assert "Text before the table." in all_text
     assert "Text after the table." in all_text

@@ -27,7 +27,7 @@ ProgressCallback = Callable[[int, str], None]
 def convert(
     pdf_path: Path,
     output_dir: Path,
-    profile: str = "literature",
+    profile: str = "auto",
     on_progress: ProgressCallback | None = None,
     llm_config: LLMConfig | None = None,
     llm_client: Any | None = None,
@@ -42,8 +42,9 @@ def convert(
 
     started_at = time.monotonic()
 
-    report(5, "Reading PDF metadata...")
+    report(5, "Reading document metadata...")
     manifest = run_intake(pdf_path, profile_override=profile)
+    report(10, f"Profile: {manifest.profile}")
 
     report(25, "Extracting text and images...")
 
@@ -61,9 +62,7 @@ def convert(
         report(50, "Analyzing document structure (with AI review)...")
     else:
         report(50, "Analyzing document structure...")
-    tree = run_semantic(
-        manifest, pages, llm_config=effective_llm_config, llm_client=llm_client
-    )
+    tree = run_semantic(manifest, pages, llm_config=effective_llm_config, llm_client=llm_client)
 
     report(75, "Writing Markdown files...")
     render_result = render_vault(tree, manifest, output_dir)
@@ -77,9 +76,7 @@ def convert(
     report(100, "Done")
 
     llm_review_meta = tree.metadata.extra.get("llm_review") if tree.metadata else None
-    llm_review_applied = bool(
-        isinstance(llm_review_meta, dict) and llm_review_meta.get("success")
-    )
+    llm_review_applied = bool(isinstance(llm_review_meta, dict) and llm_review_meta.get("success"))
 
     return ConversionResult(
         success=True,

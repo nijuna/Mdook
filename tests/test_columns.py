@@ -73,9 +73,19 @@ def test_spanning_heading_splits_columns_above_and_below() -> None:
     texts = [b.text for b in reordered]
 
     assert texts == [
-        "TL0", "TL1", "TL2", "TR0", "TR1", "TR2",
+        "TL0",
+        "TL1",
+        "TL2",
+        "TR0",
+        "TR1",
+        "TR2",
         "Section Heading spanning wide",
-        "BL0", "BL1", "BL2", "BR0", "BR1", "BR2",
+        "BL0",
+        "BL1",
+        "BL2",
+        "BR0",
+        "BR1",
+        "BR2",
     ]
 
 

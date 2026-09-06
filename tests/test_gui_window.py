@@ -403,9 +403,7 @@ def test_ai_model_combo_defaults_and_filtering(window: MainWindow) -> None:
     assert cfg.model == "custom-finetuned-model"
 
 
-def test_ai_fetch_models_worker_and_ui(
-    window: MainWindow, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_ai_fetch_models_worker_and_ui(window: MainWindow, monkeypatch: pytest.MonkeyPatch) -> None:
     from mdook.core.llm.client import OpenAICompatibleClient
 
     monkeypatch.setattr(
@@ -435,8 +433,3 @@ def test_ai_test_connection_model_not_found_hint(window: MainWindow) -> None:
     assert "Model not found" in window.test_connection_status.text()
     assert "Fetch Models" in window.test_connection_status.text()
     assert window.test_connection_status.property("status") == "error"
-
-
-
-
-

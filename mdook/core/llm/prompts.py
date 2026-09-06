@@ -61,7 +61,7 @@ def format_skeleton(
             snippet = item.first_body_snippet.replace("\n", " ").strip()
             if len(snippet) > 80:
                 snippet = snippet[:77] + "..."
-            lines.append(f"{prefix}  > \"{snippet}\"")
+            lines.append(f'{prefix}  > "{snippet}"')
 
     lines.append(
         "\nReturn your review as a JSON object with 'corrections'. "

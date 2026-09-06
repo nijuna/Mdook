@@ -56,7 +56,7 @@ def detect_bibliography_markers(back_pages: list[PageData]) -> set[str]:
 
 
 def _expand_numbers(group_text: str) -> list[str]:
-    """"1, 3" -> ["1", "3"]; "1-4" -> ["1", "2", "3", "4"]."""
+    """ "1, 3" -> ["1", "3"]; "1-4" -> ["1", "2", "3", "4"]."""
     numbers: list[str] = []
     for part in group_text.split(","):
         part = part.strip()

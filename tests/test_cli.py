@@ -101,17 +101,19 @@ def test_cli_convert_shorthand_routing(tmp_path: Path) -> None:
 
 def test_cli_ai_flags_parsing() -> None:
     parser = build_parser()
-    args = parser.parse_args([
-        "convert",
-        "book.pdf",
-        "--ai",
-        "--ai-model",
-        "llama-3.3-70b",
-        "--ai-base-url",
-        "http://localhost:11434/v1",
-        "--ai-api-key",
-        "sk-test-secret",
-    ])
+    args = parser.parse_args(
+        [
+            "convert",
+            "book.pdf",
+            "--ai",
+            "--ai-model",
+            "llama-3.3-70b",
+            "--ai-base-url",
+            "http://localhost:11434/v1",
+            "--ai-api-key",
+            "sk-test-secret",
+        ]
+    )
     assert args.ai is True
     assert args.ai_model == "llama-3.3-70b"
     assert args.ai_base_url == "http://localhost:11434/v1"

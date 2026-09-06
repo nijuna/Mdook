@@ -35,9 +35,7 @@ def test_near_empty_page_scores_low() -> None:
 
 def test_replacement_characters_are_penalized() -> None:
     clean = _page([_text_block("A page of perfectly normal readable text content here.")])
-    corrupted = _page(
-        [_text_block("A page of ���������� garbage.")]
-    )
+    corrupted = _page([_text_block("A page of ���������� garbage.")])
     assert score_page_quality(corrupted) < score_page_quality(clean)
 
 

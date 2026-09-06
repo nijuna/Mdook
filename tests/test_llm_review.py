@@ -59,17 +59,13 @@ def test_normalize_chat_endpoint() -> None:
 
 def test_normalize_models_endpoint() -> None:
     assert (
-        normalize_models_endpoint("https://api.openai.com/v1")
-        == "https://api.openai.com/v1/models"
+        normalize_models_endpoint("https://api.openai.com/v1") == "https://api.openai.com/v1/models"
     )
     assert (
         normalize_models_endpoint("https://api.groq.com/openai/v1")
         == "https://api.groq.com/openai/v1/models"
     )
-    assert (
-        normalize_models_endpoint("http://localhost:11434")
-        == "http://localhost:11434/v1/models"
-    )
+    assert normalize_models_endpoint("http://localhost:11434") == "http://localhost:11434/v1/models"
     assert (
         normalize_models_endpoint("http://localhost:11434/v1/")
         == "http://localhost:11434/v1/models"
@@ -82,7 +78,6 @@ def test_normalize_models_endpoint() -> None:
         normalize_models_endpoint("https://api.openai.com/v1/chat/completions")
         == "https://api.openai.com/v1/models"
     )
-
 
 
 def test_llm_config_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -186,9 +181,7 @@ def test_client_test_connection_success() -> None:
 
 
 def test_client_test_connection_failure() -> None:
-    config = LLMConfig(
-        base_url="https://api.openai.com/v1", api_key="bad-key", model="gpt-4o-mini"
-    )
+    config = LLMConfig(base_url="https://api.openai.com/v1", api_key="bad-key", model="gpt-4o-mini")
     client = OpenAICompatibleClient(config)
 
     http_error = urllib.error.HTTPError(
@@ -233,9 +226,7 @@ def test_client_list_models_success() -> None:
 
 
 def test_client_list_models_failure() -> None:
-    config = LLMConfig(
-        base_url="https://api.openai.com/v1", api_key="bad-key", model="gpt-4o-mini"
-    )
+    config = LLMConfig(base_url="https://api.openai.com/v1", api_key="bad-key", model="gpt-4o-mini")
     client = OpenAICompatibleClient(config)
 
     http_error = urllib.error.HTTPError(
@@ -249,8 +240,6 @@ def test_client_list_models_failure() -> None:
     with patch.object(urllib.request, "urlopen", side_effect=http_error):
         with pytest.raises(LLMClientError, match="HTTP 401"):
             client.list_models(timeout_seconds=5.0)
-
-
 
 
 # ---------------------------------------------------------------------------

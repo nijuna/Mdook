@@ -44,11 +44,10 @@ def normalize_models_endpoint(base_url: str) -> str:
     """
     url = base_url.strip().rstrip("/")
     if url.endswith("/chat/completions"):
-        url = url[:-len("/chat/completions")]
+        url = url[: -len("/chat/completions")]
     if not url.endswith("/v1") and "/v1" not in url:
         url = f"{url}/v1"
     return f"{url}/models"
-
 
 
 class OpenAICompatibleClient:
@@ -127,9 +126,7 @@ class OpenAICompatibleClient:
                 ) from err
             raise LLMClientError(f"Connection failed to {self.endpoint}: {err.reason}") from err
         except TimeoutError as err:
-            raise LLMClientError(
-                f"Request to {self.endpoint} timed out after {timeout}s"
-            ) from err
+            raise LLMClientError(f"Request to {self.endpoint} timed out after {timeout}s") from err
         except json.JSONDecodeError as err:
             raise LLMClientError(f"Invalid JSON received from {self.endpoint}: {err}") from err
         except Exception as err:
@@ -188,8 +185,7 @@ class OpenAICompatibleClient:
             except Exception:
                 pass
             raise LLMClientError(
-                f"HTTP {err.code} ({err.reason}) calling {models_endpoint}: "
-                f"{err_body[:200]}"
+                f"HTTP {err.code} ({err.reason}) calling {models_endpoint}: {err_body[:200]}"
             ) from err
         except urllib.error.URLError as err:
             if isinstance(err.reason, TimeoutError):
@@ -202,9 +198,7 @@ class OpenAICompatibleClient:
                 f"Request to {models_endpoint} timed out after {timeout_seconds}s"
             ) from err
         except json.JSONDecodeError as err:
-            raise LLMClientError(
-                f"Invalid JSON received from {models_endpoint}: {err}"
-            ) from err
+            raise LLMClientError(f"Invalid JSON received from {models_endpoint}: {err}") from err
         except Exception as err:
             raise LLMClientError(
                 f"Unexpected error fetching models from {models_endpoint}: {err}"
@@ -217,9 +211,7 @@ class OpenAICompatibleClient:
             raw_items = parsed
 
         if not isinstance(raw_items, list):
-            raise LLMClientError(
-                f"Unexpected response format from {models_endpoint}: {body[:200]}"
-            )
+            raise LLMClientError(f"Unexpected response format from {models_endpoint}: {body[:200]}")
 
         model_ids: list[str] = []
         for item in raw_items:
@@ -231,5 +223,3 @@ class OpenAICompatibleClient:
                 model_ids.append(item.strip())
 
         return sorted(list(dict.fromkeys(model_ids)))
-
-

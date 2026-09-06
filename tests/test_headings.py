@@ -86,9 +86,7 @@ def _ocr_noise_fixture(was_ocrd: bool, heading_text: str) -> PageData:
 
 
 def test_ocr_font_size_jitter_does_not_promote_lowercase_line_to_heading() -> None:
-    page = _ocr_noise_fixture(
-        was_ocrd=True, heading_text="jecting me to denunciations in speeches"
-    )
+    page = _ocr_noise_fixture(was_ocrd=True, heading_text="jecting me to denunciations in speeches")
     headings = detect_headings(_manifest(), [page])
     assert not any("jecting" in h.title for h in headings)
 

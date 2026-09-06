@@ -36,7 +36,11 @@ from mdook.gui.queue_manager import QueueItem, QueueManager
 from mdook.gui.styles import DARK_STYLE, LIGHT_STYLE
 from mdook.gui.worker import ConnectionTestWorker, ConversionWorker, ModelFetchWorker
 
-PROFILE_CHOICES = [("Literature", "literature"), ("Technical", "technical")]
+PROFILE_CHOICES = [
+    ("Auto-Detect", "auto"),
+    ("Literature", "literature"),
+    ("Technical", "technical"),
+]
 
 QUEUE_STATUS_GLYPH = {
     # Plain Unicode symbols, not pictographic emoji (like an hourglass) --
@@ -265,9 +269,7 @@ class MainWindow(QMainWindow):
 
         ai_settings_layout.addWidget(model_row)
 
-        key_row, self.ai_key_edit = _input_row(
-            "API Key", "Optional for local Ollama/LM Studio"
-        )
+        key_row, self.ai_key_edit = _input_row("API Key", "Optional for local Ollama/LM Studio")
         self.ai_key_edit.setEchoMode(QLineEdit.Password)
         if self._default_llm_config.api_key:
             self.ai_key_edit.setText(self._default_llm_config.api_key)
@@ -423,9 +425,7 @@ class MainWindow(QMainWindow):
 
         output_dir_str = self.output_dir_edit.text().strip()
         if not output_dir_str:
-            self.status_label.setText(
-                "Select an output folder first, then drop your PDF(s) again."
-            )
+            self.status_label.setText("Select an output folder first, then drop your PDF(s) again.")
             return
 
         output_dir = Path(output_dir_str)
@@ -475,10 +475,7 @@ class MainWindow(QMainWindow):
                     (
                         m
                         for m in models
-                        if any(
-                            k in m.lower()
-                            for k in ("versatile", "chat", "instruct", "mini")
-                        )
+                        if any(k in m.lower() for k in ("versatile", "chat", "instruct", "mini"))
                     ),
                     models[0],
                 )
@@ -541,8 +538,6 @@ class MainWindow(QMainWindow):
             api_key=self.ai_key_edit.text().strip() or None,
             model=self.ai_model_edit.text().strip() or "gpt-4o-mini",
         )
-
-
 
     # -- Conversion -----------------------------------------------------------
 
@@ -680,5 +675,3 @@ class MainWindow(QMainWindow):
         if self.model_worker is not None and self.model_worker.isRunning():
             self.model_worker.wait(300)
         super().closeEvent(event)
-
-

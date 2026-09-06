@@ -3,14 +3,10 @@
 Input: a PDF file path (+ optional profile override).
 Output: a `mdook.core.models.BookManifest`.
 
-Implements: text-layer check, bookmark extraction, metadata extraction, and
-zone detection (delegated to `mdook.core.rules.zones`). See
+Implements: text-layer check, bookmark extraction, metadata extraction,
+zone detection (delegated to `mdook.core.rules.zones`), and heuristic
+profile auto-detection (delegated to `mdook.core.rules.profiles`). See
 `Mdook-docs/ARCHITECTURE.md` ("Stage 1").
-
-Not implemented yet: signal-based profile auto-detection (table density,
-numbered headings, figure captions) is a Phase 4 task per
-`Mdook-docs/ROADMAP.md` — for now the caller-supplied profile is used as-is,
-defaulting to "literature".
 """
 
 from __future__ import annotations
@@ -23,6 +19,7 @@ import pymupdf
 
 from mdook.core.errors import CorruptPDFError, EncryptedPDFError
 from mdook.core.models import BookManifest, Bookmark, ProfileName
+from mdook.core.rules import profiles as profile_rules
 from mdook.core.rules import zones as zone_rules
 
 logger = logging.getLogger(__name__)
@@ -37,7 +34,7 @@ conversion's slowness has an explanation up front -- not a hard limit, and
 nothing about extraction changes because of it."""
 
 
-def run_intake(pdf_path: Path, profile_override: ProfileName | None = None) -> BookManifest:
+def run_intake(pdf_path: Path, profile_override: ProfileName | str | None = None) -> BookManifest:
     try:
         doc = pymupdf.open(pdf_path)
     except Exception as exc:
@@ -69,13 +66,18 @@ def run_intake(pdf_path: Path, profile_override: ProfileName | None = None) -> B
         bookmarks = _extract_bookmarks(doc)
         zone_map = zone_rules.detect_zones(doc)
 
+        if profile_override in ("literature", "technical"):
+            resolved_profile: ProfileName = profile_override
+        else:
+            resolved_profile = profile_rules.classify_profile(doc, bookmarks=bookmarks)
+
         return BookManifest(
             file_path=str(pdf_path),
             title=title,
             author=author,
             total_pages=doc.page_count,
             needs_ocr=_detect_needs_ocr(doc),
-            profile=profile_override or "literature",
+            profile=resolved_profile,
             zone_map=zone_map,
             bookmarks=bookmarks or None,
             metadata={k: v for k, v in meta.items() if v},

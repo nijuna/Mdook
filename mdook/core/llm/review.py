@@ -28,9 +28,7 @@ def build_skeleton(
             if page is not None:
                 text_blocks = [b for b in page.blocks if isinstance(b, TextBlock)]
                 target_block = heading.extra_block or heading.block
-                match_idx = next(
-                    (i for i, b in enumerate(text_blocks) if b is target_block), None
-                )
+                match_idx = next((i for i, b in enumerate(text_blocks) if b is target_block), None)
                 if match_idx is not None and match_idx + 1 < len(text_blocks):
                     candidate_body = text_blocks[match_idx + 1].text.strip()
                     if candidate_body:

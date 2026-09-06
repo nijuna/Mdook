@@ -58,8 +58,7 @@ def test_ocr_noisy_header_variants_still_cluster_and_strip() -> None:
         "MY B00K TITLE",
     ]
     pages = [
-        _page(n, [_header(variants[n - 1], n), _body(f"Body text {n}.", n)])
-        for n in range(1, 6)
+        _page(n, [_header(variants[n - 1], n), _body(f"Body text {n}.", n)]) for n in range(1, 6)
     ]
     detect_headers_footers(pages)
 
