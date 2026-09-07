@@ -1,0 +1,98 @@
+/* Mdook Obsidian Plugin Styles */
+
+.mdook-status-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.mdook-status-bar-icon {
+  display: inline-block;
+  font-size: 1.1em;
+}
+
+.mdook-status-spinner {
+  animation: mdook-spin 1.5s linear infinite;
+  display: inline-block;
+}
+
+@keyframes mdook-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal Styling */
+.mdook-modal {
+  padding: 12px 18px;
+}
+
+.mdook-modal-title {
+  margin-top: 0;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mdook-progress-container {
+  margin: 16px 0;
+  background-color: var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 8px;
+}
+
+.mdook-progress-bar {
+  height: 100%;
+  background-color: var(--interactive-accent);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.mdook-progress-text {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  margin-top: 6px;
+  white-space: pre-line;
+}
+
+.mdook-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.8em;
+  font-weight: 500;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.mdook-badge-success {
+  background-color: rgba(46, 160, 67, 0.2);
+  color: var(--text-success, #2ea043);
+  border: 1px solid rgba(46, 160, 67, 0.4);
+}
+
+.mdook-badge-error {
+  background-color: rgba(218, 54, 51, 0.2);
+  color: var(--text-error, #da3633);
+  border: 1px solid rgba(218, 54, 51, 0.4);
+}
+
+.mdook-file-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  background-color: var(--background-secondary);
+}
+
+.mdook-file-item {
+  padding: 4px 0;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

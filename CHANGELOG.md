@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Official Obsidian Desktop Plugin (`obsidian-plugin/`)**:
+  - Direct in-vault conversion of `.pdf`, `.epub`, and `.docx` books without context switching.
+  - Context menu integration on individual book files with custom destination folder support and profile selection.
+  - Folder batch processing (`Mdook: Convert N Books in Folder...`) with sequential progress tracking.
+  - Interactive conversion modal accessible from ribbon icon and command palette.
+  - Non-destructive execution keeping source book files intact in their original location.
+  - Real-time status bar widget tracking conversion stages (1–5) and progress percentage.
+  - Automatic resolution and health check connectivity testing for local `mdook` CLI installation.
+
 ## [0.2.0] - 2026-09-07
 
 ### Added

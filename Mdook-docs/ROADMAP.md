@@ -131,7 +131,7 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ## Phase 6 (Future) — Distribution
 
-- [ ] **Obsidian plugin** — TypeScript wrapper that triggers Mdook from within Obsidian
+- [x] **Obsidian plugin** — Official desktop plugin in `obsidian-plugin/` enabling in-vault book conversions (.pdf, .epub, .docx), folder batching, destination picker, context menus, and status bar progress.
 - [ ] **Web service** — Upload endpoint, conversion queue, vault download.
 - [x] **Math/formula support** — Unicode-symbol-density-detected equations rendered via Obsidian's native MathJax (`mdook/core/rules/math.py`). Real LaTeX-drawn vector-path equations (no extractable Unicode) remain out of scope by design (see `RULES.md` section 15).
 - [~] **Batch processing** — The GUI queue converts several dropped/queued books sequentially in one run. Future extension: pointing at an entire directory tree and converting everything in it recursively.

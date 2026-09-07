@@ -148,6 +148,12 @@ uv run mdook --version
 uv run mdook convert --help
 ```
 
+#### Obsidian Desktop Plugin
+Convert books directly inside Obsidian without leaving your vault:
+- Right-click any `.pdf`, `.epub`, or `.docx` in the file tree $\rightarrow$ **"Mdook: Convert to Book Notes"**.
+- Batch convert entire folders of books with live queue progress.
+- See [obsidian-plugin/](obsidian-plugin/README.md) for installation and settings details.
+
 ---
 
 ## Configuration

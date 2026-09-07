@@ -1,0 +1,10 @@
+{
+  "id": "mdook",
+  "name": "Mdook Book Importer",
+  "version": "0.2.0",
+  "minAppVersion": "0.15.0",
+  "description": "Convert PDF, EPUB, and DOCX books into structured, readable Obsidian notes and vaults.",
+  "author": "Mdook Team",
+  "authorUrl": "https://github.com/nijuna/Mdook",
+  "isDesktopOnly": true
+}

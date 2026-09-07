@@ -1,0 +1,28 @@
+{
+  "name": "obsidian-mdook",
+  "version": "0.2.0",
+  "description": "Convert PDF, EPUB, and DOCX books into structured Obsidian vaults directly from your file tree.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "pdf",
+    "epub",
+    "docx",
+    "book-converter",
+    "markdown"
+  ],
+  "author": "Mdook Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.21.5",
+    "obsidian": "latest",
+    "tslib": "^2.6.3",
+    "typescript": "^5.4.5"
+  }
+}
