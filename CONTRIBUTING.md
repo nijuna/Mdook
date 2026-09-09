@@ -36,20 +36,63 @@ Mdook uses [Astral `uv`](https://docs.astral.sh/uv/) for Python dependency manag
 Clone the repository and install all runtime and development dependencies:
 
 ```bash
-git clone https://github.com/your-org/mdook.git
-cd mdook
+git clone https://github.com/nijuna/Mdook.git
+cd Mdook
 uv sync --extra dev
 ```
 
 ---
 
-## Running the Application
+## Running the Application & CLI
 
-Launch the PySide6 desktop GUI:
-
+### 1. PySide6 Desktop GUI
+Launch the graphical interface:
 ```bash
-uv run python -m mdook
+uv run mdook
+# or: uv run python -m mdook
 ```
+
+### 2. Headless CLI Converter
+Run conversions directly in the terminal:
+```bash
+uv run mdook convert path/to/book.pdf -o ./vaults/
+uv run mdook convert novel.epub -o ./vaults/ --profile literature
+uv run mdook convert manuscript.docx -o ./vaults/ --profile technical
+```
+
+---
+
+## Obsidian Desktop Plugin Development (`obsidian-plugin/`)
+
+The official Obsidian plugin allows users to convert books directly inside their vault.
+
+### Prerequisites
+- **Node.js**: v18.0 or higher
+- **npm**: v9.0 or higher
+
+### Development Workflow
+```bash
+cd obsidian-plugin
+
+# Install dependencies
+npm install
+
+# Run fast development build with watch mode
+npm run dev
+
+# Run production build (type checking + esbuild minification)
+npm run build
+```
+
+### Testing in a Live Vault
+To test changes directly inside an active Obsidian vault:
+1. Create a symlink or copy `main.js`, `manifest.json`, and `styles.css` into your vault:
+   ```bash
+   mkdir -p "/path/to/vault/.obsidian/plugins/mdook"
+   cp main.js manifest.json styles.css "/path/to/vault/.obsidian/plugins/mdook/"
+   ```
+2. In Obsidian: **Settings** $\rightarrow$ **Community Plugins** $\rightarrow$ Click **Reload plugins** $\rightarrow$ Enable **Mdook Book Importer**.
+3. Use `Ctrl+R` (or `Cmd+R`) in Obsidian to quickly reload the app when updating `main.js`.
 
 ---
 
