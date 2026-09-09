@@ -122,18 +122,30 @@ Unit tests for each pipeline stage. Integration tests that run a known PDF throu
 > **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 119 tests as of the last implementation session, including several regression tests written directly against real books from the user's own collection once a bug was found there (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
 
 ### Rich
-Pretty CLI output — progress bars for multi-page processing, colored status messages, table-formatted validation reports.
+Terminal UI for the headless CLI (`mdook convert`) — provides animated progress bars across conversion stages, colored status indicators, and formatted summary/validation tables.
 
-```
+```bash
 pip install rich
 ```
 
-> **Update: declared as a dependency, never imported anywhere.** Same situation as PyMuPDF4LLM above — a casualty of the CLI-to-GUI pivot. Progress reporting in the actual app goes through PySide6's own signal/slot mechanism (`mdook/gui/worker.py`'s `ConversionWorker`), not Rich. Worth removing unless a CLI entry point gets built later.
+### Multi-Format Ingestion Libraries
+- **`ebooklib`**: Ingests EPUB2/EPUB3 archives, providing access to Dublin Core metadata, OPF manifests, spine reading orders, and navigation documents (`nav.xhtml` / `toc.ncx`).
+- **`beautifulsoup4`**: Walks XHTML spine DOMs, mapping semantic tags (`<h1>`-`<h6>`, `<p>`, `<blockquote>`, `<table>`, `<pre>/<code>`, `<aside>`, `<math>`) into `DocumentTree` blocks.
+- **`python-docx`**: Parses Microsoft Word `.docx` documents and OpenXML styles, mapping Heading 1–6 hierarchies, inline runs (bold, italic, code, hyperlinks), tables, and footnotes.
 
-### pre-commit / ruff
-Code formatting and linting. Ruff is fast and replaces flake8 + isort + black in one tool.
+---
 
-> **Update: ruff yes, pre-commit no.** Ruff is configured in `pyproject.toml` and run directly (`uv run ruff check .`) as part of the normal dev workflow. No `.pre-commit-config.yaml` exists — lint checks aren't automated as a git hook, just run manually/on-demand.
+## Obsidian Desktop Plugin Stack (`obsidian-plugin/`)
+
+The official Obsidian companion plugin is built using a lightweight TypeScript toolchain:
+
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Language** | TypeScript 5.4+ (strict mode) | Type safety across Obsidian API contracts and CLI integration |
+| **Bundler** | `esbuild` 0.21+ | Fast packaging producing a single, self-contained `main.js` (< 25 KB) |
+| **API** | `obsidian` npm package | Direct integration with Obsidian's workspace, file explorer, ribbon, and modals |
+| **Runtime** | Node.js (Electron Desktop) | Non-blocking `child_process.spawn` executing the local `mdook` CLI engine |
+| **Dependencies** | Zero runtime npm packages | Externalizes Node built-ins and Obsidian APIs; zero external bundle bloat |
 
 ---
 
