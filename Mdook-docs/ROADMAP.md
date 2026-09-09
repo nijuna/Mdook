@@ -129,12 +129,17 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ---
 
-## Phase 6 (Future) — Distribution
+## Phase 6 (Future) — Distribution & Intelligence
 
 - [x] **Obsidian plugin** — Official desktop plugin in `obsidian-plugin/` enabling in-vault book conversions (.pdf, .epub, .docx), folder batching, destination picker, context menus, and status bar progress.
+- [ ] **Multimodal diagram alt-text & captioning** — Inspect extracted figures with local/cloud VLMs (`qwen2.5-vl`, `minicpm-v`, GPT-4o) to generate rich, searchable alt-text and figure summaries.
+- [ ] **Visual LaTeX formula recovery** — Vision-based math OCR for vector-drawn equations without extractable Unicode layers.
+- [ ] **Automatic concept & glossary wikilinking** — Cross-link first mentions of glossary entries and core entities across chapters (`[[Glossary#Term|term]]`) to build an interconnected Obsidian knowledge graph.
+- [ ] **Obsidian Canvas overview map** — Auto-generate native `.canvas` card maps showing reading progression and visual chapter hierarchies.
+- [ ] **Native CLI/GUI recursive batching** — Convert multi-level directory trees in a single command or GUI folder selection.
 - [ ] **Web service** — Upload endpoint, conversion queue, vault download.
 - [x] **Math/formula support** — Unicode-symbol-density-detected equations rendered via Obsidian's native MathJax (`mdook/core/rules/math.py`). Real LaTeX-drawn vector-path equations (no extractable Unicode) remain out of scope by design (see `RULES.md` section 15).
-- [~] **Batch processing** — The GUI queue converts several dropped/queued books sequentially in one run. Future extension: pointing at an entire directory tree and converting everything in it recursively.
+- [~] **Batch processing** — The GUI queue and Obsidian plugin convert multiple queued/folder books sequentially in one run. Future extension: recursive directory tree processing.
 - [ ] **Per-section profile switching** — Literary chapters + technical appendix in the same book
 - [ ] **Additional format backends** — MOBI/AZW3, plain HTML, following the Phase 4 pattern
 

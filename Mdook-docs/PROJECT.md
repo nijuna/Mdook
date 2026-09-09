@@ -96,9 +96,11 @@ Detailed task and milestone tracking is maintained in `Mdook-docs/ROADMAP.md`:
 
 ## Future Extensions & Vision
 
-- **Obsidian Plugin Wrapper**: A lightweight Obsidian community plugin to trigger conversions directly within an existing vault.
-- **Visual Presentation Templates**: Optional CSS snippets bundled alongside the vault for customized typography themes without cluttering markdown bodies with inline HTML.
-- **Recursive Directory Batching**: CLI and GUI capabilities to ingest entire folders or multi-level directories of books.
+- **Multimodal Diagram Captioning & Alt-Text**: Using local/cloud Vision-Language Models (VLMs) to inspect extracted diagrams and figures, generating descriptive alt-text and summaries to make visuals searchable in Obsidian and readable by LLMs.
+- **Visual LaTeX Formula Recovery**: Processing vector-drawn equation regions through vision-based math extractors to recover clean MathJax formulas when PDFs lack extractable Unicode math.
+- **Automatic Concept & Glossary Wikilinking**: Automatically cross-linking first mentions of glossary entries and core entities in chapters to their definition anchors (`[[Glossary#Term|term]]`), forming an Obsidian knowledge graph.
+- **Obsidian Canvas Overview**: Generating native `.canvas` visual cards and reading roadmaps mapping book parts, chapters, and key figures.
+- **Recursive Directory Batching**: CLI and GUI capabilities to recursively ingest entire folder trees of books.
 - **Hosted / Web Conversion**: An optional headless web service endpoint for remote book conversion workflows.
 
 ---
@@ -107,6 +109,7 @@ Detailed task and milestone tracking is maintained in `Mdook-docs/ROADMAP.md`:
 
 **Release 0.2.0:** Multi-format book conversion engine:
 - **Multi-Format Input Support**: Ingests PDF documents, EPUB3 / EPUB2 publications, and Word DOCX manuscripts into a unified `DocumentTree` contract.
+- **Official Obsidian Desktop Plugin (`obsidian-plugin/`)**: Direct in-vault conversion of `.pdf`, `.epub`, and `.docx` books, folder batch processing, destination picker, context menus, and live status bar progress.
 - **Profile Auto-Detection**: Heuristic signal classifier evaluating table density, numbered headings (`1.2.3`), code blocks, and math density.
 - **Rich Book Typography & Semantics**: Footnotes and endnotes with block anchors, numeric citation-to-bibliography links, Obsidian callouts (`> [!note]`), MathJax equations (`$$...$$`), table extraction with merged-cell complexity classification, caption association, and RTL script reading order.
 - **Hybrid OCR Fallback**: Automated per-page text-quality evaluation routing scanned pages to Tesseract OCR with fuzzy header deduplication.
