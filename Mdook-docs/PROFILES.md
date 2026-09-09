@@ -2,34 +2,43 @@
 
 Mdook uses processing profiles to tune its heuristics for different book types. A profile controls which rules are active, how aggressive each heuristic is, and what output conventions to follow.
 
-> **Update 2026-09-04, two corrections:**
-> 1. **There is no CLI.** The project became a PySide6 desktop GUI from the first implementation sprint (see `ARCHITECTURE.md`) — the `Mdook convert ...` command-line examples throughout this file (and the corrupted `bookMdookvert`/`bookMdookmmand` text below and in the old `SKILLS.md`, an artifact of an earlier project rename) never shipped. The GUI exposes profile selection as a dropdown (`mdook/gui/window.py`'s `PROFILE_CHOICES`: Literature, Technical) instead. Read the command examples below as illustrating the *concept*, not a real invocation.
-> 2. **Most rules added after the first implementation sprint don't actually read from `literature.toml`/`technical.toml` at all.** Font-size thresholds, indent ratios, column-gap ratios, OCR quality thresholds, and similar tuning constants for lists, block quotes, code detection, callouts, citations, math, multi-column reordering, and OCR live as hardcoded module-level constants in their own `mdook/core/rules/*.py` files instead (see `STACK.md`'s matching evolution note). Only numbered-section detection (technical-profile-only) and the multi-column literature-profile shortcut actually check the profile today. The tuning-parameter TOML blocks in this file below describe the *original design intent*, not current behavior — treat them as a spec for work not yet done, not documentation of what exists.
+## Selecting a Profile
+
+Profile selection is available across all three Mdook interfaces:
+
+1. **Headless CLI (`mdook convert`)**:
+   Pass `-p` or `--profile`:
+   ```bash
+   mdook convert book.pdf -o ./vaults/ --profile auto        # Default auto-detection
+   mdook convert novel.epub -o ./vaults/ --profile literature # Explicit literature
+   mdook convert textbook.docx -o ./vaults/ --profile technical # Explicit technical
+   ```
+2. **Desktop GUI**:
+   Select from the **Profile** dropdown in the conversion window:
+   - `Auto-Detect` (default)
+   - `Literature`
+   - `Technical`
+3. **Obsidian Desktop Plugin**:
+   Configure the default in **Settings** $\rightarrow$ **Mdook Book Importer**, or select the profile interactively in the **Conversion Modal**.
 
 ---
 
-## Selecting a Profile
+## Profile Auto-Detection
 
-### GUI Dropdown (Always Wins)
+Implemented in `mdook/core/rules/profiles.py` via `detect_profile_from_doc()` and `classify_profile()`. When `--profile auto` or `auto` is specified, Mdook samples structural and typographic signals across the document:
 
-The Profile dropdown in the main window (Auto-Detect / Literature / Technical) sets
-`BookManifest.profile` for the conversion. The headless CLI supports `-p/--profile {auto,literature,technical}`
-(defaulting to `auto`).
+| Signal Category | Literature Indicator | Technical Indicator | Implementation Details |
+| :--- | :--- | :--- | :--- |
+| **Table Density** | $< 0.08$ tables per page | $\ge 0.08$ tables per page | Evaluated via table bounding boxes and cell grids |
+| **Numbered Headings** | Absent | Present | Regex matching `^\d+(\.\d+)*\s+\S` (e.g. `1.1`, `1.2.3`) |
+| **Monospaced Code Blocks** | Absent | Present | Detected monospace font families (`Courier`, `Consolas`, `Menlo`, etc.) |
+| **Math Notation** | $< 0.05$ density | $\ge 0.05$ density | Scored against Mathematical Operators & Alphanumeric Unicode blocks |
+| **Captions** | Rare / absent | Frequent | Text blocks matching `Figure \d+` or `Table \d+` |
 
-### Auto-Detection (Default when no explicit choice is made)
-
-Implemented via `mdook/core/rules/profiles.py`. When `profile="auto"`, `mdook.core.stages.intake.run_intake`
-(and the EPUB/DOCX ingestion modules) evaluate structural signals across the document:
-
-| Signal                                        | Literature | Technical |
-| --------------------------------------------- | ---------- | --------- |
-| Table density (tables per 100 pages)          | < 2        | ≥ 2       |
-| Numbered section headings (1.1.2 pattern)     | Absent     | Present   |
-| Figure/table captions ("Figure X", "Table X") | Rare       | Frequent  |
-| Monospaced code blocks / syntax keywords      | Absent     | Present   |
-| Math symbols / equations                      | Absent     | Present   |
-
-If signals are mixed or inconclusive, Mdook defaults to `literature` — it is the safer, less aggressive profile.
+### Classification Decision Matrix
+- If the technical signal score meets or exceeds the classification threshold, the document is assigned the **`technical`** profile.
+- If signals are absent, mixed, or inconclusive, Mdook safely defaults to **`literature`** (the conservative, prose-friendly profile).
+- The detected profile is recorded in `BookManifest.detected_profile` and reported in the conversion summary.
 
 ---
 
