@@ -435,3 +435,29 @@ DOCX File     ──► [formats/docx.py: Ingestion] ─────────
                                                                                                      ▼
                                                                                           Obsidian Vault Output
 ```
+
+---
+
+## Obsidian Desktop Plugin Architecture
+
+The official Obsidian companion plugin (`obsidian-plugin/`) runs directly within Obsidian's Electron desktop runtime, providing in-vault book conversions without external application switching.
+
+### 1. Execution Model & IPC Bridge
+- **Zero Cloud Dependencies**: Operates 100% locally and privately. No network servers, external proxies, or subscriptions are required.
+- **Asynchronous Child Process**: Spawns `mdook convert` via Node.js `child_process.spawn`. Runs completely in the background so Obsidian's UI, editing, and indexing remain fully responsive.
+- **Dynamic Binary Resolver (`resolver.ts`)**: Discovers the local `mdook` CLI engine by probing:
+  1. Explicit user path configured in plugin settings.
+  2. System `$PATH` entries.
+  3. Standard user installation locations (`~/.local/bin/mdook`, `~/.cargo/bin/mdook`, `/usr/local/bin/mdook`).
+  4. Project virtual environments and `uv run mdook` wrappers.
+
+### 2. Streaming Progress & Status Bar
+- Listens to the spawned CLI's `stdout` and `stderr` streams in real time.
+- Regex pattern matchers identify stage transitions (`Stage 1/5: Intake` through `Stage 5/5: Validation`) and calculate a continuous percentage score (0% to 100%).
+- Displays live status in an interactive Obsidian status bar item (`⚡ Mdook: Dune.epub [60%]`) and modal progress bars.
+
+### 3. Vault Lifecycle & Non-Destructive Ingestion
+- **Preservation of Source Material**: The original `.pdf`, `.epub`, or `.docx` file is left untouched in its existing vault location.
+- **Configurable Destination**: Output can be routed to a global default directory (e.g. `Books/`) or chosen on each conversion via the interactive modal.
+- **Automatic Index Navigation**: On successful conversion, the plugin triggers an Obsidian filesystem refresh and automatically opens the newly generated book Index note (`Title - Index.md`) in a new editor tab.
+
