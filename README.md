@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-283%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-295%20passed-brightgreen.svg)]()
 
 </div>
 
@@ -18,7 +18,7 @@
 
 Most document-to-Markdown tools produce a single, messy text dump with broken paragraphs, leaked running headers, lost footnotes, and fractured tables.
 
-**Mdook** is an application designed specifically for **books**. It ingests PDF documents, EPUB3 publications, and Word (DOCX) manuscripts, analyzes typography and document structure through deterministic heuristics or native markup, and generates a structured, multi-file **Obsidian vault** ready for reading and personal knowledge management.
+**Mdook** is an application designed specifically for **books**. It ingests PDF documents, EPUB3 publications, and Word (DOCX) manuscripts, analyzes typography and document structure through deterministic heuristics or native markup, and generates either a structured, multi-file **Obsidian vault** or a verbatim **Single Document** (`.md`) ready for reading and personal knowledge management.
 
 ```text
 Input: Book (.pdf / .epub / .docx)
@@ -29,18 +29,21 @@ Input: Book (.pdf / .epub / .docx)
    │                                                                               │
    └── [DOCX Path] ─────────► Direct OpenXML & Styles Parsing into DocumentTree ───┤
                                                                                    ▼
-                                                                       [Stage 4: Vault Rendering]
-                                                                                   │
-                                                                                   ▼
-                                                                       [Stage 5: Validation Audit]
-                                                                                   │
-                                                                                   ▼
-                                                                       Output: /My-Book-Vault/
-                                                                               ├── Title - Index.md
-                                                                               ├── 00 - Front Matter.md
-                                                                               ├── 01 - Chapter 1.md
-                                                                               ├── Appendix.md
-                                                                               └── attachments/
+                                                                       [Stage 4: Rendering]
+                                                                       ┌───────────┴───────────┐
+                                                                       ▼                       ▼
+                                                                [Modular Vault]        [Single Document]
+                                                                       │                       │
+                                                                       ▼                       ▼
+                                                                  [Stage 5: Validation Audit]
+                                                                       │                       │
+                                                                       ▼                       ▼
+                                                            /My-Book-Vault/          /My-Book/
+                                                            ├── Title - Index.md     ├── Title.md
+                                                            ├── 00 - Front Matter.md └── attachments/
+                                                            ├── 01 - Chapter 1.md
+                                                            ├── Appendix.md
+                                                            └── attachments/
 ```
 
 ---
@@ -72,11 +75,15 @@ Input: Book (.pdf / .epub / .docx)
 - **Latency & Reachability Testing**: Non-blocking connection test measuring roundtrip latency in milliseconds.
 - **Fail-Safe Fallback**: Guardrails discard invalid suggestions; network failures gracefully fall back to deterministic heuristics.
 
+###  Dual Output Modes
+- **Modular Vault (Default)**: Splits the book into numbered chapter notes, isolated front-matter and back-matter divisions, and a top-level Index note with Part hierarchies.
+- **Single Document Mode (`-s` / `--single-file`)**: Renders a verbatim 1:1 complete book copy into a single continuous Markdown file (`Title.md`) with standard markdown image links (`![caption](attachments/fig.png)`), local block anchor linking, and consolidated collision-free footnotes.
+
 ###  Modern Desktop GUI (PySide6)
-- Dark and Light theme toggle with instant stylesheet switching.
-- Drag-and-drop PDF ingestion.
-- Sequential multi-file conversion queue with real-time status indicators (`•`, `▶`, `✓`, `✗`).
-- Direct "Open Vault" file manager integration upon conversion completion.
+- **Two-Tier Architecture**: Streamlined main window with file inspection card, segmented output selector, and breadcrumb stage stepper, paired with a dedicated modal `SettingsDialog`.
+- **3 Theme Families (Dark & Light)**: Choose between *The Library* (warm bookmaker amber), *Amethyst* (royal violet), and *Carbon* (ice cyan).
+- **Drag-and-Drop & Queue**: Seamless drag-and-drop book intake and sequential multi-file batch conversion queue with clean status indicators (`•`, `▶`, `✓`, `✗`).
+- **Strictly Typography-First**: Zero emojis anywhere in the interface.
 
 ---
 
@@ -127,8 +134,11 @@ uv run mdook
 #### Headless CLI
 Convert PDF books directly from your terminal:
 ```bash
-# Convert a single PDF book:
+# Convert a single PDF book (Modular Vault):
 uv run mdook convert book.pdf -o ./vaults/
+
+# Convert a book into a single continuous 1:1 Markdown file:
+uv run mdook convert book.pdf -o ./vaults/ --single-file
 
 # Convert an EPUB3 book:
 uv run mdook convert novel.epub -o ./vaults/
@@ -151,6 +161,7 @@ uv run mdook convert --help
 #### Obsidian Desktop Plugin
 Convert books directly inside Obsidian without leaving your vault:
 - Right-click any `.pdf`, `.epub`, or `.docx` in the file tree $\rightarrow$ **"Mdook: Convert to Book Notes"**.
+- Choose between **Modular Vault** and **Single Document** output modes.
 - Batch convert entire folders of books with live queue progress.
 - See [obsidian-plugin/](obsidian-plugin/README.md) for installation and settings details.
 
@@ -158,7 +169,7 @@ Convert books directly inside Obsidian without leaving your vault:
 
 ## Configuration
 
-Settings can be configured directly inside the desktop GUI or set via environment variables:
+Settings can be configured directly inside the desktop GUI (via **Settings** dialog) or set via environment variables:
 
 | Environment Variable | Default | Description |
 | -------------------- | ------- | ----------- |
@@ -172,7 +183,7 @@ Settings can be configured directly inside the desktop GUI or set via environmen
 
 ## Development & Testing
 
-Mdook is thoroughly tested with 238 unit and integration tests configured to run headless offscreen:
+Mdook is thoroughly tested with 295 unit and integration tests configured to run headless offscreen:
 
 ```bash
 # Run the test suite

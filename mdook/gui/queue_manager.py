@@ -24,6 +24,7 @@ class QueueItem:
     profile: str
     status: QueueStatus = "pending"
     llm_config: object = None
+    single_file: bool = False
     id: int = field(default_factory=lambda: next(_id_counter))
 
     @property
@@ -47,12 +48,14 @@ class QueueManager:
         output_dir: Path,
         profile: str,
         llm_config: object = None,
+        single_file: bool = False,
     ) -> QueueItem:
         item = QueueItem(
             pdf_path=pdf_path,
             output_dir=output_dir,
             profile=profile,
             llm_config=llm_config,
+            single_file=single_file,
         )
         self._items.append(item)
         return item

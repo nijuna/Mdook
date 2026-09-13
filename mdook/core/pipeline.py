@@ -17,7 +17,7 @@ from mdook.core.llm import LLMConfig
 from mdook.core.models import ConversionResult
 from mdook.core.stages.extraction import run_extraction
 from mdook.core.stages.intake import run_intake
-from mdook.core.stages.rendering import render_vault
+from mdook.core.stages.rendering import render_single_file, render_vault
 from mdook.core.stages.semantic import run_semantic
 from mdook.core.stages.validation import run_validation
 
@@ -33,6 +33,7 @@ def convert(
     llm_client: Any | None = None,
     *,
     pdf_path: Path | None = None,
+    single_file: bool = False,
 ) -> ConversionResult:
     """Convert a PDF, EPUB, or DOCX book into an Obsidian vault, writing it to `output_dir`."""
     target_path = book_path if book_path is not None else pdf_path
@@ -57,7 +58,10 @@ def convert(
         report(20, f"Profile: {manifest.profile} | Parsed {len(tree.chapters)} chapter(s)")
 
         report(70, "Writing Markdown files...")
-        render_result = render_vault(tree, manifest, output_dir)
+        if single_file:
+            render_result = render_single_file(tree, manifest, output_dir)
+        else:
+            render_result = render_vault(tree, manifest, output_dir)
 
         report(90, "Validating output...")
         processing_time = time.monotonic() - started_at
@@ -76,6 +80,7 @@ def convert(
             footnotes=validation_report.total_footnotes,
             images=validation_report.total_images,
             llm_review_applied=False,
+            single_file=single_file,
         )
 
     if suffix == ".docx":
@@ -86,7 +91,10 @@ def convert(
         report(20, f"Profile: {manifest.profile} | Parsed {len(tree.chapters)} chapter(s)")
 
         report(70, "Writing Markdown files...")
-        render_result = render_vault(tree, manifest, output_dir)
+        if single_file:
+            render_result = render_single_file(tree, manifest, output_dir)
+        else:
+            render_result = render_vault(tree, manifest, output_dir)
 
         report(90, "Validating output...")
         processing_time = time.monotonic() - started_at
@@ -105,6 +113,7 @@ def convert(
             footnotes=validation_report.total_footnotes,
             images=validation_report.total_images,
             llm_review_applied=False,
+            single_file=single_file,
         )
 
     effective_llm_config = llm_config if llm_config is not None else LLMConfig.from_env()
@@ -128,7 +137,10 @@ def convert(
     tree = run_semantic(manifest, pages, llm_config=effective_llm_config, llm_client=llm_client)
 
     report(75, "Writing Markdown files...")
-    render_result = render_vault(tree, manifest, output_dir)
+    if single_file:
+        render_result = render_single_file(tree, manifest, output_dir)
+    else:
+        render_result = render_vault(tree, manifest, output_dir)
 
     report(90, "Validating output...")
     processing_time = time.monotonic() - started_at
@@ -151,4 +163,5 @@ def convert(
         footnotes=validation_report.total_footnotes,
         images=validation_report.total_images,
         llm_review_applied=llm_review_applied,
+        single_file=single_file,
     )

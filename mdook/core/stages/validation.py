@@ -23,6 +23,7 @@ MIN_CHAPTER_FILE_SIZE = 500
 MAX_CHAPTER_FILE_SIZE = 200_000
 
 IMAGE_REF_RE = re.compile(r"!\[\[([^\]]+)\]\]")
+STANDARD_IMAGE_REF_RE = re.compile(r"!\[[^\]]*\]\((?:attachments/)?([^)/]+)\)")
 FOOTNOTE_DEFINITION_RE = re.compile(r"^\[\^([^\]]+)\]:", re.MULTILINE)
 FOOTNOTE_USAGE_RE = re.compile(r"\[\^([^\]]+)\](?!:)")
 HEADING_RE = re.compile(r"^(#{1,6})\s+\S", re.MULTILINE)
@@ -82,7 +83,9 @@ def _check_image_integrity(
 ) -> None:
     referenced: set[str] = set()
     for path in render_result.chapter_paths:
-        referenced.update(IMAGE_REF_RE.findall(path.read_text(encoding="utf-8")))
+        text = path.read_text(encoding="utf-8")
+        referenced.update(IMAGE_REF_RE.findall(text))
+        referenced.update(STANDARD_IMAGE_REF_RE.findall(text))
 
     for filename in sorted(referenced):
         if not (render_result.attachments_dir / filename).exists():
@@ -137,11 +140,15 @@ def _format_page_ranges(pages: list[int]) -> str:
 
 
 def _check_chapter_file_sizes(render_result: RenderResult, warnings: list[str]) -> None:
+    is_single_file = (
+        len(render_result.chapter_paths) == 1
+        and render_result.chapter_paths[0] == render_result.index_path
+    )
     for path in render_result.chapter_paths:
         size = _file_size(path)
         if size < MIN_CHAPTER_FILE_SIZE:
             warnings.append(f"{path.name}: only {size} bytes -- possible extraction failure.")
-        elif size > MAX_CHAPTER_FILE_SIZE:
+        elif not is_single_file and size > MAX_CHAPTER_FILE_SIZE:
             warnings.append(f"{path.name}: {size} bytes -- possible merge error.")
 
 

@@ -45,11 +45,14 @@ class FakeWorker:
         profile: str = "literature",
         parent=None,
         llm_config=None,
+        single_file: bool = False,
+        **kwargs,
     ):
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         self.profile = profile
         self.llm_config = llm_config
+        self.single_file = single_file
         self.started = False
         self._progress_slots: list[Callable[[int, str], None]] = []
         self._finished_slots: list[Callable[[ConversionResult], None]] = []

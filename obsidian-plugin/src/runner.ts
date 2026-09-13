@@ -26,6 +26,10 @@ export function runConversion(
       options.profile,
     ];
 
+    if (options.singleFile) {
+      args.push("--single-file");
+    }
+
     if (options.enableAiReview) {
       args.push("--ai");
       if (options.aiModel) {
@@ -213,6 +217,35 @@ function locateGeneratedVault(
           const subFiles = fs.readdirSync(subPath);
           for (const sf of subFiles) {
             if (sf.endsWith("Index.md")) {
+              const subRel = path.relative(vaultBasePath, subPath).replace(/\\/g, "/");
+              return {
+                vaultRelativePath: subRel,
+                absolutePath: subPath,
+                indexNotePath: path.posix.join(subRel, sf),
+              };
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback for single-file mode: look for any .md file directly in targetDir or subfolder
+    if (!indexFile) {
+      for (const f of files) {
+        if (f.endsWith(".md")) {
+          indexFile = path.posix.join(relPath, f);
+          break;
+        }
+      }
+    }
+
+    if (!indexFile) {
+      for (const f of files) {
+        const subPath = path.join(targetDir, f);
+        if (fs.statSync(subPath).isDirectory()) {
+          const subFiles = fs.readdirSync(subPath);
+          for (const sf of subFiles) {
+            if (sf.endsWith(".md")) {
               const subRel = path.relative(vaultBasePath, subPath).replace(/\\/g, "/");
               return {
                 vaultRelativePath: subRel,

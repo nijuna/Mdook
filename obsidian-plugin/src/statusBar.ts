@@ -25,7 +25,7 @@ export class StatusBarManager {
     this.currentBookName = bookName;
     this.currentProgress = null;
     this.el.empty();
-    this.el.createSpan({ text: "📖", cls: "mdook-status-bar-icon" });
+    this.el.createSpan({ text: "▶", cls: "mdook-status-bar-icon" });
     this.el.createSpan({ text: ` Mdook: Converting ${bookName}...` });
     this.el.show();
   }
@@ -34,7 +34,7 @@ export class StatusBarManager {
     if (!this.isActive) return;
     this.currentProgress = progress;
     this.el.empty();
-    this.el.createSpan({ text: "⚡", cls: "mdook-status-spinner" });
+    this.el.createSpan({ text: "▶", cls: "mdook-status-spinner" });
     this.el.createSpan({
       text: ` Mdook: ${this.currentBookName} [${progress.percentage}%]`,
     });

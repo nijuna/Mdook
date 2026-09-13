@@ -15,6 +15,7 @@ export class ConversionModal extends Modal {
   private selectedProfile: ProfileType;
   private outputFolder: string;
   private enableAi: boolean;
+  private singleFile: boolean;
 
   private isRunning = false;
   private progressBarEl: HTMLElement | null = null;
@@ -28,6 +29,7 @@ export class ConversionModal extends Modal {
     this.selectedProfile = options.defaultProfile || plugin.settings.defaultProfile;
     this.outputFolder = options.defaultOutputFolder || plugin.settings.defaultOutputFolder;
     this.enableAi = plugin.settings.enableAiReview;
+    this.singleFile = plugin.settings.defaultOutputMode === "single_document";
   }
 
   onOpen() {
@@ -73,7 +75,21 @@ export class ConversionModal extends Modal {
           })
       );
 
-    // 3. AI Review
+    // 3. Output Format Selection
+    new Setting(contentEl)
+      .setName("Output Format")
+      .setDesc("Modular Vault (split by chapters) or Single Document (1:1 continuous Markdown).")
+      .addDropdown((drop) =>
+        drop
+          .addOption("vault", "Modular Vault (Chapters)")
+          .addOption("single_document", "Single Document (Complete Book)")
+          .setValue(this.singleFile ? "single_document" : "vault")
+          .onChange((val) => {
+            this.singleFile = val === "single_document";
+          })
+      );
+
+    // 4. AI Review
     new Setting(contentEl)
       .setName("AI Structure Review")
       .setDesc("Use LLM reviewer to audit heading candidate levels.")
@@ -83,7 +99,7 @@ export class ConversionModal extends Modal {
         })
       );
 
-    // 4. Live Progress Area (hidden initially)
+    // 5. Live Progress Area (hidden initially)
     const progressContainer = contentEl.createDiv({
       cls: "mdook-progress-container",
     });
@@ -98,7 +114,7 @@ export class ConversionModal extends Modal {
     });
     this.progressTextEl.style.display = "none";
 
-    // 5. Action Buttons
+    // 6. Action Buttons
     const actionSetting = new Setting(contentEl);
     actionSetting.addButton((btn) => {
       btn
@@ -123,6 +139,7 @@ export class ConversionModal extends Modal {
               this.outputFolder,
               this.selectedProfile,
               this.enableAi,
+              this.singleFile,
               (progress) => {
                 this.updateProgress(progress);
               }

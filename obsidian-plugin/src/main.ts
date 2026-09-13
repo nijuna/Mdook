@@ -111,6 +111,7 @@ export default class MdookPlugin extends Plugin {
     targetFolder: string,
     profile: ProfileType,
     enableAi = false,
+    singleFile?: boolean,
     onProgress?: ProgressCallback
   ): Promise<void> {
     const adapter = this.app.vault.adapter;
@@ -139,12 +140,15 @@ export default class MdookPlugin extends Plugin {
       onProgress?.(p);
     };
 
+    const isSingle = singleFile ?? (this.settings.defaultOutputMode === "single_document");
+
     const result = await runConversion(
       resolver.command,
       {
         inputPath: inputAbsolutePath,
         outputPath: outputAbsolutePath,
         profile,
+        singleFile: isSingle,
         enableAiReview: enableAi,
         aiModel: this.settings.aiModel,
         aiBaseUrl: this.settings.aiBaseUrl,

@@ -358,3 +358,4 @@ class ConversionResult(BaseModel):
     footnotes: int = 0
     images: int = 0
     llm_review_applied: bool = False
+    single_file: bool = False

@@ -1,4 +1,4 @@
-"""Main application window."""
+"""Main application window for Mdook."""
 
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ from PySide6.QtGui import (
     QDropEvent,
 )
 from PySide6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QFileDialog,
@@ -26,14 +28,18 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QProgressBar,
     QPushButton,
+    QRadioButton,
     QVBoxLayout,
     QWidget,
 )
 
 from mdook.core.llm import LLMConfig
 from mdook.core.models import ConversionResult
+from mdook.gui.config import GUIConfig
 from mdook.gui.queue_manager import QueueItem, QueueManager
+from mdook.gui.settings_dialog import SettingsDialog
 from mdook.gui.styles import DARK_STYLE, LIGHT_STYLE
+from mdook.gui.theme import get_stylesheet
 from mdook.gui.worker import ConnectionTestWorker, ConversionWorker, ModelFetchWorker
 
 PROFILE_CHOICES = [
@@ -43,9 +49,6 @@ PROFILE_CHOICES = [
 ]
 
 QUEUE_STATUS_GLYPH = {
-    # Plain Unicode symbols, not pictographic emoji (like an hourglass) --
-    # those commonly fall back to a missing-glyph box on systems without a
-    # dedicated emoji font installed.
     "pending": "•",
     "active": "▶",
     "completed": "✓",
@@ -54,7 +57,7 @@ QUEUE_STATUS_GLYPH = {
 
 
 def _field_row(label_text: str) -> tuple[QWidget, QLineEdit, QPushButton]:
-    """Build a "Label | line edit | Browse..." row, returning (row, line_edit, button)."""
+    """Build a 'Label | line edit | Browse...' row, returning (row, line_edit, button)."""
     row = QWidget()
     layout = QHBoxLayout(row)
     layout.setContentsMargins(0, 0, 0, 0)
@@ -76,7 +79,7 @@ def _field_row(label_text: str) -> tuple[QWidget, QLineEdit, QPushButton]:
 
 
 def _input_row(label_text: str, placeholder: str = "") -> tuple[QWidget, QLineEdit]:
-    """Build a "Label | line edit" row, returning (row, line_edit)."""
+    """Build a 'Label | line edit' row, returning (row, line_edit)."""
     row = QWidget()
     layout = QHBoxLayout(row)
     layout.setContentsMargins(0, 0, 0, 0)
@@ -97,10 +100,17 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Mdook")
-        self.resize(820, 480)
+        self.resize(880, 560)
         self.setAcceptDrops(True)
-        self._dark_mode = True
-        self.setStyleSheet(DARK_STYLE)
+
+        self.config = GUIConfig.load()
+        self._dark_mode = self.config.color_mode == "dark"
+
+        # Apply persisted theme
+        self.setStyleSheet(DARK_STYLE if self._dark_mode else LIGHT_STYLE)
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet(get_stylesheet(self.config.theme_family, self.config.color_mode))
 
         self.queue_manager = QueueManager()
         self.worker: ConversionWorker | None = None
@@ -108,9 +118,19 @@ class MainWindow(QMainWindow):
         self.model_worker: ModelFetchWorker | None = None
         self._active_item: QueueItem | None = None
         self._last_output_dir: Path | None = None
-        self._default_llm_config = LLMConfig.from_env()
+        self._default_llm_config = (
+            LLMConfig(
+                enabled=self.config.ai_enabled,
+                model=self.config.ai_model or "gpt-4o-mini",
+                base_url=self.config.ai_base_url or "https://api.openai.com/v1",
+                api_key=self.config.ai_api_key or None,
+            )
+            if self.config.ai_enabled
+            else LLMConfig.from_env()
+        )
 
         self._build_ui()
+        self._apply_config_defaults()
 
     # -- UI construction ---------------------------------------------------
 
@@ -125,13 +145,50 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central)
 
+    def _apply_config_defaults(self) -> None:
+        if self.config.output_mode == "single_document":
+            self.single_radio.setChecked(True)
+        else:
+            self.vault_radio.setChecked(True)
+
+        if self.config.output_dir:
+            self.output_dir_edit.setText(self.config.output_dir)
+
+        prof_idx = next(
+            (i for i, (_, val) in enumerate(PROFILE_CHOICES) if val == self.config.profile),
+            0,
+        )
+        self.profile_combo.setCurrentIndex(prof_idx)
+
     def toggle_theme(self) -> None:
         self._dark_mode = not self._dark_mode
+        mode = "dark" if self._dark_mode else "light"
+        self.config.color_mode = mode
+        self.config.save()
+
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet(get_stylesheet(self.config.theme_family, mode))
         self.setStyleSheet(DARK_STYLE if self._dark_mode else LIGHT_STYLE)
-        # Plain text, not a sun/moon icon glyph: Unicode symbol coverage
-        # varies enough across systems/fonts (confirmed while testing this)
-        # that a guaranteed-to-render label beats a possibly-missing glyph.
         self.theme_button.setText("Light" if self._dark_mode else "Dark")
+
+    def open_settings(self) -> None:
+        dialog = SettingsDialog(self)
+        dialog.settings_saved.connect(self._on_settings_saved)
+        dialog.exec()
+
+    def _on_settings_saved(self, config: GUIConfig) -> None:
+        self.config = config
+        self._dark_mode = config.color_mode == "dark"
+        self.theme_button.setText("Light" if self._dark_mode else "Dark")
+
+        if config.output_mode == "single_document":
+            self.single_radio.setChecked(True)
+        else:
+            self.vault_radio.setChecked(True)
+
+        if not self.output_dir_edit.text() and config.output_dir:
+            self.output_dir_edit.setText(config.output_dir)
 
     def _build_main_panel(self) -> QVBoxLayout:
         layout = QVBoxLayout()
@@ -139,18 +196,28 @@ class MainWindow(QMainWindow):
 
         # Header
         header_row = QWidget()
+        header_row.setObjectName("HeaderWidget")
         header_layout = QHBoxLayout(header_row)
         header_layout.setContentsMargins(0, 0, 0, 0)
+
         header_text = QVBoxLayout()
         title = QLabel("Mdook")
         title.setObjectName("HeaderTitle")
-        subtitle = QLabel("Convert PDF books into structured, readable Obsidian vaults.")
+        subtitle = QLabel("Convert PDF, EPUB, and DOCX books into structured Markdown.")
         subtitle.setObjectName("HeaderSubtitle")
         header_text.addWidget(title)
         header_text.addWidget(subtitle)
         header_layout.addLayout(header_text, stretch=1)
 
-        self.theme_button = QPushButton("Light")
+        # Settings button
+        self.settings_button = QPushButton("Settings")
+        self.settings_button.setObjectName("SettingsButton")
+        self.settings_button.setToolTip("Configure themes, default preferences, and AI credentials")
+        self.settings_button.clicked.connect(self.open_settings)
+        header_layout.addWidget(self.settings_button, alignment=Qt.AlignTop)
+
+        # Quick Theme toggle button
+        self.theme_button = QPushButton("Light" if self._dark_mode else "Dark")
         self.theme_button.setObjectName("IconButton")
         self.theme_button.setFixedWidth(64)
         self.theme_button.setToolTip("Toggle light/dark theme")
@@ -167,18 +234,67 @@ class MainWindow(QMainWindow):
         form_layout.setContentsMargins(16, 16, 16, 16)
         form_layout.setSpacing(12)
 
+        # Book input row
         pdf_row, self.pdf_path_edit, pdf_button = _field_row("Book File")
         pdf_button.clicked.connect(self.browse_pdf)
+        self.pdf_path_edit.textChanged.connect(self._on_book_path_changed)
         form_layout.addWidget(pdf_row)
+
+        # Inspection badge row (hidden until file selected)
+        self.book_card = QFrame()
+        self.book_card.setObjectName("BookCard")
+        self.book_card.setVisible(False)
+        book_card_layout = QHBoxLayout(self.book_card)
+        book_card_layout.setContentsMargins(10, 8, 10, 8)
+        book_card_layout.setSpacing(8)
+
+        self.book_title_badge = QLabel("")
+        self.book_title_badge.setObjectName("BadgePill")
+        self.book_size_badge = QLabel("")
+        self.book_size_badge.setObjectName("InfoPill")
+        book_card_layout.addWidget(self.book_title_badge)
+        book_card_layout.addWidget(self.book_size_badge)
+        book_card_layout.addStretch()
+        form_layout.addWidget(self.book_card)
 
         drop_hint = QLabel("or drag and drop books (.pdf, .epub, .docx) anywhere in this window")
         drop_hint.setObjectName("DropHint")
         form_layout.addWidget(drop_hint)
 
+        # Output folder row
         output_row, self.output_dir_edit, output_button = _field_row("Output Folder")
         output_button.clicked.connect(self.browse_output)
         form_layout.addWidget(output_row)
 
+        # Output mode segmented selection
+        out_mode_row = QWidget()
+        out_mode_row.setObjectName("TransparentRow")
+        out_mode_layout = QHBoxLayout(out_mode_row)
+        out_mode_layout.setContentsMargins(0, 0, 0, 0)
+        out_mode_label = QLabel("Output Mode")
+        out_mode_label.setObjectName("FieldLabel")
+        out_mode_label.setFixedWidth(110)
+
+        self.vault_radio = QRadioButton("Modular Vault")
+        self.vault_radio.setToolTip(
+            "Multi-file vault with linked chapter notes, TOC, and attachments"
+        )
+        self.single_radio = QRadioButton("Single Document (.md)")
+        self.single_radio.setToolTip(
+            "Single continuous 1:1 book copy with universal standard image links"
+        )
+        self.out_mode_group = QButtonGroup(self)
+        self.out_mode_group.addButton(self.vault_radio)
+        self.out_mode_group.addButton(self.single_radio)
+        self.vault_radio.setChecked(True)
+
+        out_mode_layout.addWidget(out_mode_label)
+        out_mode_layout.addWidget(self.vault_radio)
+        out_mode_layout.addWidget(self.single_radio)
+        out_mode_layout.addStretch()
+        form_layout.addWidget(out_mode_row)
+
+        # Profile selection
         profile_row = QWidget()
         profile_layout = QHBoxLayout(profile_row)
         profile_layout.setContentsMargins(0, 0, 0, 0)
@@ -297,7 +413,6 @@ class MainWindow(QMainWindow):
         test_layout.addWidget(self.test_connection_status, stretch=1)
 
         ai_settings_layout.addWidget(test_row)
-
         form_layout.addWidget(self.ai_settings_widget)
         self.ai_settings_widget.setVisible(self._default_llm_config.enabled)
 
@@ -309,7 +424,29 @@ class MainWindow(QMainWindow):
         self.convert_button.clicked.connect(self.on_convert_clicked)
         layout.addWidget(self.convert_button)
 
-        # Progress + status
+        # Stepper Breadcrumbs
+        self.stepper_widget = QWidget()
+        self.stepper_widget.setObjectName("TransparentRow")
+        self.stepper_widget.setVisible(False)
+        stepper_layout = QHBoxLayout(self.stepper_widget)
+        stepper_layout.setContentsMargins(0, 2, 0, 2)
+        stepper_layout.setSpacing(8)
+
+        self.step_labels = []
+        step_names = ["1. Intake", "2. Extraction", "3. Semantics", "4. Rendering", "5. Validation"]
+        for idx, sname in enumerate(step_names):
+            lbl = QLabel(sname)
+            lbl.setObjectName("StepBreadcrumb")
+            self.step_labels.append(lbl)
+            stepper_layout.addWidget(lbl)
+            if idx < len(step_names) - 1:
+                sep = QLabel("→")
+                sep.setObjectName("StepBreadcrumb")
+                stepper_layout.addWidget(sep)
+        stepper_layout.addStretch()
+        layout.addWidget(self.stepper_widget)
+
+        # Progress bar + status
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setVisible(False)
@@ -349,6 +486,18 @@ class MainWindow(QMainWindow):
 
         layout.addStretch(1)
         return layout
+
+    def _on_book_path_changed(self, path_str: str) -> None:
+        p = Path(path_str.strip())
+        if p.exists() and p.is_file():
+            suffix = p.suffix.upper().lstrip(".")
+            size_kb = p.stat().st_size / 1024
+            size_str = f"{size_kb / 1024:.1f} MB" if size_kb >= 1024 else f"{size_kb:.0f} KB"
+            self.book_title_badge.setText(suffix)
+            self.book_size_badge.setText(f"{size_str}  ·  {p.name}")
+            self.book_card.setVisible(True)
+        else:
+            self.book_card.setVisible(False)
 
     def _build_queue_panel(self) -> QVBoxLayout:
         layout = QVBoxLayout()
@@ -394,10 +543,6 @@ class MainWindow(QMainWindow):
             self.output_dir_edit.setText(path_str)
 
     # -- Drag and drop --------------------------------------------------------
-    # Visual feedback (the dashed-border highlight) is driven by a dynamic
-    # "dragging" property on the form card, toggled here and consumed by the
-    # `QFrame#Card[dragging="true"]` selector in `mdook.gui.styles` --
-    # otherwise dropping files here has no on-screen affordance at all.
 
     def _set_dragging(self, dragging: bool) -> None:
         self.form_card.setProperty("dragging", dragging)
@@ -439,8 +584,12 @@ class MainWindow(QMainWindow):
         output_dir = Path(output_dir_str)
         profile = self.selected_profile()
         llm_config = self.get_current_llm_config()
+        single_file = self.single_radio.isChecked()
+
         for pdf_path in pdf_paths:
-            self.queue_manager.add(pdf_path, output_dir, profile, llm_config=llm_config)
+            self.queue_manager.add(
+                pdf_path, output_dir, profile, llm_config=llm_config, single_file=single_file
+            )
         self._refresh_queue_list()
         self._start_next_queue_item()
 
@@ -478,7 +627,6 @@ class MainWindow(QMainWindow):
             if current_typed in models:
                 self.ai_model_combo.setCurrentText(current_typed)
             else:
-                # Auto-select best matching versatile or chat model if present
                 recommended = next(
                     (
                         m
@@ -561,23 +709,20 @@ class MainWindow(QMainWindow):
             self.status_label.setText("Select a book file and an output folder first.")
             return
 
+        single_file = self.single_radio.isChecked()
         self.queue_manager.add(
             Path(pdf_path_str),
             Path(output_dir_str),
             self.selected_profile(),
             llm_config=self.get_current_llm_config(),
+            single_file=single_file,
         )
         self._refresh_queue_list()
         self._start_next_queue_item()
 
     def _start_next_queue_item(self) -> None:
-        """Advances the queue by one: starts a worker for the next pending
-        item, if any, and if nothing is already converting. Chained from
-        `on_finished`/`on_failed` so multiple queued books convert one after
-        another automatically instead of the queue being a static list that
-        only ever holds the single most recent job."""
         if self._active_item is not None:
-            return  # a conversion is already in progress
+            return
 
         next_item = next(
             (item for item in self.queue_manager.items if item.status == "pending"), None
@@ -593,6 +738,8 @@ class MainWindow(QMainWindow):
         self.summary_card.setVisible(False)
         self.open_vault_button.setVisible(False)
         self.convert_button.setEnabled(False)
+        self.stepper_widget.setVisible(True)
+        self._update_stepper(0)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(True)
         self.status_label.setText(f"Converting {next_item.pdf_path.name}...")
@@ -602,6 +749,7 @@ class MainWindow(QMainWindow):
             next_item.output_dir,
             profile=next_item.profile,
             llm_config=next_item.llm_config,
+            single_file=next_item.single_file,
             parent=self,
         )
         self.worker.progress_updated.connect(self.on_progress)
@@ -609,20 +757,43 @@ class MainWindow(QMainWindow):
         self.worker.conversion_failed.connect(self.on_failed)
         self.worker.start()
 
+    def _update_stepper(self, percent: int) -> None:
+        step_index = 0
+        if percent >= 90:
+            step_index = 4
+        elif percent >= 70:
+            step_index = 3
+        elif percent >= 45:
+            step_index = 2
+        elif percent >= 20:
+            step_index = 1
+
+        for i, lbl in enumerate(self.step_labels):
+            is_active = i == step_index
+            is_done = i < step_index
+            lbl.setProperty("active", is_active)
+            lbl.setProperty("done", is_done)
+            lbl.style().unpolish(lbl)
+            lbl.style().polish(lbl)
+
     def on_progress(self, percent: int, message: str) -> None:
         self.progress_bar.setValue(percent)
         self.status_label.setText(message)
+        self._update_stepper(percent)
 
     def on_finished(self, result: ConversionResult) -> None:
         self.progress_bar.setValue(100)
+        self._update_stepper(100)
         self.status_label.setText("Complete!")
         self._last_output_dir = result.output_dir
 
+        mode_str = "Single Document (.md)" if result.single_file else "Modular Vault"
         summary_text = (
             f"Pages: {result.pages}    "
             f"Chapters: {result.chapters}    "
             f"Footnotes: {result.footnotes}    "
-            f"Images: {result.images}"
+            f"Images: {result.images}    "
+            f"Mode: {mode_str}"
         )
         if result.llm_review_applied:
             summary_text += "    AI Review: Applied"
@@ -636,6 +807,7 @@ class MainWindow(QMainWindow):
             self.summary_note_label.setVisible(False)
 
         self.summary_card.setVisible(True)
+        self.open_vault_button.setText("Open File" if result.single_file else "Open Vault")
         self.open_vault_button.setVisible(result.success)
 
         if self._active_item is not None:
@@ -646,6 +818,7 @@ class MainWindow(QMainWindow):
 
     def on_failed(self, message: str) -> None:
         self.progress_bar.setVisible(False)
+        self.stepper_widget.setVisible(False)
         self.status_label.setText(f"Failed: {message}")
 
         if self._active_item is not None:

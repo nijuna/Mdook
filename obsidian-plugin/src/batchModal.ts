@@ -9,6 +9,7 @@ export class BatchConversionModal extends Modal {
   private selectedProfile: ProfileType;
   private outputFolder: string;
   private enableAi: boolean;
+  private singleFile: boolean;
 
   private isRunning = false;
   private progressBarEl: HTMLElement | null = null;
@@ -22,6 +23,7 @@ export class BatchConversionModal extends Modal {
     this.selectedProfile = plugin.settings.defaultProfile;
     this.outputFolder = plugin.settings.defaultOutputFolder;
     this.enableAi = plugin.settings.enableAiReview;
+    this.singleFile = plugin.settings.defaultOutputMode === "single_document";
   }
 
   onOpen() {
@@ -43,7 +45,7 @@ export class BatchConversionModal extends Modal {
     const fileListEl = contentEl.createDiv({ cls: "mdook-file-list" });
     for (const f of this.bookFiles) {
       const itemEl = fileListEl.createDiv({ cls: "mdook-file-item" });
-      itemEl.createSpan({ text: `📄 ${f.name}` });
+      itemEl.createSpan({ text: `• ${f.name}` });
       itemEl.createSpan({
         text: f.extension.toUpperCase(),
         cls: "setting-item-description",
@@ -78,7 +80,21 @@ export class BatchConversionModal extends Modal {
           })
       );
 
-    // 3. AI Review
+    // 3. Output Format Selection
+    new Setting(contentEl)
+      .setName("Output Format")
+      .setDesc("Modular Vault (split by chapters) or Single Document (1:1 continuous Markdown).")
+      .addDropdown((drop) =>
+        drop
+          .addOption("vault", "Modular Vault (Chapters)")
+          .addOption("single_document", "Single Document (Complete Book)")
+          .setValue(this.singleFile ? "single_document" : "vault")
+          .onChange((val) => {
+            this.singleFile = val === "single_document";
+          })
+      );
+
+    // 4. AI Review
     new Setting(contentEl)
       .setName("AI Structure Review")
       .setDesc("Use LLM reviewer to audit heading candidate levels.")
@@ -88,7 +104,7 @@ export class BatchConversionModal extends Modal {
         })
       );
 
-    // 4. Progress bar
+    // 5. Progress bar
     const progressContainer = contentEl.createDiv({
       cls: "mdook-progress-container",
     });
@@ -103,7 +119,7 @@ export class BatchConversionModal extends Modal {
     });
     this.progressTextEl.style.display = "none";
 
-    // 5. Buttons
+    // 6. Buttons
     const actionSetting = new Setting(contentEl);
     actionSetting.addButton((btn) => {
       btn
@@ -142,6 +158,7 @@ export class BatchConversionModal extends Modal {
                 this.outputFolder,
                 this.selectedProfile,
                 this.enableAi,
+                this.singleFile,
                 (p: ConversionProgress) => {
                   if (this.progressTextEl) {
                     this.progressTextEl.setText(

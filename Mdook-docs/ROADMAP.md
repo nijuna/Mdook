@@ -138,6 +138,8 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 - [ ] **Obsidian Canvas overview map** — Auto-generate native `.canvas` card maps showing reading progression and visual chapter hierarchies.
 - [ ] **Native CLI/GUI recursive batching** — Convert multi-level directory trees in a single command or GUI folder selection.
 - [ ] **Web service** — Upload endpoint, conversion queue, vault download.
+- [x] **Single Document Mode** — Output 1:1 verbatim complete copy of the book as a single continuous Markdown file with attachments, local block anchors, and unified non-colliding footnotes (`-s` / `--single-file`).
+- [x] **Two-Tier GUI & 3 Theme Families** — Redesigned main window with modal SettingsDialog, 3 themes (*The Library*, *Amethyst*, *Carbon* in dark/light modes), configuration persistence, and strictly zero emojis.
 - [x] **Math/formula support** — Unicode-symbol-density-detected equations rendered via Obsidian's native MathJax (`mdook/core/rules/math.py`). Real LaTeX-drawn vector-path equations (no extractable Unicode) remain out of scope by design (see `RULES.md` section 15).
 - [~] **Batch processing** — The GUI queue and Obsidian plugin convert multiple queued/folder books sequentially in one run. Future extension: recursive directory tree processing.
 - [ ] **Per-section profile switching** — Literary chapters + technical appendix in the same book

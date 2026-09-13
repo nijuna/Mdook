@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS: MdookPluginSettings = {
   defaultOutputFolder: "Books",
   promptForOutputFolder: false,
   defaultProfile: "auto",
+  defaultOutputMode: "vault",
   openIndexAfterConversion: true,
   enableAiReview: false,
   aiBaseUrl: "",

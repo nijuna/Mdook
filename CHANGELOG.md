@@ -8,7 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Official Obsidian Desktop Plugin (`obsidian-plugin/`)**:
+- **Single Document Mode (`-s` / `--single-file`)**:
+  - Verbatim 1:1 complete copy of the book rendered as a single continuous Markdown file (`Title.md`) with attachments in `attachments/`.
+  - Universal standard markdown image syntax (`![caption](attachments/fig.png)`).
+  - Intra-document local block anchor linking for notes and citations (`[[#^note-1|1]]` and `[[#^ref-1|1]]`).
+  - Footnote collision deduplication and sequential renumbering across chapters consolidated in a clean document-level `## Footnotes` section.
+- **Desktop GUI Redesign & Theme System (PySide6)**:
+  - 3 Theme Families in Dark and Light modes (6 total themes): *The Library* (Warm Amber), *Amethyst* (Royal Violet), and *Carbon* (Ice Cyan).
+  - Two-tier layout: streamlined main window with file inspection card (badges & size), segmented output format toggle (`Modular Vault` vs `Single Document`), and 5-stage breadcrumb stepper.
+  - Dedicated modal `SettingsDialog` with live theme preview, preference controls, and background LLM connectivity tester.
+  - User configuration persistence stored at `~/.config/mdook/gui_config.json`.
+  - Strictly typography-first design with zero emojis anywhere in the interface.
+- **Official Obsidian Desktop Plugin Updates (`obsidian-plugin/`)**:
+  - Configurable default output mode setting (`vault` vs `single_document`).
+  - Output format selection dropdown in both single-book and batch conversion modals.
+  - Automatic note opener fallback to single-document markdown notes when conversion completes.
   - Direct in-vault conversion of `.pdf`, `.epub`, and `.docx` books without context switching.
   - Context menu integration on individual book files with custom destination folder support and profile selection.
   - Folder batch processing (`Mdook: Convert N Books in Folder...`) with sequential progress tracking.

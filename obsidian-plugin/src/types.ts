@@ -9,6 +9,8 @@ export interface MdookPluginSettings {
   promptForOutputFolder: boolean;
   /** Default profile to use: auto, literature, or technical */
   defaultProfile: ProfileType;
+  /** Default output mode: "vault" (multi-file) or "single_document" */
+  defaultOutputMode: "vault" | "single_document";
   /** Automatically open the generated Index note when conversion succeeds */
   openIndexAfterConversion: boolean;
   /** Enable OpenAI-compatible AI structure review */
@@ -28,6 +30,8 @@ export interface ConversionOptions {
   outputPath: string;
   /** Profile to use */
   profile: ProfileType;
+  /** Whether to output a single continuous Markdown file */
+  singleFile?: boolean;
   /** Optional book title override */
   title?: string;
   /** AI review toggle */

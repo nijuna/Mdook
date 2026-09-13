@@ -88,6 +88,12 @@ Examples:
         help="Book profile: 'auto' (default: auto-detect), 'literature', or 'technical'.",
     )
     convert_parser.add_argument(
+        "-s",
+        "--single-file",
+        action="store_true",
+        help="Output a single continuous Markdown file instead of a modular multi-file vault.",
+    )
+    convert_parser.add_argument(
         "--ai",
         action="store_true",
         default=None,
@@ -189,6 +195,7 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                     profile=args.profile,
                     on_progress=None,
                     llm_config=llm_config,
+                    single_file=args.single_file,
                 )
             else:
                 with Progress(
@@ -211,17 +218,28 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                         profile=args.profile,
                         on_progress=on_progress,
                         llm_config=llm_config,
+                        single_file=args.single_file,
                     )
 
             if not args.quiet:
+                table_title = (
+                    f"Document Generated: {res.manifest.title}"
+                    if res.single_file
+                    else f"Vault Generated: {res.manifest.title}"
+                )
                 table = Table(
-                    title=f"Vault Generated: {res.manifest.title}",
+                    title=table_title,
                     show_header=True,
                     header_style="bold magenta",
                 )
                 table.add_column("Metric", style="dim")
                 table.add_column("Value", style="bold")
-                table.add_row("Vault Directory", str(res.output_dir))
+                if res.single_file:
+                    table.add_row("Output Mode", "Single Document (.md)")
+                    table.add_row("Output File", str(res.output_dir / f"{res.manifest.title}.md"))
+                else:
+                    table.add_row("Output Mode", "Modular Vault")
+                    table.add_row("Vault Directory", str(res.output_dir))
                 table.add_row(
                     "Pages",
                     f"{res.pages}"

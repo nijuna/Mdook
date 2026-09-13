@@ -98,6 +98,20 @@ export class MdookSettingTab extends PluginSettingTab {
     containerEl.createEl("h3", { text: "Conversion Defaults" });
 
     new Setting(containerEl)
+      .setName("Default Output Format")
+      .setDesc("Choose between modular multi-file vault or a single continuous Markdown file.")
+      .addDropdown((drop) =>
+        drop
+          .addOption("vault", "Modular Vault (Multi-file)")
+          .addOption("single_document", "Single Document (.md)")
+          .setValue(this.plugin.settings.defaultOutputMode)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultOutputMode = value as "vault" | "single_document";
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
       .setName("Default Profile")
       .setDesc("Typography and layout extraction profile to apply by default.")
       .addDropdown((drop) =>

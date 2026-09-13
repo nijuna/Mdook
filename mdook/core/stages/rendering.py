@@ -223,6 +223,187 @@ def render_vault(tree: DocumentTree, manifest: BookManifest, output_dir: Path) -
     )
 
 
+def render_single_file(
+    tree: DocumentTree, manifest: BookManifest, output_dir: Path
+) -> RenderResult:
+    """Renders the entire book into a single continuous Markdown file:
+    `output_dir / {book title} / {book title}.md`, along with an `attachments/`
+    subfolder for extracted images.
+
+    Images use universal standard markdown syntax: `![caption](attachments/filename)`.
+    Footnotes across all chapters are consolidated into a single unified `## Footnotes`
+    section at the bottom of the file with non-colliding sequential or prefixed anchors.
+    Page-marker callouts are omitted for uninterrupted reading flow.
+    """
+    vault_dir = output_dir / _sanitize_filename(manifest.title)
+    vault_dir.mkdir(parents=True, exist_ok=True)
+    attachments_dir = vault_dir / "attachments"
+    attachment_filenames: set[str] = set()
+
+    # Determine internal anchor targets for endnotes / bibliographies in single file
+    has_notes = any(
+        _normalize_matter_title(s.title or "") in NOTE_SECTION_LABELS for s in tree.back_matter
+    )
+    has_bib = any(
+        _normalize_matter_title(s.title or "") in BIBLIOGRAPHY_SECTION_LABELS
+        for s in tree.back_matter
+    )
+    notes_stem = "" if has_notes else None
+    bibliography_stem = "" if has_bib else None
+
+    # Collect and map footnotes across all chapters
+    all_chapter_footnotes: list[tuple[int, Footnote]] = []
+    for ch_idx, ch in enumerate(tree.chapters):
+        for fn in ch.footnotes:
+            all_chapter_footnotes.append((ch_idx, fn))
+
+    raw_markers = [fn.marker for _, fn in all_chapter_footnotes]
+    has_marker_collision = len(raw_markers) != len(set(raw_markers))
+    all_digits = bool(all_chapter_footnotes) and all(
+        fn.marker.isdigit() for _, fn in all_chapter_footnotes
+    )
+
+    footnote_mappings: dict[int, dict[str, str]] = defaultdict(dict)
+    final_footnotes: list[tuple[str, str]] = []
+
+    for seq, (ch_idx, fn) in enumerate(all_chapter_footnotes, 1):
+        if not has_marker_collision:
+            new_m = fn.marker
+        elif all_digits:
+            new_m = str(seq)
+        else:
+            new_m = f"{tree.chapters[ch_idx].number}-{fn.marker}"
+        footnote_mappings[ch_idx][fn.marker] = new_m
+        final_footnotes.append((new_m, fn.text))
+
+    frontmatter = [
+        "---",
+        f"title: {tree.metadata.title}",
+        f"author: {tree.metadata.author}",
+    ]
+    if tree.metadata.isbn:
+        frontmatter.append(f"isbn: {tree.metadata.isbn}")
+    if tree.metadata.publisher:
+        frontmatter.append(f"publisher: {tree.metadata.publisher}")
+    if tree.metadata.edition:
+        frontmatter.append(f"edition: {tree.metadata.edition}")
+    frontmatter.append(f"profile: {manifest.profile}")
+    frontmatter.append("output_mode: single_document")
+    frontmatter.append(f"converted: {date.today().isoformat()}")
+    frontmatter.append("---")
+    frontmatter.append("")
+
+    lines = list(frontmatter)
+    lines.append(f"# {tree.metadata.title}")
+    lines.append("")
+
+    # Front Matter
+    if tree.front_matter:
+        lines.append("## Front Matter")
+        lines.append("")
+        fm_lines, fm_used = _render_sections(
+            tree.front_matter,
+            footnotes_by_page={},
+            page_label=lambda p: "",
+            attachments_dir=attachments_dir,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            single_file=True,
+            base_heading_level=3,
+        )
+        lines.extend(fm_lines)
+        attachment_filenames.update(fm_used)
+
+    # Chapters
+    has_parts = any(ch.part_title is not None for ch in tree.chapters)
+    current_part: str | None = None
+
+    for ch_idx, chapter in enumerate(tree.chapters):
+        if chapter.part_title and chapter.part_title != current_part:
+            current_part = chapter.part_title
+            lines.append(f"## {current_part}")
+            lines.append("")
+
+        ch_heading_level = 3 if (has_parts and current_part) else 2
+        lines.append(f"{'#' * ch_heading_level} {chapter.title}")
+        lines.append("")
+
+        ch_mapping = footnote_mappings.get(ch_idx, {})
+        ch_lines, ch_used = _render_sections(
+            chapter.sections,
+            footnotes_by_page={},
+            page_label=lambda p: "",
+            attachments_dir=attachments_dir,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            single_file=True,
+            footnote_mapping=ch_mapping,
+            base_heading_level=ch_heading_level + 1,
+        )
+        lines.extend(ch_lines)
+        attachment_filenames.update(ch_used)
+
+    # Back Matter
+    if tree.back_matter:
+        back_matter_divisions = _split_back_matter(tree.back_matter)
+        lines.append("## Back Matter")
+        lines.append("")
+        for div in back_matter_divisions:
+            normalized = _normalize_matter_title(div.title)
+            anchor_prefix = None
+            if normalized in NOTE_SECTION_LABELS:
+                anchor_prefix = "note"
+            elif normalized in BIBLIOGRAPHY_SECTION_LABELS:
+                anchor_prefix = "ref"
+
+            is_generic = normalized in ("back matter", "untitled")
+            if div.title and not is_generic:
+                lines.append(f"### {div.title}")
+                lines.append("")
+
+            bm_lines, bm_used = _render_sections(
+                div.sections,
+                footnotes_by_page={},
+                page_label=lambda p: "",
+                attachments_dir=attachments_dir,
+                notes_stem=notes_stem,
+                bibliography_stem=bibliography_stem,
+                anchor_prefix=anchor_prefix,
+                skip_first_heading=bool(
+                    div.title and div.sections and div.sections[0].title == div.title
+                ),
+                single_file=True,
+                base_heading_level=4 if (div.title and not is_generic) else 3,
+            )
+            lines.extend(bm_lines)
+            attachment_filenames.update(bm_used)
+
+    # Consolidated Footnotes
+    if final_footnotes:
+        lines.append("---")
+        lines.append("")
+        lines.append("## Footnotes")
+        lines.append("")
+        for marker, text in final_footnotes:
+            lines.append(f"[^{marker}]: {text}")
+        lines.append("")
+
+    raw_text = "\n".join(lines).rstrip() + "\n"
+    body = re.sub(r"\n{3,}", "\n\n", raw_text)
+
+    single_file_path = vault_dir / f"{_sanitize_filename(manifest.title)}.md"
+    single_file_path.write_text(body, encoding="utf-8")
+
+    return RenderResult(
+        vault_dir=vault_dir,
+        index_path=single_file_path,
+        chapter_paths=[single_file_path],
+        back_matter_paths=[],
+        attachments_dir=attachments_dir,
+        attachment_filenames=attachment_filenames,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Index file
 # ---------------------------------------------------------------------------
@@ -364,6 +545,9 @@ def _render_sections(
     bibliography_stem: str | None,
     anchor_prefix: str | None = None,
     skip_first_heading: bool = False,
+    single_file: bool = False,
+    footnote_mapping: dict[str, str] | None = None,
+    base_heading_level: int = 2,
 ) -> tuple[list[str], set[str]]:
     lines: list[str] = []
     used_attachments: set[str] = set()
@@ -374,13 +558,17 @@ def _render_sections(
             if idx == 0 and skip_first_heading:
                 pass
             else:
-                heading_level = max(section.level, 2) if skip_first_heading else section.level + 1
+                heading_level = (
+                    max(section.level, 2)
+                    if skip_first_heading
+                    else base_heading_level + (section.level - 1)
+                )
                 lines.append(f"{'#' * heading_level} {section.title}")
                 lines.append("")
 
         for item in section.content:
             item_page = getattr(item, "page_number", None)
-            if item_page is not None and item_page != current_page:
+            if not single_file and item_page is not None and item_page != current_page:
                 if current_page is not None:
                     lines.extend(
                         _render_footnote_definitions(footnotes_by_page.get(current_page, []))
@@ -397,11 +585,13 @@ def _render_sections(
                     notes_stem=notes_stem,
                     bibliography_stem=bibliography_stem,
                     anchor_prefix=anchor_prefix,
+                    single_file=single_file,
+                    footnote_mapping=footnote_mapping,
                 )
             )
             lines.append("")
 
-    if current_page is not None:
+    if not single_file and current_page is not None:
         lines.extend(_render_footnote_definitions(footnotes_by_page.get(current_page, [])))
 
     return lines, used_attachments
@@ -425,11 +615,16 @@ def _render_content_item(
     notes_stem: str | None,
     bibliography_stem: str | None,
     anchor_prefix: str | None,
+    single_file: bool = False,
+    footnote_mapping: dict[str, str] | None = None,
 ) -> list[str]:
     if isinstance(item, Paragraph):
         return [
             _render_inline_markers(
-                item.text, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+                item.text,
+                notes_stem=notes_stem,
+                bibliography_stem=bibliography_stem,
+                footnote_mapping=footnote_mapping,
             )
         ]
     if isinstance(item, BlockQuote):
@@ -437,7 +632,10 @@ def _render_content_item(
         quote_lines = [
             template.format(
                 _render_inline_markers(
-                    line, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+                    line,
+                    notes_stem=notes_stem,
+                    bibliography_stem=bibliography_stem,
+                    footnote_mapping=footnote_mapping,
                 )
             )
             for line in item.lines
@@ -448,7 +646,11 @@ def _render_content_item(
     if isinstance(item, ImageRef):
         filename = _copy_attachment(item, attachments_dir)
         used_attachments.add(filename)
-        rendered = [f"![[{filename}]]"]
+        alt = item.caption or filename
+        if single_file:
+            rendered = [f"![{alt}](attachments/{filename})"]
+        else:
+            rendered = [f"![[{filename}]]"]
         if item.caption:
             rendered.append(f"*{item.caption}*")
         return rendered
@@ -460,17 +662,19 @@ def _render_content_item(
             notes_stem=notes_stem,
             bibliography_stem=bibliography_stem,
             anchor_prefix=anchor_prefix,
+            footnote_mapping=footnote_mapping,
         )
     if isinstance(item, CodeBlock):
         return ["```", *item.lines, "```"]
     if isinstance(item, CalloutBlock):
         callout_type = obsidian_callout_type(item.label)
         lines = [f"> [!{callout_type}] {item.label}"]
-        lines.extend(
-            f"> {_render_inline_markers(p, notes_stem, bibliography_stem)}"
-            for p in item.paragraphs
-            if p
-        )
+        for p in item.paragraphs:
+            if p:
+                rendered_p = _render_inline_markers(
+                    p, notes_stem, bibliography_stem, footnote_mapping=footnote_mapping
+                )
+                lines.append(f"> {rendered_p}")
         return lines
     if isinstance(item, MathBlock):
         if item.display:
@@ -480,10 +684,18 @@ def _render_content_item(
             return lines
         return [f"${item.latex_or_text}$"]
     if isinstance(item, VerseBlock):
-        return _render_verse(item, notes_stem=notes_stem, bibliography_stem=bibliography_stem)
+        return _render_verse(
+            item,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            footnote_mapping=footnote_mapping,
+        )
     if isinstance(item, GlossaryBlock):
         return _render_glossary_block(
-            item, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+            item,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            footnote_mapping=footnote_mapping,
         )
     return []
 
@@ -492,11 +704,15 @@ def _render_glossary_block(
     item: GlossaryBlock,
     notes_stem: str | None = None,
     bibliography_stem: str | None = None,
+    footnote_mapping: dict[str, str] | None = None,
 ) -> list[str]:
     lines: list[str] = []
     for entry in item.items:
         rendered_def = _render_inline_markers(
-            entry.definition, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+            entry.definition,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            footnote_mapping=footnote_mapping,
         )
         if rendered_def:
             lines.append(f"**{entry.term}** — {rendered_def}")
@@ -513,6 +729,7 @@ def _render_verse(
     notes_stem: str | None = None,
     bibliography_stem: str | None = None,
     back_matter_stem: str | None = None,
+    footnote_mapping: dict[str, str] | None = None,
 ) -> list[str]:
     effective_notes = notes_stem or back_matter_stem
     effective_bib = bibliography_stem or back_matter_stem
@@ -523,7 +740,10 @@ def _render_verse(
             rendered_lines.append(prefix.rstrip())
         else:
             processed = _render_inline_markers(
-                line, notes_stem=effective_notes, bibliography_stem=effective_bib
+                line,
+                notes_stem=effective_notes,
+                bibliography_stem=effective_bib,
+                footnote_mapping=footnote_mapping,
             )
             rendered_lines.append(f"{prefix}{processed}  ")
     if item.attribution:
@@ -536,12 +756,16 @@ def _render_list(
     notes_stem: str | None,
     bibliography_stem: str | None,
     anchor_prefix: str | None,
+    footnote_mapping: dict[str, str] | None = None,
 ) -> list[str]:
     lines: list[str] = []
     for item in list_data.items:
         indent = "    " * item.level
         text = _render_inline_markers(
-            item.text, notes_stem=notes_stem, bibliography_stem=bibliography_stem
+            item.text,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            footnote_mapping=footnote_mapping,
         )
         marker = f"{item.marker}." if item.ordered and item.marker else "-"
         line = f"{indent}{marker} {text}"
@@ -556,6 +780,7 @@ def _render_inline_markers(
     notes_stem: str | None = None,
     bibliography_stem: str | None = None,
     back_matter_stem: str | None = None,
+    footnote_mapping: dict[str, str] | None = None,
 ) -> str:
     if back_matter_stem is not None:
         effective_notes = notes_stem or back_matter_stem
@@ -567,13 +792,17 @@ def _render_inline_markers(
         effective_notes = notes_stem
         effective_bib = notes_stem
 
-    text = _render_footnote_markers(text)
+    text = _render_footnote_markers(text, footnote_mapping=footnote_mapping)
     text = _render_endnote_markers(text, effective_notes)
     return _render_citation_markers(text, effective_bib)
 
 
-def _render_footnote_markers(text: str) -> str:
+def _render_footnote_markers(text: str, footnote_mapping: dict[str, str] | None = None) -> str:
     """Rule 4.4 — turn a Rule 4.2 sentinel-wrapped marker into `[^n]`."""
+    if footnote_mapping is not None:
+        return FOOTNOTE_SENTINEL_RE.sub(
+            lambda m: f"[^{footnote_mapping.get(m.group(1), m.group(1))}]", text
+        )
     return FOOTNOTE_SENTINEL_RE.sub(lambda m: f"[^{m.group(1)}]", text)
 
 
@@ -584,8 +813,9 @@ def _render_endnote_markers(text: str, notes_stem: str | None) -> str:
     different file."""
     if notes_stem is None:
         return text
+    target = f"{notes_stem}#" if notes_stem else "#"
     return ENDNOTE_SENTINEL_RE.sub(
-        lambda m: f"[[{notes_stem}#^note-{m.group(1)}|{m.group(1)}]]", text
+        lambda m: f"[[{target}^note-{m.group(1)}|{m.group(1)}]]", text
     )
 
 
@@ -595,8 +825,9 @@ def _render_citation_markers(text: str, bibliography_stem: str | None) -> str:
     same mechanism `_render_endnote_markers` uses for `^note-N`."""
     if bibliography_stem is None:
         return text
+    target = f"{bibliography_stem}#" if bibliography_stem else "#"
     return CITATION_SENTINEL_RE.sub(
-        lambda m: f"[[{bibliography_stem}#^ref-{m.group(1)}|{m.group(1)}]]", text
+        lambda m: f"[[{target}^ref-{m.group(1)}|{m.group(1)}]]", text
     )
 
 

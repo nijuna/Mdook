@@ -27,6 +27,7 @@ class ConversionWorker(QThread):
         output_dir: Path,
         profile: str = "auto",
         llm_config=None,
+        single_file: bool = False,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -34,6 +35,7 @@ class ConversionWorker(QThread):
         self.output_dir = output_dir
         self.profile = profile
         self.llm_config = llm_config
+        self.single_file = single_file
 
     def run(self) -> None:
         try:
@@ -43,6 +45,7 @@ class ConversionWorker(QThread):
                 profile=self.profile,
                 on_progress=lambda percent, message: self.progress_updated.emit(percent, message),
                 llm_config=self.llm_config,
+                single_file=self.single_file,
             )
         except Exception as exc:  # noqa: BLE001 — surface any pipeline failure to the GUI
             self.conversion_failed.emit(str(exc))
