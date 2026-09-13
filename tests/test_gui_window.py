@@ -20,6 +20,7 @@ from PySide6.QtWidgets import QApplication
 
 from mdook.core.models import ConversionResult
 from mdook.gui import window as window_module
+from mdook.gui.config import GUIConfig
 from mdook.gui.styles import DARK_STYLE, LIGHT_STYLE
 from mdook.gui.window import MainWindow
 
@@ -98,7 +99,9 @@ def fake_worker(monkeypatch: pytest.MonkeyPatch) -> type[FakeWorker]:
 
 
 @pytest.fixture
-def window(qapp: QApplication) -> MainWindow:
+def window(qapp: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> MainWindow:
+    fake_config = tmp_path / "gui_config.json"
+    monkeypatch.setattr(GUIConfig, "get_config_path", classmethod(lambda cls: fake_config))
     return MainWindow()
 
 

@@ -73,7 +73,7 @@ THEME_TOKENS: dict[str, dict[str, dict[str, str]]] = {
             "badge_bg": "#fef3c7",
             "badge_text": "#92400e",
             "badge_border": "#fcd34d",
-            "progress_bg": "#e7decfa",
+            "progress_bg": "#e7decf",
             "progress_chunk": "#b45309",
             "success_text": "#059669",
             "error_text": "#e11d48",

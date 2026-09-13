@@ -64,6 +64,7 @@ class SettingsDialog(QDialog):
 
         self._build_ui()
         self._load_values()
+        self._apply_theme(self.config.theme_family, self.config.color_mode)
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
@@ -288,12 +289,19 @@ class SettingsDialog(QDialog):
         self.ai_key_input.setText(self.config.ai_api_key)
         self._toggle_ai_fields(self.config.ai_enabled)
 
+    def _apply_theme(self, family: str, mode: str) -> None:
+        qss = get_stylesheet(family, mode)
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet(qss)
+        self.setStyleSheet(qss)
+        if self.parent() and hasattr(self.parent(), "setStyleSheet"):
+            self.parent().setStyleSheet(qss)
+
     def _on_theme_changed(self) -> None:
         family = self.family_combo.currentData() or "library"
         mode = "light" if self.light_radio.isChecked() else "dark"
-        app = QApplication.instance()
-        if app:
-            app.setStyleSheet(get_stylesheet(family, mode))
+        self._apply_theme(family, mode)
 
     def _browse_default_dir(self) -> None:
         chosen = QFileDialog.getExistingDirectory(self, "Select Default Output Folder")
@@ -337,9 +345,7 @@ class SettingsDialog(QDialog):
 
     def _on_cancel(self) -> None:
         # Revert any live previewed theme
-        app = QApplication.instance()
-        if app:
-            app.setStyleSheet(get_stylesheet(self._initial_theme, self._initial_mode))
+        self._apply_theme(self._initial_theme, self._initial_mode)
         self.reject()
 
     def _on_save(self) -> None:
@@ -365,5 +371,6 @@ class SettingsDialog(QDialog):
         self.config.ai_api_key = ai_api_key
 
         self.config.save()
+        self._apply_theme(family, mode)
         self.settings_saved.emit(self.config)
         self.accept()

@@ -120,3 +120,39 @@ def test_main_window_book_inspection_card(qapp: QApplication, tmp_path: Path) ->
     assert window.book_card.isHidden() is False
     assert window.book_title_badge.text() == "EPUB"
     assert "dune.epub" in window.book_size_badge.text()
+
+
+def test_settings_live_preview_and_window_theme_application(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_config_file = tmp_path / "gui_config.json"
+    monkeypatch.setattr(GUIConfig, "get_config_path", classmethod(lambda cls: fake_config_file))
+
+    window = MainWindow()
+    initial_qss = window.styleSheet()
+
+    dialog = SettingsDialog(window)
+    dialog.settings_saved.connect(window._on_settings_saved)
+
+    # Change to Amethyst
+    amethyst_idx = dialog.family_combo.findData("amethyst")
+    dialog.family_combo.setCurrentIndex(amethyst_idx)
+
+    amethyst_dark_qss = get_stylesheet("amethyst", "dark")
+    assert window.styleSheet() == amethyst_dark_qss
+    assert dialog.styleSheet() == amethyst_dark_qss
+
+    # Cancel should revert
+    dialog._on_cancel()
+    assert window.styleSheet() == initial_qss
+
+    # Open again, change to Carbon, and Save
+    dialog2 = SettingsDialog(window)
+    dialog2.settings_saved.connect(window._on_settings_saved)
+    carbon_idx = dialog2.family_combo.findData("carbon")
+    dialog2.family_combo.setCurrentIndex(carbon_idx)
+    dialog2._on_save()
+
+    carbon_dark_qss = get_stylesheet("carbon", "dark")
+    assert window.styleSheet() == carbon_dark_qss
+    assert window.config.theme_family == "carbon"

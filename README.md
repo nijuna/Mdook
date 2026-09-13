@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-295%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-296%20passed-brightgreen.svg)]()
 
 </div>
 
@@ -183,7 +183,7 @@ Settings can be configured directly inside the desktop GUI (via **Settings** dia
 
 ## Development & Testing
 
-Mdook is thoroughly tested with 295 unit and integration tests configured to run headless offscreen:
+Mdook is thoroughly tested with 296 unit and integration tests configured to run headless offscreen:
 
 ```bash
 # Run the test suite

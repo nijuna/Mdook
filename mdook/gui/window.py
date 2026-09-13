@@ -38,7 +38,6 @@ from mdook.core.models import ConversionResult
 from mdook.gui.config import GUIConfig
 from mdook.gui.queue_manager import QueueItem, QueueManager
 from mdook.gui.settings_dialog import SettingsDialog
-from mdook.gui.styles import DARK_STYLE, LIGHT_STYLE
 from mdook.gui.theme import get_stylesheet
 from mdook.gui.worker import ConnectionTestWorker, ConversionWorker, ModelFetchWorker
 
@@ -107,10 +106,7 @@ class MainWindow(QMainWindow):
         self._dark_mode = self.config.color_mode == "dark"
 
         # Apply persisted theme
-        self.setStyleSheet(DARK_STYLE if self._dark_mode else LIGHT_STYLE)
-        app = QApplication.instance()
-        if app:
-            app.setStyleSheet(get_stylesheet(self.config.theme_family, self.config.color_mode))
+        self._apply_theme()
 
         self.queue_manager = QueueManager()
         self.worker: ConversionWorker | None = None
@@ -160,16 +156,19 @@ class MainWindow(QMainWindow):
         )
         self.profile_combo.setCurrentIndex(prof_idx)
 
+    def _apply_theme(self) -> None:
+        qss = get_stylesheet(self.config.theme_family, self.config.color_mode)
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet(qss)
+        self.setStyleSheet(qss)
+
     def toggle_theme(self) -> None:
         self._dark_mode = not self._dark_mode
         mode = "dark" if self._dark_mode else "light"
         self.config.color_mode = mode
         self.config.save()
-
-        app = QApplication.instance()
-        if app:
-            app.setStyleSheet(get_stylesheet(self.config.theme_family, mode))
-        self.setStyleSheet(DARK_STYLE if self._dark_mode else LIGHT_STYLE)
+        self._apply_theme()
         self.theme_button.setText("Light" if self._dark_mode else "Dark")
 
     def open_settings(self) -> None:
@@ -180,6 +179,7 @@ class MainWindow(QMainWindow):
     def _on_settings_saved(self, config: GUIConfig) -> None:
         self.config = config
         self._dark_mode = config.color_mode == "dark"
+        self._apply_theme()
         self.theme_button.setText("Light" if self._dark_mode else "Dark")
 
         if config.output_mode == "single_document":
