@@ -34,7 +34,10 @@ def test_cli_version() -> None:
 def test_cli_help() -> None:
     parser = build_parser()
     help_text = parser.format_help()
-    assert "Convert PDF books into structured, readable Obsidian vaults." in help_text
+    assert (
+        "Convert books (PDF, EPUB, DOCX) into structured, interlinked Markdown libraries"
+        in help_text
+    )
     assert "convert" in help_text
     assert "gui" in help_text
 

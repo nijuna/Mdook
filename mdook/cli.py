@@ -40,13 +40,17 @@ def build_parser() -> argparse.ArgumentParser:
     """Constructs the top-level argument parser with subcommands."""
     parser = argparse.ArgumentParser(
         prog="mdook",
-        description="Convert PDF books into structured, readable Obsidian vaults.",
+        description=(
+            "Convert books (PDF, EPUB, DOCX) into structured, interlinked "
+            "Markdown libraries and reading documents."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
-  mdook convert book.pdf -o ./vaults/
-  mdook convert book1.pdf book2.pdf --profile technical
-  mdook convert book.pdf --ai --ai-model gpt-4o-mini
+  mdook convert book.pdf -o ./output/
+  mdook convert novel.epub --single-file
+  mdook convert textbook.pdf --profile technical
+  mdook convert manuscript.docx --ai --ai-model gemini-2.5-flash
   mdook gui
 """,
     )
@@ -63,21 +67,28 @@ Examples:
     # `convert` subcommand
     convert_parser = subparsers.add_parser(
         "convert",
-        help="Convert one or more PDF books into an Obsidian vault.",
-        description="Convert one or more PDF books into an Obsidian vault.",
+        help=(
+            "Convert books (PDF, EPUB, DOCX) into chapter-split "
+            "Markdown libraries or single documents."
+        ),
+        description=(
+            "Ingest publications (PDF, EPUB, DOCX), analyze layout and typography, "
+            "and generate clean Markdown libraries or single continuous documents."
+        ),
     )
     convert_parser.add_argument(
-        "pdf",
+        "books",
+        metavar="BOOK",
         nargs="+",
         type=Path,
-        help="Path to one or more input PDF files.",
+        help="Path to one or more input book files (.pdf, .epub, .docx).",
     )
     convert_parser.add_argument(
         "-o",
         "--output",
         type=Path,
         default=Path("./"),
-        help="Directory where the Obsidian vault folder will be created "
+        help="Destination directory where the converted output will be created "
         "(default: current directory).",
     )
     convert_parser.add_argument(
@@ -85,19 +96,19 @@ Examples:
         "--profile",
         choices=["auto", "literature", "technical"],
         default="auto",
-        help="Book profile: 'auto' (default: auto-detect), 'literature', or 'technical'.",
+        help="Semantic parsing profile: 'auto' (auto-detect), 'literature', or 'technical'.",
     )
     convert_parser.add_argument(
         "-s",
         "--single-file",
         action="store_true",
-        help="Output a single continuous Markdown file instead of a modular multi-file vault.",
+        help="Output a single continuous Markdown file instead of a chapter-split modular library.",
     )
     convert_parser.add_argument(
         "--ai",
         action="store_true",
         default=None,
-        help="Enable AI structure review via OpenAI-compatible API.",
+        help="Enable token-efficient AI structure review via OpenAI-compatible API.",
     )
     convert_parser.add_argument(
         "--no-ai",
@@ -108,7 +119,7 @@ Examples:
         "--ai-model",
         type=str,
         default=None,
-        help="Model name for AI structure review (e.g. gpt-4o-mini, llama3.2).",
+        help="Model name for AI structure review (e.g. gemini-2.5-flash, gpt-4o-mini, llama3.2).",
     )
     convert_parser.add_argument(
         "--ai-base-url",
@@ -126,20 +137,20 @@ Examples:
         "-q",
         "--quiet",
         action="store_true",
-        help="Suppress progress bars and non-error output.",
+        help="Suppress progress bars, banners, and non-error output.",
     )
 
     # `gui` subcommand
     subparsers.add_parser(
         "gui",
-        help="Launch the PySide6 graphical user interface.",
-        description="Launch the PySide6 graphical user interface.",
+        help="Launch the desktop graphical user interface.",
+        description="Launch the typography-first PySide6 desktop interface.",
     )
 
     # `version` subcommand
     subparsers.add_parser(
         "version",
-        help="Display Mdook version.",
+        help="Display installed Mdook version.",
     )
 
     return parser
@@ -164,15 +175,15 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
     llm_config = LLMConfig.from_env(**llm_overrides)
 
     overall_exit_code = 0
-    pdf_files: list[Path] = args.pdf
+    book_files: list[Path] = getattr(args, "books", None) or getattr(args, "pdf", [])
 
-    for pdf_path in pdf_files:
-        if not pdf_path.exists():
-            console.print(f"[bold red]Error:[/bold red] File not found: '{pdf_path}'")
+    for book_path in book_files:
+        if not book_path.exists():
+            console.print(f"[bold red]Error:[/bold red] File not found: '{book_path}'")
             overall_exit_code = 1
             continue
-        if not pdf_path.is_file():
-            console.print(f"[bold red]Error:[/bold red] Path is not a file: '{pdf_path}'")
+        if not book_path.is_file():
+            console.print(f"[bold red]Error:[/bold red] Path is not a file: '{book_path}'")
             overall_exit_code = 1
             continue
 
@@ -180,7 +191,7 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
             console.print(
                 Panel.fit(
                     f"[bold cyan]Mdook[/bold cyan] v{__version__} — "
-                    f"Converting [bold white]{pdf_path.name}[/bold white]\n"
+                    f"Converting [bold white]{book_path.name}[/bold white]\n"
                     f"Profile: [green]{args.profile}[/green] | Output: [green]{args.output}[/green]"
                     + (f" | AI: [cyan]{llm_config.model}[/cyan]" if llm_config.enabled else ""),
                     border_style="cyan",
@@ -190,7 +201,7 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
         try:
             if args.quiet:
                 res = convert(
-                    pdf_path=pdf_path,
+                    pdf_path=book_path,
                     output_dir=args.output,
                     profile=args.profile,
                     on_progress=None,
@@ -213,7 +224,7 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                         progress.update(task, completed=percent, description=message)
 
                     res = convert(
-                        pdf_path=pdf_path,
+                        pdf_path=book_path,
                         output_dir=args.output,
                         profile=args.profile,
                         on_progress=on_progress,
@@ -275,11 +286,11 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                 overall_exit_code = 1
 
         except MdookError as e:
-            console.print(f"[bold red]Error converting '{pdf_path.name}':[/bold red] {e}")
+            console.print(f"[bold red]Error converting '{book_path.name}':[/bold red] {e}")
             overall_exit_code = 1
         except Exception as e:
             console.print(
-                f"[bold red]Unexpected error converting '{pdf_path.name}':[/bold red] {e}"
+                f"[bold red]Unexpected error converting '{book_path.name}':[/bold red] {e}"
             )
             overall_exit_code = 1
 
@@ -318,7 +329,7 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
         first_token = args_list[0]
         if first_token not in ("convert", "gui", "version", "help"):
             candidate = Path(first_token)
-            if candidate.suffix.lower() == ".pdf" or candidate.exists():
+            if candidate.suffix.lower() in (".pdf", ".epub", ".docx") or candidate.exists():
                 args_list.insert(0, "convert")
 
     # If no arguments provided:
