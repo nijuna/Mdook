@@ -38,15 +38,19 @@ pip install pymupdf4llm
 
 > **Update: never actually used.** It's still declared in `pyproject.toml`, but nothing in `mdook/` imports it — Stage 2/3 went straight to hand-built heuristic rules (`mdook/core/rules/*.py`) instead of using pymupdf4llm's structural pre-pass as a baseline. It's unused weight in the dependency tree at this point; worth removing unless a future use for it turns up.
 
-### Typer (or Click)
-**Role:** CLI framework.
-**Why:** Clean, typed CLI interface with minimal boilerplate. Auto-generates help text. Supports subcommands for future expansion (e.g., `bookforge convert`, `bookforge validate`, `bookforge inspect`).
+### PySide6 & Rich
+**Role:** Dual desktop GUI and terminal interfaces.
+**Why:**
+- **PySide6 (Qt for Python):** Powers the desktop GUI (`mdook/gui/`) with custom QSS styling, 3 theme families, non-blocking `QThread` workers, and a sequential batch queue.
+- **Rich & argparse:** Powers the headless CLI (`mdook/cli.py`) with live progress bars, spinners, and formatted validation tables without heavy CLI dependencies (Typer/Click were superseded).
 
-```
-pip install typer
-```
+### EbookLib & BeautifulSoup4
+**Role:** EPUB3 / EPUB2 publication ingestion.
+**Why:** `ebooklib` opens `.epub` archives and extracts OPF manifests and metadata; `bs4` parses XHTML documents and semantic tags directly into `DocumentTree`.
 
-> **Update: never happened — the project became GUI-first instead.** From the very first implementation sprint, Mdook shipped as a PySide6 desktop app (`mdook/gui/`), not a CLI tool. Neither Typer nor Click was ever added as a dependency. `PySide6` itself belongs in this Core Libraries list and isn't mentioned here at all — that's a gap in this doc, not in the implementation.
+### python-docx
+**Role:** Word manuscript ingestion.
+**Why:** Parses `.docx` OpenXML styles, tables, runs, and footnotes directly into `DocumentTree`.
 
 ### Pydantic
 **Role:** Data models and configuration.

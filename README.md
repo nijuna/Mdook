@@ -117,8 +117,8 @@ For scanned PDF OCR support, install the Tesseract system binary:
 Clone the repository and sync dependencies:
 
 ```bash
-git clone https://github.com/your-org/mdook.git
-cd mdook
+git clone https://github.com/nijuna/Mdook.git
+cd Mdook
 uv sync --extra dev
 ```
 

@@ -40,35 +40,29 @@ The goal is not pixel fidelity. It is semantic fidelity — preserving the struc
 
 ---
 
-## Distribution Plan
+## Distribution & Interfaces
 
-> **Update: the original three-phase plan below (CLI → Obsidian plugin →
-> web service) was superseded almost immediately** — the project became a
-> **PySide6 desktop GUI** (`mdook/gui/`) from the very first implementation
-> sprint and never had a CLI at all. No public GitHub repo exists yet
-> either. See "Project Status" below for what actually shipped, and
-> `Mdook-docs/ROADMAP.md`'s Phase 5/6 for the current distribution-related
-> open items (license, changelog, CI, and the Obsidian-plugin/web-service
-> ideas below, still just ideas).
+Mdook is distributed with multiple interfaces and is hosted on GitHub at [nijuna/Mdook](https://github.com/nijuna/Mdook) under the MIT License:
 
-### Phase 1 — Open-Source CLI (Priority) *(superseded — became a desktop GUI instead)*
+### 1. Desktop GUI (PySide6)
+- Modern two-tier desktop interface (`mdook/gui/`) featuring file inspection cards, 5-stage stepper, and sequential queue.
+- 3 Theme Families (*The Library*, *Amethyst*, *Carbon*) in dark/light modes.
+- Strictly typography-first design with zero emojis.
+- Dedicated `SettingsDialog` with dynamic LLM provider discovery and latency testing.
 
-- ~~Python CLI tool: `Mdook convert book.pdf --profile literature --output ./vault/MyBook/`~~
-- Published on GitHub with MIT or Apache 2.0 license — **not done yet**, no repo exists
-- Good documentation, example outputs, before/after comparisons — partially done (see `README.md`)
-- This is the portfolio piece and the foundation everything else builds on
+### 2. Headless CLI (`mdook/cli.py`)
+- Full terminal and headless server automation (`mdook convert book.pdf -o ./vaults/`).
+- Supports single-file or multi-book conversions, profile selection, and AI structure review flags.
+- Rich terminal progress indicators and validation summary tables.
+- Display-aware entrypoint: launches GUI on desktop displays, prints help on headless servers.
 
-### Phase 2 — Obsidian Community Plugin *(not started)*
+### 3. Obsidian Desktop Plugin (`obsidian-plugin/`)
+- Official plugin enabling in-vault conversion of `.pdf`, `.epub`, and `.docx` books directly inside Obsidian.
+- Context menu integration, folder batch conversions, and interactive conversion modal.
+- Configurable output modes (`vault` or `single_document`) and real-time status bar widget.
 
-- Wraps the CLI pipeline so users can trigger conversion from within Obsidian
-- Free plugin, local processing by default
-- Optional: call a hosted API for OCR-heavy or AI-assisted conversions
-
-### Phase 3 — Web Service (If Demand Exists) *(not started; see the "vision discussion" note below)*
-
-- Upload PDF → get back a zip of the Obsidian vault
-- Freemium model: free tier with basic heuristics, paid tier with full pipeline + AI structure review
-- Only worth building after the core engine is battle-tested and has real users
+### 4. Standalone Packaging (In Progress)
+- Standalone executables and installers for Linux, Windows, and macOS.
 
 ---
 

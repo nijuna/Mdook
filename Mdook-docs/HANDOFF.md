@@ -12,7 +12,7 @@ the code and its accompanying test suite (`tests/`) serve as the source of truth
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 268 passed
+uv run pytest -q         # should show 296 passed
 uv run ruff check .      # should show "All checks passed!"
 uv run python -m mdook   # launches the GUI (or: uv run mdook convert ...)
 ```
@@ -24,6 +24,10 @@ handoff describes — figure out why before trusting the rest of this file.
 
 - **Both Desktop GUI and Headless CLI** — PySide6 GUI (`mdook`, `mdook gui`,
   `python -m mdook`) and Rich headless CLI (`mdook convert book.pdf -o ./vaults/`).
+- **Multi-Format Ingestion** — Direct XHTML/TOC parsing for EPUB3 (`epub.py`)
+  and OpenXML/Styles parsing for DOCX (`docx.py`) directly into `DocumentTree`.
+- **Dual Output Modes** — Modular Obsidian Vault (multi-file) or verbatim
+  Single Document mode (`-s` / `--single-file` emitting `Title.md`).
 - **OCR engine is Tesseract** (a system package, not pip-installed —
   `sudo dnf install tesseract` / `sudo apt install tesseract-ocr`),
   routed per-page, not per-book.
@@ -38,11 +42,9 @@ handoff describes — figure out why before trusting the rest of this file.
 - **Structured Glossary Processing** — Implemented in Phase 5 via `mdook/core/rules/glossary.py`
   (Rule 9.6), structuring glossary entries into clean `**Term** — Definition` paragraphs,
   preserving letter dividers (`## A`, `## B`), and rejoining hyphenated multi-line definitions.
-- **Headless CLI Command** — Implemented in Phase 5 via `mdook/cli.py`, supporting
-  `mdook convert <pdf...> -o <vaults/>` with Rich progress bars and validation tables.
-- **~2,800 lines across 9 docs in `Mdook-docs/`**, all current as of
-  2026-09-06 — see the reading order below.
-- **268 tests, `ruff` clean**, as of the same date.
+- **Modern Theme System** — 3 Theme Families (*The Library*, *Amethyst*, *Carbon*)
+  in dark/light modes managed by `theme.py` and persistent `config.py`.
+- **296 tests, `ruff` clean**, all passing offscreen.
 
 
 ---
@@ -91,11 +93,12 @@ right and the doc needs fixing — that's true even of this file eventually.
 
 ## Specific traps a fresh read is likely to fall into
 
-- **There is no CLI.** The project became a PySide6 desktop GUI
-  (`mdook/gui/`) in the very first implementation sprint and stayed that
-  way. Several docs still show `Mdook convert book.pdf --profile ...`
-  command examples — those never shipped and never will unless someone
-  deliberately adds a CLI entry point later.
+- **Both GUI and CLI exist and are active.** While Mdook originally started
+  GUI-first, a complete headless CLI (`mdook/cli.py`) is fully implemented and
+  supports `mdook convert book.pdf -o ./vaults/ --single-file --ai` along with
+  headless automated batch pipelines.
+- **The Obsidian Plugin is implemented.** The desktop plugin lives in
+  `obsidian-plugin/` and allows direct in-vault conversions.
 - **OCR is Tesseract, not Marker/pdf-craft.** The original plan's OCR
   section recommended Marker; the actual target machine was CPU-only, and
   Tesseract's plain word+bbox output maps directly onto the existing

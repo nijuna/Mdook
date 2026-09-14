@@ -231,8 +231,14 @@ for the full reasoning on each):
 
 ## Stage 4 — Rendering (`mdook/core/stages/rendering.py`)
 
-**Input:** `DocumentTree` + `BookManifest` + output directory
-**Output:** Files on disk (the Obsidian vault)
+**Input:** `DocumentTree` + `BookManifest` + output directory + `output_mode`
+**Output:** Files on disk (Modular Obsidian vault or Single Document)
+
+Mdook supports two distinct output architectures:
+
+### Mode 1: Modular Vault (Default)
+
+Emits a multi-file Obsidian knowledge vault:
 
 ```
 MyBook/
@@ -252,20 +258,34 @@ MyBook/
     └── ...
 ```
 
-Content-type rendering, briefly:
+### Mode 2: Single Document (`-s` / `--single-file`)
+
+Emits a complete, verbatim 1:1 continuous Markdown document (`Title.md`) with attachments:
+
+```
+MyBook/
+├── MyBook.md                  # Complete continuous manuscript
+└── attachments/
+    ├── fig-2-1.png
+    └── ...
+```
+- **Standard Image Links**: Uses universal markdown syntax (`![caption](attachments/fig.png)`).
+- **Intra-Document Anchors**: Footnotes and citations link locally via `[[#^note-1|1]]` and `[[#^ref-1|1]]`.
+- **Consolidated Footnotes**: Deduplicates marker collisions across chapters and collects all notes into a document-level `## Footnotes` section.
+
+### Content-Type Rendering Details
+
 - Page breaks → collapsed callouts: `> [!quote]- p. 142 · Book Title, Ch. 3`
 - Footnotes → `[^n]`; endnotes and citations → wiki-links to a `^note-N` /
   `^ref-N` block anchor in the back-matter file (Obsidian footnotes are
   file-scoped, so a cross-file reference needs a real link, not `[^n]`)
 - `CalloutBlock` → `> [!type] Label` (Obsidian renders any type name with a
-  generic bordered style, even ones it doesn't specifically recognize —
-  this is how "Note", "Warning", and theorem-environment labels like
-  "Theorem 3.2" all render without inventing multiple box mechanisms)
+  generic bordered style, even ones it doesn't specifically recognize)
 - `MathBlock` → `$$...$$` (display) or `$...$` (inline) — Obsidian's native
   MathJax, not a custom fenced block
 - Tables → markdown pipe tables (simple) or inline HTML (complex/merged
   cells)
-- Images → `![[fig-3-2.png]]` with the caption (if any) on the next line
+- Images → `![[fig-3-2.png]]` (vault mode) or `![caption](attachments/fig.png)` (single-doc mode)
 
 ---
 
@@ -299,19 +319,16 @@ Mdook offers both a rich desktop graphical user interface and a headless command
 
 ### Desktop GUI (`mdook/gui/`)
 Launched via `mdook`, `mdook gui`, or `python -m mdook`:
-- `window.py` — `MainWindow`: file pickers, drag-and-drop (multiple PDFs
-  at once), a light/dark theme toggle, a real sequential queue (drop
-  or queue several books; they convert one after another automatically),
-  collapsible AI Structure Review settings panel, and a summary card
-  that displays `ConversionResult` statistics and enables the "Open Vault" button.
-- `worker.py` — `ConversionWorker`, `ConnectionTestWorker`, `ModelFetchWorker`:
-  non-blocking `QThread` workers keeping the UI responsive.
+- `window.py` — `MainWindow`: file inspection card, segmented output format toggle (`Modular Vault` vs `Single Document`), sequential queue, 5-stage breadcrumbs, and "Open Vault / Note" action.
+- `settings_dialog.py` — `SettingsDialog`: modal settings interface for theme palette selection, conversion defaults, and live AI provider configuration.
+- `theme.py` — 3 theme families (*The Library*, *Amethyst*, *Carbon*) across dark and light modes with tokenized stylesheet generation.
+- `config.py` — `GUIConfig` model and JSON persistence (`~/.config/mdook/gui_config.json`).
+- `worker.py` — `ConversionWorker`, `ConnectionTestWorker`, `ModelFetchWorker`: non-blocking `QThread` workers keeping the UI responsive.
 - `queue_manager.py` — `QueueManager`/`QueueItem`: plain-Python queue state.
-- `styles.py` — `DARK_STYLE`/`LIGHT_STYLE` QSS stylesheets.
 
 ### Headless CLI (`mdook/cli.py`)
 Terminal-first and headless server automation:
-- `mdook convert <pdf...> -o <vaults/> [--profile literature|technical] [--ai]`:
+- `mdook convert <pdf...> -o <vaults/> [--single-file] [--profile literature|technical] [--ai]`:
   converts books with Rich spinners, progress bars, and formatted validation summary tables.
 - `mdook gui`: explicitly launches the PySide6 desktop GUI.
 - `mdook --version` / `mdook version`: displays version information.
@@ -339,58 +356,66 @@ ConversionResult:
 Mdook/
 ├── mdook/
 │   ├── __init__.py
-│   ├── __main__.py             # `python -m mdook` — launches the GUI
+│   ├── __main__.py             # Entry point dispatch (GUI or CLI)
+│   ├── cli.py                  # Headless CLI entry point (mdook convert)
 │   │
 │   ├── core/
 │   │   ├── __init__.py
-│   │   ├── errors.py           # EncryptedPDFError, CorruptPDFError
-│   │   ├── models.py           # every Pydantic schema in this file
-│   │   ├── pipeline.py         # orchestrator — convert(), Stage 1→5
+│   │   ├── errors.py           # Typed error definitions (EncryptedPDFError, etc.)
+│   │   ├── models.py           # Pydantic contracts across stages
+│   │   ├── pipeline.py         # Pipeline orchestrator: convert(), Stage 1→5
 │   │   │
-│   │   ├── stages/
-│   │   │   ├── intake.py       # Stage 1
-│   │   │   ├── extraction.py   # Stage 2
-│   │   │   ├── semantic.py     # Stage 3
-│   │   │   ├── rendering.py    # Stage 4
-│   │   │   └── validation.py   # Stage 5
+│   │   ├── formats/            # Non-PDF format direct ingestion
+│   │   │   ├── epub.py         # EPUB3 container, TOC, XHTML & footnote mapping
+│   │   │   └── docx.py         # Word OpenXML styles, runs, tables, & footnotes
 │   │   │
-│   │   └── rules/              # pure detection logic, no I/O
-│   │       ├── zones.py            # front/body/back matter detection
-│   │       ├── headings.py         # heading detection & drop-cap immunity
-│   │       ├── headers_footers.py  # running header/footer detection
-│   │       ├── footnotes.py        # footnote/endnote detection & correlation
-│   │       ├── paragraphs.py       # paragraph merging & boundary detection
-│   │       ├── tables.py           # table classification & formatting
-│   │       ├── images.py           # caption association & vector-diagram rasterization
-│   │       ├── columns.py          # multi-column reading order (RTL-aware)
-│   │       ├── lists.py            # bullet/numbered list detection
-│   │       ├── code.py             # monospace-font code block detection
-│   │       ├── callouts.py         # Note/Warning/etc. sidebar box detection
-│   │       ├── citations.py        # numeric citation-to-bibliography linking
-│   │       ├── math.py             # equation & theorem-environment detection
-│   │       ├── scripts.py          # RTL / case-less script detection
-│   │       ├── text_quality.py     # per-page OCR-routing quality score
-│   │       └── ocr.py              # Tesseract wrapper & TextBlock normalization
+│   │   ├── llm/                # OpenAI-compatible AI review client & prompts
+│   │   │   ├── client.py       # Zero-dependency urllib HTTP client
+│   │   │   └── prompts.py      # Outline review schema & prompt templates
+│   │   │
+│   │   ├── stages/             # 5 pipeline stage orchestrators
+│   │   │   ├── intake.py       # Stage 1: metadata, bookmarks, zone detection
+│   │   │   ├── extraction.py   # Stage 2: blocks, tables, images, Tesseract OCR
+│   │   │   ├── semantic.py     # Stage 3: headings, notes, verse, glossaries
+│   │   │   ├── rendering.py    # Stage 4: modular vault or single-doc rendering
+│   │   │   └── validation.py   # Stage 5: integrity audits & validation reports
+│   │   │
+│   │   └── rules/              # Pure semantic detection heuristics (no I/O)
+│   │       ├── zones.py        # Front/body/back matter detection
+│   │       ├── headings.py     # Heading detection & drop-cap immunity
+│   │       ├── headers_footers.py # Running header/footer clustering
+│   │       ├── footnotes.py    # Footnote/endnote detection & correlation
+│   │       ├── paragraphs.py   # Paragraph merging & boundary detection
+│   │       ├── tables.py       # Table classification & formatting
+│   │       ├── images.py       # Caption association & diagram rasterization
+│   │       ├── columns.py      # Multi-column reading order (RTL-aware)
+│   │       ├── lists.py        # Bullet and numbered list detection
+│   │       ├── code.py         # Monospace-font code block detection
+│   │       ├── callouts.py     # Note/Warning/Tip sidebar box detection
+│   │       ├── citations.py    # Numeric citation-to-bibliography linking
+│   │       ├── math.py         # Equation & theorem-environment detection
+│   │       ├── scripts.py      # RTL / case-less script detection
+│   │       ├── text_quality.py # Per-page OCR-routing quality score
+│   │       ├── ocr.py          # Tesseract wrapper & TextBlock normalization
+│   │       ├── verse.py        # Poetry/verse line break & stanza preservation
+│   │       ├── glossary.py     # Term-definition pair & divider extraction
+│   │       └── profiles.py     # Heuristic auto-profile detection
 │   │
-│   ├── gui/
-│   │   ├── window.py            # MainWindow
-│   │   ├── worker.py            # ConversionWorker (QThread)
-│   │   ├── queue_manager.py     # QueueManager / QueueItem
-│   │   └── styles.py            # DARK_STYLE / LIGHT_STYLE
-│   │   ├── rules/               # 20 pure detection modules (headings, columns, tables, profiles, etc.)
-│   │   ├── stages/              # 5 pipeline stage orchestrators
-│   │   ├── formats/             # Non-PDF format ingestion (epub.py, docx.py)
-│   │   ├── llm/                 # OpenAI-compatible AI review client & prompts
-│   │   ├── errors.py
-│   │   ├── models.py            # Typed Pydantic contracts across stages
-│   │   └── pipeline.py          # Unified convert() orchestrator
-│   │
-│   ├── gui/                     # PySide6 desktop GUI (window, worker, queue)
-│   ├── cli.py                   # Headless CLI entry point (mdook convert)
-│   └── __main__.py              # Entry point dispatch (GUI or CLI)
+│   └── gui/                    # PySide6 desktop GUI
+│       ├── window.py           # MainWindow layout & widgets
+│       ├── settings_dialog.py  # Modal SettingsDialog & AI test
+│       ├── theme.py            # 3 theme families & stylesheet generation
+│       ├── config.py           # GUIConfig JSON persistence
+│       ├── queue_manager.py    # Sequential queue state
+│       └── worker.py           # Background QThread workers
 │
-├── tests/                       # Test suite (280+ tests)
-├── Mdook-docs/                  # Documentation
+├── obsidian-plugin/            # Official Obsidian desktop plugin
+│   ├── main.ts
+│   ├── manifest.json
+│   └── package.json
+│
+├── tests/                      # Pytest test suite (296 passing tests)
+├── Mdook-docs/                 # Architectural specifications & rules catalog
 ├── pyproject.toml
 ├── uv.lock
 └── README.md
