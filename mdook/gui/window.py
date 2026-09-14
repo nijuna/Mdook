@@ -132,6 +132,8 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         central = QWidget()
+        central.setObjectName("CentralWidget")
+        central.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         root = QHBoxLayout(central)
         root.setContentsMargins(20, 20, 20, 20)
         root.setSpacing(16)
