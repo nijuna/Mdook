@@ -141,9 +141,19 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 - [x] **Single Document Mode** — Output 1:1 verbatim complete copy of the book as a single continuous Markdown file with attachments, local block anchors, and unified non-colliding footnotes (`-s` / `--single-file`).
 - [x] **Two-Tier GUI & 3 Theme Families** — Redesigned main window with modal SettingsDialog, 3 themes (*The Library*, *Amethyst*, *Carbon* in dark/light modes), configuration persistence, and strictly zero emojis.
 - [x] **Math/formula support** — Unicode-symbol-density-detected equations rendered via Obsidian's native MathJax (`mdook/core/rules/math.py`). Real LaTeX-drawn vector-path equations (no extractable Unicode) remain out of scope by design (see `RULES.md` section 15).
-- [~] **Batch processing** — The GUI queue and Obsidian plugin convert multiple queued/folder books sequentially in one run. Future extension: recursive directory tree processing.
 - [ ] **Per-section profile switching** — Literary chapters + technical appendix in the same book
 - [ ] **Additional format backends** — MOBI/AZW3, plain HTML, following the Phase 4 pattern
+
+---
+
+## Next Sprint — Mdook V2 Packaging, Branding & Release
+
+**Goal:** Review candidate logo artwork, package standalone binaries for Linux and Windows, capture UI screenshots, and publish Mdook V2 to GitHub.
+
+- [ ] **Mdook logo decision and implementation** — Review 8 candidate logos (4 from Nano Banana, 4 from ChatGPT Image). Select primary brand mark; generate multi-resolution asset bundle (`assets/icons/` with 16x16 through 512x512 `.png` and Windows `mdook.ico`). Embed into `MainWindow.setWindowIcon()`, Linux desktop launchers, and README header. Add matching typographic ASCII wordmark for interactive CLI execution.
+- [ ] **Cross-platform application packaging** — Configure PyInstaller specification (`mdook.spec`) to build standalone, one-command executables for Linux and Windows (`.exe`), with macOS configuration. Bundle assets, themes, and offline dependencies.
+- [ ] **Documentation screenshots & visual polish** — Capture high-resolution screenshots across all 3 theme families (*The Library*, *Amethyst*, *Carbon*) in dark/light modes, the main conversion panel, and the Settings modal. Embed visual assets into `README.md`.
+- [ ] **Publish Mdook V2 on GitHub** — Draft release notes covering multi-format support (PDF, EPUB3, DOCX), dual output modes, AI outline review, and typography-first GUI/CLI. Tag release on GitHub and freeze codebase for project hand-off.
 
 ---
 
