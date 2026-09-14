@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from mdook.core.errors import UnsupportedFormatError
 from mdook.core.llm import LLMConfig
 from mdook.core.models import ConversionResult
 from mdook.core.stages.extraction import run_extraction
@@ -48,6 +49,10 @@ def convert(
             on_progress(percent, message)
 
     suffix = target_path.suffix.lower()
+    if suffix not in (".pdf", ".epub", ".docx"):
+        raise UnsupportedFormatError(
+            f"Unsupported file format '{suffix}'. Mdook supports .pdf, .epub, and .docx books."
+        )
     started_at = time.monotonic()
 
     if suffix == ".epub":

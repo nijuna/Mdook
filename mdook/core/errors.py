@@ -23,3 +23,7 @@ class EncryptedPDFError(MdookError):
 
 class CorruptPDFError(MdookError):
     """The PDF's structure is too damaged to open or read at all."""
+
+
+class UnsupportedFormatError(MdookError):
+    """The input file format is not supported by Mdook."""

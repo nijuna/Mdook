@@ -266,12 +266,12 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
             # Surface warnings
             if res.validation_report.warnings and not args.quiet:
                 for warning in res.validation_report.warnings:
-                    console.print(f"[yellow]⚠ Warning:[/yellow] {warning}")
+                    console.print(f"[yellow]Warning:[/yellow] {warning}")
 
             # Surface errors from validation
             if res.validation_report.errors:
                 for err in res.validation_report.errors:
-                    console.print(f"[red]✖ Error:[/red] {err}")
+                    console.print(f"[red]Error:[/red] {err}")
                 overall_exit_code = 1
 
         except MdookError as e:

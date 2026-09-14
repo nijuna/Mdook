@@ -64,16 +64,20 @@ logger = logging.getLogger(__name__)
 FRONT_MATTER_LABELS = frozenset(
     {
         "cover",
-        "title",
         "titlepage",
         "title page",
+        "title-page",
+        "imprint",
+        "halftitle",
+        "halftitlepage",
+        "half-title",
         "copyright",
         "dedication",
         "preface",
         "foreword",
         "prologue",
-        "halftitle",
         "frontmatter",
+        "prelims",
         "contents",
         "table of contents",
         "toc",
@@ -91,14 +95,30 @@ BACK_MATTER_LABELS = frozenset(
         "glossary",
         "index",
         "colophon",
+        "uncopyright",
+        "copyright-page",
+        "endnotes",
+        "endnote",
+        "notes",
         "acknowledgments",
         "acknowledgements",
         "about the author",
         "backmatter",
+        "endmatter",
+    }
+)
+
+BODY_MATTER_LABELS = frozenset(
+    {
+        "part",
+        "chapter",
+        "bodymatter",
+        "subchapter",
     }
 )
 
 NUMBERED_HEADING_RE = re.compile(r"^\s*\d+\.\d+(?:\.\d+)*\.?\s+\S")
+FOOTNOTE_CALLOUT_RE = re.compile(r"^(?:\[?\d+\]?|[a-zA-Z]{1,3}|\*+|†|‡|§|#)$")
 
 
 class EpubIngester:
@@ -129,15 +149,31 @@ class EpubIngester:
         spine_docs = self._collect_spine_documents(book)
         page_counter = 1
 
+        # Pre-pass: extract footnote and endnote definitions across all spine documents
+        for doc_item in spine_docs:
+            pre_soup = BeautifulSoup(doc_item.get_content(), "html.parser")
+            self._extract_footnote_definitions(pre_soup)
+
+        pending_fm_footnotes: list[Footnote] = []
+        has_seen_body = False
+
         for doc_item in spine_docs:
             content_bytes = doc_item.get_content()
             soup = BeautifulSoup(content_bytes, "html.parser")
 
-            # Extract footnote definitions in this document
-            self._extract_footnote_definitions(soup)
+            # Skip Project Gutenberg automated image wrapper artifacts
+            if soup.find(class_="x-ebookmaker-wrapper"):
+                continue
 
             doc_title = self._determine_doc_title(doc_item, soup)
             division = self._classify_division(doc_item, soup, doc_title)
+
+            # Front matter cannot occur after body chapters have started
+            if has_seen_body and division == "front_matter":
+                division = "body"
+
+            if division == "body":
+                has_seen_body = True
 
             sections, doc_footnotes = self._parse_html_body(soup, page_counter, doc_title=doc_title)
 
@@ -149,19 +185,25 @@ class EpubIngester:
                     if sec.title is None:
                         sec.title = doc_title
                     front_matter.append(sec)
+                if doc_footnotes:
+                    pending_fm_footnotes.extend(doc_footnotes)
             elif division == "back_matter":
                 for sec in sections:
                     if sec.title is None:
                         sec.title = doc_title
                     back_matter.append(sec)
+                if doc_footnotes and chapters:
+                    chapters[-1].footnotes.extend(doc_footnotes)
             else:
                 chapter_num = len(chapters) + 1
+                chapter_fns = pending_fm_footnotes + doc_footnotes
+                pending_fm_footnotes = []
                 chapter = Chapter(
                     number=chapter_num,
                     title=doc_title or f"Chapter {chapter_num}",
                     level=1,
                     sections=sections,
-                    footnotes=doc_footnotes,
+                    footnotes=chapter_fns,
                     page_spans=[(page_counter, page_counter)],
                 )
                 chapters.append(chapter)
@@ -358,8 +400,6 @@ class EpubIngester:
 
     def _extract_footnote_definitions(self, soup: BeautifulSoup) -> None:
         """Find footnote definition elements, record their text by ID, and remove them."""
-        # Standard EPUB3: <aside epub:type="footnote" id="...">
-        # Common pattern: <div class="footnote" id="...">, <li id="fn...">
         candidates: list[Tag] = []
         for tag in soup.find_all(["aside", "div", "li", "p"]):
             epub_type = tag.get("epub:type", "")
@@ -379,36 +419,113 @@ class EpubIngester:
 
         for tag in candidates:
             tag_id = tag["id"]
+            for backlink in tag.find_all(["a", "span"], attrs={"epub:type": "backlink"}):
+                backlink.decompose()
+            for backlink in tag.find_all("a", attrs={"role": "doc-backlink"}):
+                backlink.decompose()
+            for a_tag in tag.find_all("a"):
+                if a_tag.get_text().strip() in ("↩", "↩︎", "↩\ufe0e", "^"):
+                    a_tag.decompose()
             text = tag.get_text().strip()
             # Clean leading markers like "[1]", "1." from definition text
             cleaned_text = re.sub(r"^(?:\[\d+\]|\d+[\.:\s]+|\^|\*)\s*", "", text).strip()
+            # Clean trailing backlink arrows (e.g. ↩, ↩︎, ^)
+            cleaned_text = re.sub(r"[\s↩︎↩\^]+$", "", cleaned_text).strip()
             self.footnotes_by_id[tag_id] = cleaned_text or text
             tag.decompose()
 
     def _determine_doc_title(self, doc_item: epub.EpubHtml, soup: BeautifulSoup) -> str:
-        h1 = soup.find(["h1", "h2"])
-        if h1 and h1.get_text().strip():
-            return h1.get_text().strip()
+        def _extract_clean_text(elem: Tag) -> str:
+            clone = BeautifulSoup(str(elem), "html.parser")
+            for fn in clone.find_all(
+                ["a", "sup", "span"],
+                attrs={"epub:type": lambda x: x and ("noteref" in x or "footnote" in x)},
+            ):
+                fn.decompose()
+            for fn in clone.find_all("a", attrs={"role": "doc-noteref"}):
+                fn.decompose()
+            return re.sub(r"\s+", " ", clone.get_text()).strip()
+
+        hgroup = soup.find("hgroup")
+        if hgroup:
+            parts: list[str] = []
+            for p in hgroup.find_all(["h1", "h2", "h3", "h4", "h5", "h6", "p", "span"]):
+                txt = _extract_clean_text(p)
+                if txt and txt not in parts:
+                    parts.append(txt)
+            if parts:
+                return ": ".join(parts)
+
+        h1 = soup.find(["h1", "h2", "h3"])
+        if h1:
+            txt = _extract_clean_text(h1)
+            if txt:
+                return txt
+
+        stem_lower = Path(doc_item.get_name()).stem.lower()
+        if soup.find(class_="x-ebookmaker-cover") or stem_lower in ("wrap0000", "cover"):
+            return "Cover"
+
         if doc_item.title and doc_item.title.strip():
-            return doc_item.title.strip()
+            return re.sub(r"\s+", " ", doc_item.title).strip()
+
         name = Path(doc_item.get_name()).stem
         name_clean = re.sub(r"[-_]", " ", name).strip().title()
-        return name_clean
+        return re.sub(r"\s+", " ", name_clean).strip()
 
     def _classify_division(
         self, doc_item: epub.EpubHtml, soup: BeautifulSoup, doc_title: str
     ) -> str:
         """Classifies document as 'front_matter', 'body', or 'back_matter'."""
+        stem_lower = Path(doc_item.get_name()).stem.lower()
+        if soup.find(class_="x-ebookmaker-cover") or stem_lower in ("wrap0000", "cover"):
+            return "front_matter"
+
         body_tag = soup.find("body")
-        epub_type = (body_tag.get("epub:type", "") if body_tag else "").lower()
-        title_lower = doc_title.lower().strip()
+
+        # Check root/container level epub:type (on body or the first container section/div)
+        root_epub_types: set[str] = set()
+        if body_tag:
+            btype = body_tag.get("epub:type")
+            if btype:
+                root_epub_types.update(btype.lower().split())
+            first_sec = body_tag.find(["section", "div"])
+            if first_sec and first_sec.get("epub:type"):
+                root_epub_types.update(first_sec.get("epub:type", "").lower().split())
+
+        # If explicitly marked as body/chapter/part, it is body
+        if any(bt in BODY_MATTER_LABELS for bt in root_epub_types):
+            return "body"
 
         for label in FRONT_MATTER_LABELS:
-            if label in epub_type or title_lower == label or title_lower.startswith(f"{label} "):
+            if label in root_epub_types:
                 return "front_matter"
 
         for label in BACK_MATTER_LABELS:
-            if label in epub_type or title_lower == label or title_lower.startswith(f"{label} "):
+            if label in root_epub_types:
+                return "back_matter"
+
+        title_lower = doc_title.lower().strip()
+        stem_lower = Path(doc_item.get_name()).stem.lower()
+
+        for label in FRONT_MATTER_LABELS:
+            if (
+                title_lower == label
+                or title_lower.startswith(f"{label} ")
+                or stem_lower == label
+                or stem_lower.startswith(f"{label}-")
+                or stem_lower.startswith(f"{label}_")
+            ):
+                return "front_matter"
+
+        for label in BACK_MATTER_LABELS:
+            if (
+                title_lower == label
+                or title_lower.startswith(f"{label} ")
+                or stem_lower == label
+                or stem_lower.startswith(f"{label}-")
+                or stem_lower.startswith(f"{label}_")
+            ):
                 return "back_matter"
 
         return "body"
@@ -416,6 +533,40 @@ class EpubIngester:
     # -----------------------------------------------------------------------
     # HTML to DocumentTree Content Parsing
     # -----------------------------------------------------------------------
+
+    def _iter_flow_elements(self, container: Tag):
+        """Recursively traverse container tags, yielding headings and leaf block elements."""
+        for child in container.children:
+            if isinstance(child, NavigableString):
+                text = str(child).strip()
+                if text:
+                    yield ("text", text)
+            elif isinstance(child, Tag):
+                if child.name in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                    yield ("heading", child)
+                elif child.name == "hgroup":
+                    yield ("hgroup", child)
+                elif child.name in (
+                    "p", "blockquote", "ul", "ol", "table", "pre", "img", "figure", "aside", "math"
+                ):
+                    yield ("block", child)
+                elif any(
+                    c in " ".join(child.get("class") or []).lower()
+                    for c in (
+                        "callout", "note", "warning", "tip", "important", "caution", "highlight"
+                    )
+                ):
+                    yield ("block", child)
+                elif any(
+                    c.name in (
+                        "p", "blockquote", "ul", "ol", "table", "pre", "img", "figure",
+                        "aside", "math", "h1", "h2", "h3", "h4", "h5", "h6", "hgroup",
+                    )
+                    for c in child.find_all(True)
+                ):
+                    yield from self._iter_flow_elements(child)
+                else:
+                    yield ("block", child)
 
     def _parse_html_body(
         self, soup: BeautifulSoup, page_number: int, doc_title: str = ""
@@ -427,18 +578,30 @@ class EpubIngester:
         doc_footnotes: list[Footnote] = []
         seen_footnotes: set[str] = set()
 
-        for element in body.children:
-            if isinstance(element, NavigableString):
-                text = str(element).strip()
-                if text:
-                    current_section.content.append(Paragraph(text=text, page_number=page_number))
+        for kind, element in self._iter_flow_elements(body):
+            if kind == "text":
+                current_section.content.append(Paragraph(text=element, page_number=page_number))
                 continue
 
-            if not isinstance(element, Tag):
+            if kind == "hgroup":
+                parts = [
+                    p.get_text().strip()
+                    for p in element.find_all(["h1", "h2", "h3", "h4", "h5", "h6", "p", "span"])
+                    if p.get_text().strip()
+                ]
+                heading_text = ": ".join(parts) if parts else element.get_text().strip()
+                if not heading_text:
+                    continue
+
+                if doc_title and heading_text.lower() == doc_title.lower():
+                    continue
+
+                if current_section.content or current_section.title:
+                    sections.append(current_section)
+                current_section = Section(title=heading_text, level=2, content=[])
                 continue
 
-            # Heading elements: h1-h6
-            if element.name in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            if kind == "heading":
                 heading_level = int(element.name[1])
                 heading_text = element.get_text().strip()
                 if not heading_text:
@@ -456,7 +619,7 @@ class EpubIngester:
                 current_section = Section(title=heading_text, level=heading_level, content=[])
                 continue
 
-            # Block elements
+            # kind == "block"
             content_item, fn_refs = self._parse_block_element(element, page_number)
             if content_item:
                 current_section.content.append(content_item)
@@ -664,6 +827,15 @@ class EpubIngester:
             href = child.get("href", "")
             epub_type = child.get("epub:type", "")
 
+            # Skip backlink anchors (e.g. ↩ back from endnote to body)
+            is_backlink = (
+                "backlink" in epub_type
+                or child.get("role") == "doc-backlink"
+                or child.get_text().strip() in ("↩", "↩︎", "↩\ufe0e", "^")
+            )
+            if is_backlink:
+                continue
+
             # Footnote link check
             is_footnote_link = (
                 "noteref" in epub_type
@@ -671,8 +843,8 @@ class EpubIngester:
                 or (href and ("#fn" in href or "#footnote" in href or "#note" in href))
             )
 
-            if is_footnote_link:
-                marker = child.get_text().strip("[]^ ")
+            marker = child.get_text().strip("[]^ ")
+            if is_footnote_link and FOOTNOTE_CALLOUT_RE.match(marker):
                 fn_id = href.split("#")[-1] if "#" in href else marker
                 marker = marker or fn_id
                 fn_refs.append((marker, fn_id))

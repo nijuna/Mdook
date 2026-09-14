@@ -69,8 +69,13 @@ class OpenAICompatibleClient:
         tokens = self.config.max_tokens if max_tokens is None else max_tokens
         timeout = self.config.timeout_seconds if timeout_seconds is None else timeout_seconds
 
+        model_name = self.config.model
+        is_google = "generativelanguage.googleapis.com" in self.endpoint
+        if is_google and not model_name.startswith("models/"):
+            model_name = f"models/{model_name}"
+
         payload: dict[str, Any] = {
-            "model": self.config.model,
+            "model": model_name,
             "messages": messages,
             "temperature": temp,
             "max_tokens": tokens,

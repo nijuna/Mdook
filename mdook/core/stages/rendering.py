@@ -655,7 +655,12 @@ def _render_content_item(
             rendered.append(f"*{item.caption}*")
         return rendered
     if isinstance(item, TableData):
-        return _render_table(item)
+        return _render_table(
+            item,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            footnote_mapping=footnote_mapping,
+        )
     if isinstance(item, ListData):
         return _render_list(
             item,
@@ -850,16 +855,32 @@ def _copy_attachment(image_ref: ImageRef, attachments_dir: Path) -> str:
     return filename
 
 
-def _render_table(table: TableData) -> list[str]:
+def _render_table(
+    table: TableData,
+    notes_stem: str | None = None,
+    bibliography_stem: str | None = None,
+    footnote_mapping: dict[str, str] | None = None,
+) -> list[str]:
     if not table.cells:
         return []
+
+    def format_cell(cell: str) -> str:
+        return _render_inline_markers(
+            cell,
+            notes_stem=notes_stem,
+            bibliography_stem=bibliography_stem,
+            footnote_mapping=footnote_mapping,
+        )
+
     if table.is_complex:
         rows = "".join(
-            "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>" for row in table.cells
+            "<tr>" + "".join(f"<td>{format_cell(cell)}</td>" for cell in row) + "</tr>"
+            for row in table.cells
         )
         return [f"<table>{rows}</table>"]
 
-    header, *body_rows = table.cells
+    header = [format_cell(c) for c in table.cells[0]]
+    body_rows = [[format_cell(c) for c in row] for row in table.cells[1:]]
     lines = [
         "| " + " | ".join(header) + " |",
         "|" + "|".join(["---"] * len(header)) + "|",
@@ -869,5 +890,7 @@ def _render_table(table: TableData) -> list[str]:
 
 
 def _sanitize_filename(text: str) -> str:
-    cleaned = INVALID_FILENAME_CHARS_RE.sub("", text).strip()
+    cleaned = INVALID_FILENAME_CHARS_RE.sub("", text)
+    cleaned = re.sub(r"[\r\n\t]+", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned or "Untitled"

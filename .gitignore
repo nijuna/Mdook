@@ -43,3 +43,5 @@ Thumbs.db
 # Scratch and local runtime logs
 *.log
 scratch/
+_archive/
+_archve/
