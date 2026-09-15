@@ -1,8 +1,10 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="Mdook Logo" width="130" />
+
 # Mdook
 
-**Convert books (PDF, EPUB, DOCX) into structured, readable Obsidian vaults.**
+**Transform books (PDF, EPUB, DOCX) into structured, interlinked Markdown libraries and reading documents.**
 
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -18,7 +20,7 @@
 
 Most document-to-Markdown tools produce a single, messy text dump with broken paragraphs, leaked running headers, lost footnotes, and fractured tables.
 
-**Mdook** is an application designed specifically for **books**. It ingests PDF documents, EPUB3 publications, and Word (DOCX) manuscripts, analyzes typography and document structure through deterministic heuristics or native markup, and generates either a structured, multi-file **Obsidian vault** or a verbatim **Single Document** (`.md`) ready for reading and personal knowledge management.
+**Mdook** is an application engineered specifically for **books**. It ingests PDF documents, EPUB3 publications, and Word (DOCX) manuscripts, analyzes typography and document structure through deterministic heuristics or native container markup, and generates either an **interlinked, chapter-split Markdown library** or a verbatim **Single Document** (`.md`) ready for reading and personal knowledge management.
 
 ```text
 Input: Book (.pdf / .epub / .docx)
@@ -32,13 +34,13 @@ Input: Book (.pdf / .epub / .docx)
                                                                        [Stage 4: Rendering]
                                                                        ┌───────────┴───────────┐
                                                                        ▼                       ▼
-                                                                [Modular Vault]        [Single Document]
+                                                                [Modular Library]      [Single Document]
                                                                        │                       │
                                                                        ▼                       ▼
                                                                   [Stage 5: Validation Audit]
                                                                        │                       │
                                                                        ▼                       ▼
-                                                            /My-Book-Vault/          /My-Book/
+                                                            /My-Book-Library/        /My-Book/
                                                             ├── Title - Index.md     ├── Title.md
                                                             ├── 00 - Front Matter.md └── attachments/
                                                             ├── 01 - Chapter 1.md
@@ -50,36 +52,36 @@ Input: Book (.pdf / .epub / .docx)
 
 ## Key Features
 
-###  Deterministic Layout & Semantic Engine
+### Deterministic Layout & Semantic Engine
 - **Font-Clustering Heading Hierarchy**: Reconstructs book structure even when the PDF lacks bookmarks or a table of contents.
-- **Part / Book / Volume Segmentation**: Recognizes multi-tier books and groups chapters under Part divisions in the vault Index.
+- **Part / Book / Volume Segmentation**: Recognizes multi-tier books and groups chapters under Part divisions in the library Index.
 - **Front & Back Matter Isolation**: Automatically isolates Preface, Introduction, Notes, Bibliography, and Appendices into dedicated sections.
 - **Multi-Column & Bidirectional Reading Order**: Column detection with right-to-left (RTL) reading order for Hebrew and Arabic scripts.
 
-###  Scanned Book OCR Fallback (Tesseract)
+### Scanned Book OCR Fallback (Tesseract)
 - Evaluates text-layer quality per page.
 - Automatically routes scanned or damaged pages to **Tesseract OCR** while keeping native vector pages fast.
 - Fuzzy sequence matching prevents noisy OCR headers from leaking into chapter prose.
 
-###  Rich Book Elements
-- **Footnotes & Endnotes**: Bidirectional links between body text and notes using Obsidian block references (`[[#^note-1|1]]` and `^note-1`).
+### Rich Book Elements
+- **Footnotes & Endnotes**: Bidirectional links between body text and notes using block references (`[[#^note-1|1]]` and `^note-1`).
 - **Citation-to-Bibliography Linking**: Correlates in-text numeric citations (`[1]`, `[1-3]`) directly to matching bibliography entries.
-- **Obsidian Callouts**: Detects Note, Warning, Tip, and Caution sidebars and renders native `> [!note]` callouts.
-- **Math & Formal Notation**: Detects Unicode math symbols and renders inline and display equations via native Obsidian MathJax (`$$...$$`).
+- **Callout Blocks**: Detects Note, Warning, Tip, and Caution sidebars and renders standard `> [!note]` callouts.
+- **Math & Formal Notation**: Detects Unicode math symbols and renders inline and display equations via native MathJax (`$$...$$`).
 - **Tables & Figures**: Extracts tables using `pdfplumber`, extracts embedded illustrations, rasterizes vector schematics, and correlates captions.
 
-###  OpenAI-Compatible AI Structure Review (Optional)
+### OpenAI-Compatible AI Structure Review (Optional)
 - **Token Efficient**: Sends only an ultra-compact outline skeleton (~200–500 tokens), never generating or rewriting book contents.
-- **Broad Provider Reach**: Works with **Groq**, **OpenAI**, **local Ollama**, **LM Studio**, **vLLM**, **DeepSeek**, and **OpenRouter**.
+- **Broad Provider Reach**: Works with **Groq**, **Google Gemini**, **OpenAI**, **local Ollama**, **LM Studio**, **vLLM**, **DeepSeek**, and **OpenRouter**.
 - **Model Discovery**: Dynamically queries the provider's `/models` endpoint to populate an editable, searchable dropdown.
 - **Latency & Reachability Testing**: Non-blocking connection test measuring roundtrip latency in milliseconds.
 - **Fail-Safe Fallback**: Guardrails discard invalid suggestions; network failures gracefully fall back to deterministic heuristics.
 
-###  Dual Output Modes
-- **Modular Vault (Default)**: Splits the book into numbered chapter notes, isolated front-matter and back-matter divisions, and a top-level Index note with Part hierarchies.
+### Dual Output Modes
+- **Modular Library (Default)**: Splits the book into numbered chapter notes, isolated front-matter and back-matter divisions, and a top-level Index note with Part hierarchies.
 - **Single Document Mode (`-s` / `--single-file`)**: Renders a verbatim 1:1 complete book copy into a single continuous Markdown file (`Title.md`) with standard markdown image links (`![caption](attachments/fig.png)`), local block anchor linking, and consolidated collision-free footnotes.
 
-###  Modern Desktop GUI (PySide6)
+### Modern Desktop GUI (PySide6)
 - **Two-Tier Architecture**: Streamlined main window with file inspection card, segmented output selector, and breadcrumb stage stepper, paired with a dedicated modal `SettingsDialog`.
 - **3 Theme Families (Dark & Light)**: Choose between *The Library* (warm bookmaker amber), *Amethyst* (royal violet), and *Carbon* (ice cyan).
 - **Drag-and-Drop & Queue**: Seamless drag-and-drop book intake and sequential multi-file batch conversion queue with clean status indicators (`•`, `▶`, `✓`, `✗`).
@@ -132,29 +134,29 @@ uv run mdook
 ```
 
 #### Headless CLI
-Convert PDF books directly from your terminal:
+Convert publications (PDF, EPUB, DOCX) directly from your terminal:
 ```bash
-# Convert a single PDF book (Modular Vault):
-uv run mdook convert book.pdf -o ./vaults/
+# Convert a single PDF book (Modular Library):
+uv run mdook convert book.pdf -o ./output/
 
 # Convert a book into a single continuous 1:1 Markdown file:
-uv run mdook convert book.pdf -o ./vaults/ --single-file
+uv run mdook convert book.pdf -o ./output/ --single-file
 
 # Convert an EPUB3 book:
-uv run mdook convert novel.epub -o ./vaults/
+uv run mdook convert novel.epub -o ./output/
 
 # Convert a Word manuscript:
-uv run mdook convert manuscript.docx -o ./vaults/
+uv run mdook convert manuscript.docx -o ./output/
 
 # Convert with explicit or auto-detected profile:
-uv run mdook convert textbook.pdf -o ./vaults/ --profile technical
-uv run mdook convert book.epub -o ./vaults/ --profile auto
+uv run mdook convert textbook.pdf -o ./output/ --profile technical
+uv run mdook convert book.epub -o ./output/ --profile auto
 
 # Convert with AI structure review:
-uv run mdook convert book.pdf -o ./vaults/ --ai --ai-model gpt-4o-mini
+uv run mdook convert book.pdf -o ./output/ --ai --ai-model gemini-2.5-flash
 
-# Display version or help:
-uv run mdook --version
+# Display typographic version or help:
+uv run mdook version
 uv run mdook convert --help
 ```
 
