@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Brand Identity & Icon Assets**:
+  - Official brand mark established with dark squircle, embossed open book "M", and gold ribbon bookmark.
+  - Generated multi-resolution asset suite (`assets/icons/` with 16x16 through 512x512 PNG, multi-resolution Windows `mdook.ico`, and `mdook/assets/`).
+  - Integrated desktop window icon in `MainWindow` (`self.setWindowIcon()`) and header badge in the main GUI window.
+  - Embedded geometric Unicode/ASCII book-M emblem in CLI executions (`mdook version`, headless conversions, and interactive progress panels).
+  - Standardized terminology across project documentation, transitioning from "Obsidian vault" to "interlinked Markdown libraries", "chapter-split modular libraries", and "single documents".
+- **EPUB3 & HTML5 Semantic Ingestion Rules**:
+  - Recursive semantic container traversal (`_iter_flow_elements`) handling deep HTML5 hierarchies (`<section>`, `<article>`, `<main>`, `<hgroup>`).
+  - Footnote callout regex disambiguation (`FOOTNOTE_CALLOUT_RE`) preventing extended sentence hyperlinks from being falsely parsed as footnote markers.
+  - Chronological section boundary enforcement (`has_seen_body`) preventing late spine items from being classified as front matter.
+  - Project Gutenberg automated wrapper filtering (`x-ebookmaker-wrapper`) eliminating synthetic cover artifact sections.
+  - Table cell footnote and citation marker resolution across standard pipe tables and complex HTML tables.
 - **Single Document Mode (`-s` / `--single-file`)**:
   - Verbatim 1:1 complete copy of the book rendered as a single continuous Markdown file (`Title.md`) with attachments in `attachments/`.
   - Universal standard markdown image syntax (`![caption](attachments/fig.png)`).

@@ -6,7 +6,7 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ## Phase 1 — Literary Books with Text Layer
 
-**Goal:** Convert a literary PDF with embedded text into a readable Obsidian vault. No OCR, no tables, no multi-column.
+**Goal:** Convert a literary PDF with embedded text into a readable interlinked Markdown library. No OCR, no tables, no multi-column.
 
 ### Sprint 1: Foundation
 
@@ -32,14 +32,14 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 - [ ] **Stage 4: Rendering** — Walk the `DocumentTree` and emit markdown files. Index/MOC file with YAML frontmatter. Chapter files with heading hierarchy. Page markers as collapsed callouts. Footnotes as `[^n]` syntax. Image references.
 - [ ] **Stage 5: Validation** — Footnote integrity check, image integrity check, heading hierarchy sanity, page continuity, file size warnings.
-- [ ] **End-to-end test** — Pick 3 literary PDFs. Run the full pipeline. Read the output in Obsidian. Fix bugs until the vaults are genuinely pleasant to read.
+- [ ] **End-to-end test** — Pick 3 literary PDFs. Run the full pipeline. Read the output. Fix bugs until the modular libraries are genuinely pleasant to read.
 
 ### Phase 1 Exit Criteria
 
 - [ ] 5 different literary books converted successfully
-- [ ] Output is readable cover-to-cover in Obsidian without jarring formatting artifacts
+- [ ] Output is readable cover-to-cover without jarring formatting artifacts
 - [ ] An AI (Claude) given a chapter file can discuss its content coherently
-- [ ] CLI works: `Mdook convert book.pdf --output ./vault/`
+- [ ] CLI works: `mdook convert book.pdf --output ./library/`
 
 ---
 
@@ -103,9 +103,9 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 - [x] **DOCX manuscript support** — Implemented in `mdook/core/formats/docx.py`. Maps Word styles (Heading 1–6, Quote, Lists, Code), inline runs (bold, italic, strikethrough, monospace, hyperlinks), Word tables (with merged cell complexity), embedded drawings/blips, and footnotes (`word/footnotes.xml`).
 - [x] **End-to-end multi-format tests** — Tested end-to-end with unit and integration tests across PDF, EPUB, and DOCX.
 
-### Phase 4 Exit Criteria
+#### Phase 4 Exit Criteria
 
-- [x] EPUB3 books convert to the same vault structure/quality as PDF books
+- [x] EPUB3 books convert to the same library structure/quality as PDF books
 - [x] Stage 4/5 required zero format-specific changes (confirms `DocumentTree` is a true format-agnostic contract)
 - [x] Architecture documented and extended for DOCX manuscript support
 
@@ -131,13 +131,13 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ## Phase 6 (Future) — Distribution & Intelligence
 
-- [x] **Obsidian plugin** — Official desktop plugin in `obsidian-plugin/` enabling in-vault book conversions (.pdf, .epub, .docx), folder batching, destination picker, context menus, and status bar progress.
+- [x] **Obsidian plugin** — Official desktop plugin in `obsidian-plugin/` enabling in-app book conversions (.pdf, .epub, .docx), folder batching, destination picker, context menus, and status bar progress.
 - [ ] **Multimodal diagram alt-text & captioning** — Inspect extracted figures with local/cloud VLMs (`qwen2.5-vl`, `minicpm-v`, GPT-4o) to generate rich, searchable alt-text and figure summaries.
 - [ ] **Visual LaTeX formula recovery** — Vision-based math OCR for vector-drawn equations without extractable Unicode layers.
-- [ ] **Automatic concept & glossary wikilinking** — Cross-link first mentions of glossary entries and core entities across chapters (`[[Glossary#Term|term]]`) to build an interconnected Obsidian knowledge graph.
+- [ ] **Automatic concept & glossary wikilinking** — Cross-link first mentions of glossary entries and core entities across chapters (`[[Glossary#Term|term]]`) to build an interconnected knowledge graph.
 - [ ] **Obsidian Canvas overview map** — Auto-generate native `.canvas` card maps showing reading progression and visual chapter hierarchies.
 - [ ] **Native CLI/GUI recursive batching** — Convert multi-level directory trees in a single command or GUI folder selection.
-- [ ] **Web service** — Upload endpoint, conversion queue, vault download.
+- [ ] **Web service** — Upload endpoint, conversion queue, library download.
 - [x] **Single Document Mode** — Output 1:1 verbatim complete copy of the book as a single continuous Markdown file with attachments, local block anchors, and unified non-colliding footnotes (`-s` / `--single-file`).
 - [x] **Two-Tier GUI & 3 Theme Families** — Redesigned main window with modal SettingsDialog, 3 themes (*The Library*, *Amethyst*, *Carbon* in dark/light modes), configuration persistence, and strictly zero emojis.
 - [x] **Math/formula support** — Unicode-symbol-density-detected equations rendered via Obsidian's native MathJax (`mdook/core/rules/math.py`). Real LaTeX-drawn vector-path equations (no extractable Unicode) remain out of scope by design (see `RULES.md` section 15).
@@ -148,12 +148,12 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ## Next Sprint — Mdook V2 Packaging, Branding & Release
 
-**Goal:** Review candidate logo artwork, package standalone binaries for Linux and Windows, capture UI screenshots, and publish Mdook V2 to GitHub.
+**Goal:** Complete packaging of standalone binaries for Linux and Windows, capture UI screenshots, and publish Mdook V2 to GitHub.
 
-- [ ] **Mdook logo decision and implementation** — Review 8 candidate logos (4 from Nano Banana, 4 from ChatGPT Image). Select primary brand mark; generate multi-resolution asset bundle (`assets/icons/` with 16x16 through 512x512 `.png` and Windows `mdook.ico`). Embed into `MainWindow.setWindowIcon()`, Linux desktop launchers, and README header. Add matching typographic ASCII wordmark for interactive CLI execution.
-- [ ] **Cross-platform application packaging** — Configure PyInstaller specification (`mdook.spec`) to build standalone, one-command executables for Linux and Windows (`.exe`), with macOS configuration. Bundle assets, themes, and offline dependencies.
-- [ ] **Documentation screenshots & visual polish** — Capture high-resolution screenshots across all 3 theme families (*The Library*, *Amethyst*, *Carbon*) in dark/light modes, the main conversion panel, and the Settings modal. Embed visual assets into `README.md`.
-- [ ] **Publish Mdook V2 on GitHub** — Draft release notes covering multi-format support (PDF, EPUB3, DOCX), dual output modes, AI outline review, and typography-first GUI/CLI. Tag release on GitHub and freeze codebase for project hand-off.
+- [x] **Mdook logo decision and implementation** — Evaluated 8 candidate logos from Nano Banana and ChatGPT Image; selected ChatGPT Design 1 (embossed open book "M" squircle with gold ribbon bookmark) as the primary brand mark. Generated multi-resolution asset bundle (`assets/icons/` with 16x16 through 512x512 PNG, multi-resolution Windows `mdook.ico`) and package assets (`mdook/assets/`). Integrated into PySide6 GUI (`MainWindow.setWindowIcon()`, header branding badge), embedded in `README.md`, and added a geometric Unicode/ASCII book-M emblem in `mdook/cli.py`.
+- [ ] **Cross-platform application packaging** — Configure PyInstaller specification (`mdook.spec`) to build standalone executables for Linux (`dist/mdook`) and Windows (`dist/mdook.exe`). Bundle assets, themes, and offline dependencies. Package Linux binary with an official `.desktop` file and dock icon integration.
+- [ ] **Documentation screenshots & visual polish** — Capture high-resolution window screenshots across all 3 theme families (*The Library*, *Amethyst*, *Carbon*) in dark/light modes, the main conversion panel, and the Settings modal. Embed visual assets into `README.md`.
+- [ ] **Publish Mdook V2 on GitHub** — Draft release notes covering multi-format support (PDF, EPUB3, DOCX), dual output modes (chapter-split modular libraries and single continuous documents), AI outline review, and typography-first GUI/CLI. Tag release on GitHub and freeze codebase.
 
 ---
 
