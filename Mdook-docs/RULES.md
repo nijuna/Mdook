@@ -36,7 +36,7 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Action:** Mark as `front_matter`, extract text as candidate book title and author.
 - **Not implemented.** Title comes from PDF metadata instead (see Rule 1.4's own note being superseded in practice — `mdook/core/stages/intake.py`'s `_clean_metadata_title`), with a fallback to the filename when the metadata title is garbage (found via a real book whose title was a URL-encoded file path).
 
-> **Update: this whole zone map was computed at intake (Stage 1) but never actually consulted anywhere downstream, for the entire first several implementation batches.** Rules 1.1-1.3 as described here were built essentially as written (`mdook/core/rules/zones.py`), but `BookManifest.zone_map` just sat there unused until a real book (a 500+ page occult text with a decorative cover page) exposed why that mattered: a giant cover-page font was dominating the whole-book font-size histogram used for heading detection (Rule 2.2), starving real chapter headings of a tier slot. Fixing it required wiring `zone_map` into Stage 3 so font clustering scopes to the `body` zone specifically — see Rule 2.2's update below. The same fix also let genuinely orphaned front/back-matter pages (a page with no chapter heading of its own) get preserved as named sections instead of silently vanishing from the vault, which nothing in this original section anticipated needing.
+> **Update: this whole zone map was computed at intake (Stage 1) but never actually consulted anywhere downstream, for the entire first several implementation batches.** Rules 1.1-1.3 as described here were built essentially as written (`mdook/core/rules/zones.py`), but `BookManifest.zone_map` just sat there unused until a real book (a 500+ page occult text with a decorative cover page) exposed why that mattered: a giant cover-page font was dominating the whole-book font-size histogram used for heading detection (Rule 2.2), starving real chapter headings of a tier slot. Fixing it required wiring `zone_map` into Stage 3 so font clustering scopes to the `body` zone specifically — see Rule 2.2's update below. The same fix also let genuinely orphaned front/back-matter pages (a page with no chapter heading of its own) get preserved as named sections instead of silently vanishing from the modular library, which nothing in this original section anticipated needing.
 
 ---
 
@@ -256,6 +256,17 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 
 > **Update: no dedicated code for this — and testing suggests none was needed.** A caption text block already sits immediately adjacent to its table in reading order once Stage 3 slots the table into the content stream by position (same mechanism Rule 8.2's column-spanning elements use). That already reads correctly without any pattern-matching or special-casing. Revisit only if real books turn up cases where this natural adjacency isn't enough (e.g. a caption genuinely far from its table).
 
+### Rule 6.5 — Inline Marker Resolution in Table Cells
+
+- **Condition:** A table contains footnote references, endnote sentinels, or bibliographic citation markers within any of its header or data cells.
+- **Action:** Both standard markdown pipe tables (Rule 6.2) and complex HTML fallback tables (Rule 6.3) format cell text through `_render_inline_markers`.
+- **Behavior:**
+  - Footnote markers resolve to native markdown references (`[^n]`), and endnotes resolve to wiki-link block references (`[[Notes#^note-N|N]]`).
+  - Bibliographic citations resolve to anchor links (`[[Bibliography#^ref-N|N]]`).
+  - Guarantees semantic continuity across tabular data without leaving unparsed sentinels in table cells.
+
+`mdook/core/stages/rendering.py`'s `_render_table`.
+
 ---
 
 ## 7. Image & Figure Handling
@@ -286,7 +297,7 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Condition:** Image is smaller than 80×80 pixels, OR appears on > 3 pages at the same position (likely a publisher logo or ornament), OR is positioned in the header/footer band
 - **Action:** Discard. Do not save to attachments folder.
 
-> **Update: one more condition added, and it turned out to matter more than anything in the original list.** Two real scanned books (a 75-image and a 168-image count before the fix) revealed that a scanned book's underlying page-photo is embedded as one full-page image on *every single page* — extracting those bloats the vault's attachments folder with a duplicate of the entire book and multiplies conversion time for no benefit. Added: an image covering ≥90% of the page area is treated as a scan background and discarded, same as this rule's other conditions. `mdook/core/stages/extraction.py`'s `FULL_PAGE_IMAGE_AREA_RATIO`. After the fix, those two books' image counts dropped to 3 and 4 respectively.
+> **Update: one more condition added, and it turned out to matter more than anything in the original list.** Two real scanned books (a 75-image and a 168-image count before the fix) revealed that a scanned book's underlying page-photo is embedded as one full-page image on *every single page* — extracting those bloats the library's attachments folder with a duplicate of the entire book and multiplies conversion time for no benefit. Added: an image covering ≥90% of the page area is treated as a scan background and discarded, same as this rule's other conditions. `mdook/core/stages/extraction.py`'s `FULL_PAGE_IMAGE_AREA_RATIO`. After the fix, those two books' image counts dropped to 3 and 4 respectively.
 
 ### Rule 7.5 — Image Reference in Markdown
 
@@ -360,7 +371,7 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 ### Rule 9.4 — Printed TOC Discard
 
 - **Condition:** A front-matter page contains a structured list of chapter titles paired with page numbers, matching the pattern "Title...###" or "Title    ###"
-- **Action:** Discard entirely. The vault generates its own MOC/Index file. Keeping the printed TOC duplicates structure and confuses AI context.
+- **Action:** Discard entirely. Mdook generates its own MOC/Index file. Keeping the printed TOC duplicates structure and confuses AI context.
 
 > **Update: this rule's own "confuses AI context" worry turned out to apply to *itself*, not just the printed TOC.** Beyond the dot-leader pattern above, the implementation added a second signal for ebook-derived TOCs with no page numbers at all: cross-referencing a page's text against the book's own already-detected chapter titles (≥3 matches ⇒ it's a TOC page). That second signal became a real bug on a book whose heading detection had degenerated to garbage (three chapters all titled bare "H", a font-encoding corruption issue, not a TOC problem) — a single-character "title" trivially substring-matches almost *any* page's text, so nearly every page in that book got wrongly discarded as "the printed TOC," silently dropping all of its content, not just tables. Fixed by requiring a title to have at least 4 normalized characters before it can be used as a cross-reference signal at all (`mdook/core/stages/semantic.py`'s `MIN_TOC_TITLE_MATCH_LENGTH`). The underlying garbled-heading-detection problem itself remains unsolved — this fix only stops it from cascading into content loss.
 
@@ -610,5 +621,60 @@ See Rule 2.3's OCR & Script Considerations above. `mdook/core/rules/scripts.py`'
   - The AI configuration section provides an explicit disclosure toggle button (`▾` / `▸`) indicating collapsible state, with transparent child containers (`TransparentRow`, `AISettingsWidget`) that blend seamlessly into the parent card.
 
 `mdook/core/llm/` (`client.py`, `models.py`, `prompts.py`, `review.py`), `mdook/gui/` (`window.py`, `worker.py`, `styles.py`), `mdook/core/stages/semantic.py`.
+
+---
+
+## 19. EPUB & HTML5 Semantic Ingestion
+
+**Goal:** Transform structured EPUB and HTML5 documents into high-fidelity modular Markdown libraries, preserving deep semantic document hierarchies, disambiguating inline links, and eliminating electronic publishing wrapper artifacts.
+
+### Rule 19.1 — Semantic Container Traversal (`_iter_flow_elements`)
+
+- **Condition:** EPUB XHTML documents utilizing nested HTML5 semantic layouts (`<section>`, `<article>`, `<main>`, `<aside>`, `<div>`, `<hgroup>`, `<figure>`).
+- **Action:** Recursively traverse nested container tags, yielding headings, composite heading groups, and leaf block elements in logical document flow order.
+- **Behavior:**
+  - Standard heading tags (`h1`–`h6`) are yielded immediately as heading nodes.
+  - `<hgroup>` elements collect inner child headings, paragraphs, and spans, joining sub-elements with `": "` to synthesize cohesive, composite section titles without losing subtitle context.
+  - Core block elements (`p`, `blockquote`, `ul`, `ol`, `table`, `pre`, `img`, `figure`, `aside`, `math`) and elements bearing callout classes (`callout`, `note`, `warning`, `tip`, `important`, `caution`, `highlight`) yield as distinct blocks.
+  - Intermediate container elements containing subordinate block or heading elements recurse via `yield from self._iter_flow_elements(child)`.
+  - Non-container leaf tags and standalone text fragments yield as atomic flow items.
+
+`mdook/core/formats/epub.py`'s `_iter_flow_elements`.
+
+### Rule 19.2 — Footnote Callout Regex Disambiguation (`FOOTNOTE_CALLOUT_RE`)
+
+- **Condition:** An inline anchor tag (`<a>`) matches footnote or note-reference heuristics (`epub:type="noteref"`, `epub:type="footnote"`, or `href` containing `#fn`, `#footnote`, or `#note`).
+- **Action:** Validate anchor inner text against strict marker syntax:
+  ```regex
+  ^(?:\[?\d+\]?|[a-zA-Z]{1,3}|\*+|†|‡|§|#)$
+  ```
+- **Disambiguation:**
+  - If the marker matches the regex, it is treated as an authentic footnote callout, registered in `fn_refs`, and spliced into inline text using sentinel tokens (`FOOTNOTE_MARKER_SENTINEL`).
+  - If the anchor wraps extended prose, multi-word phrases, or full sentences (frequent in poorly tagged digital releases), it is rejected as a footnote callout and preserved as a standard hyperlink or inline text.
+  - Backlinks (`epub:type="backlink"`, `role="doc-backlink"`, or glyphs `↩`, `↩︎`, `^`) are skipped to prevent back-reference clutter in Markdown output.
+
+`mdook/core/formats/epub.py`'s `FOOTNOTE_CALLOUT_RE` and `_html_to_markdown_inline`.
+
+### Rule 19.3 — Chronological Section Boundary Enforcement
+
+- **Condition:** Spine document iteration across the EPUB container.
+- **Action:** Enforce monotonic progression from front matter to body chapters.
+- **Rule:**
+  - A boolean state tracker (`has_seen_body`) records when the first body chapter or substantive content division is encountered.
+  - Any subsequent spine document item that evaluates to `front_matter` (due to ambiguous titles, publisher metadata quirks, or recycled front-matter templates) is strictly coerced to `body`.
+  - Guarantees that body text and mid-book content are never misallocated to front matter.
+
+`mdook/core/formats/epub.py`'s `_parse_epub`.
+
+### Rule 19.4 — Project Gutenberg Wrapper Artifact Filtering (`x-ebookmaker-wrapper`)
+
+- **Condition:** Spine items containing automated conversion wrapper markup from Project Gutenberg's `ebookmaker` pipeline.
+- **Action:** Identify documents containing elements with `class="x-ebookmaker-wrapper"`.
+- **Handling:**
+  - Automatically discard these synthetic wrapper documents during spine iteration.
+  - Prevents extraneous, distorted cover wrapper files and duplicate empty sections from polluting the generated Markdown library.
+
+`mdook/core/formats/epub.py`'s `_parse_epub`.
+
 
 
