@@ -12,6 +12,8 @@ from PySide6.QtGui import (
     QDragEnterEvent,
     QDragLeaveEvent,
     QDropEvent,
+    QIcon,
+    QPixmap,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -101,6 +103,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Mdook")
         self.resize(880, 560)
         self.setAcceptDrops(True)
+
+        icon_path = Path(__file__).resolve().parent.parent / "assets" / "icon.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
         self.config = GUIConfig.load()
         self._dark_mode = self.config.color_mode == "dark"
@@ -201,6 +207,20 @@ class MainWindow(QMainWindow):
         header_row.setObjectName("HeaderWidget")
         header_layout = QHBoxLayout(header_row)
         header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(12)
+
+        icon_path = Path(__file__).resolve().parent.parent / "assets" / "icon.png"
+        if icon_path.exists():
+            logo_label = QLabel()
+            logo_pixmap = QPixmap(str(icon_path)).scaled(
+                38,
+                38,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            logo_label.setPixmap(logo_pixmap)
+            logo_label.setFixedSize(38, 38)
+            header_layout.addWidget(logo_label, alignment=Qt.AlignVCenter)
 
         header_text = QVBoxLayout()
         title = QLabel("Mdook")

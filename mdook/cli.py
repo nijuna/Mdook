@@ -156,8 +156,19 @@ Examples:
     return parser
 
 
+def print_brand_header(console: Console) -> None:
+    """Prints the typographic Mdook brand emblem and metadata banner."""
+    brand = (
+        f"[bold #f59e0b] ╭───╮   ╭───╮[/]   [bold white]Mdook[/] [dim]v{__version__}[/]\n"
+        f"[bold #f59e0b] │ ≡ ╰─┬─╯ ≡ │[/]   [dim]Convert publications into structured Markdown[/]\n"
+        f"[bold #f59e0b] ╰─────┴─────╯[/]   "
+        "[cyan]PDF[/] [dim]·[/] [cyan]EPUB[/] [dim]·[/] [cyan]DOCX[/]"
+    )
+    console.print(brand)
+
+
 def run_convert(args: argparse.Namespace, console: Console) -> int:
-    """Executes the headless conversion for specified PDF files."""
+    """Executes the headless conversion for specified book files."""
     # Prepare LLMConfig overrides
     llm_overrides: dict[str, object] = {}
     if args.no_ai:
@@ -188,15 +199,18 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
             continue
 
         if not args.quiet:
-            console.print(
-                Panel.fit(
-                    f"[bold cyan]Mdook[/bold cyan] v{__version__} — "
-                    f"Converting [bold white]{book_path.name}[/bold white]\n"
-                    f"Profile: [green]{args.profile}[/green] | Output: [green]{args.output}[/green]"
-                    + (f" | AI: [cyan]{llm_config.model}[/cyan]" if llm_config.enabled else ""),
-                    border_style="cyan",
-                )
+            ai_status = (
+                f" | AI: [cyan]{llm_config.model}[/cyan]" if llm_config.enabled else ""
             )
+            mode_status = "Single Document" if args.single_file else "Modular Library"
+            panel_text = (
+                f"[bold #f59e0b] ╭───╮   ╭───╮[/]   [bold white]Mdook[/]  [dim]v{__version__}[/]\n"
+                f"[bold #f59e0b] │ ≡ ╰─┬─╯ ≡ │[/]   Converting "
+                f"[bold white]{book_path.name}[/bold white]\n"
+                f"[bold #f59e0b] ╰─────┴─────╯[/]   Profile: [green]{args.profile}[/green] | "
+                f"Mode: [green]{mode_status}[/green]{ai_status}"
+            )
+            console.print(Panel.fit(panel_text, border_style="dim"))
 
         try:
             if args.quiet:
@@ -336,6 +350,8 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
     if not args_list:
         if is_gui_available():
             return launch_gui(c)
+        print_brand_header(c)
+        c.print()
         parser = build_parser()
         parser.print_help()
         return 0
@@ -351,7 +367,7 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
     if parsed_args.subcommand == "gui":
         return launch_gui(c)
     if parsed_args.subcommand == "version":
-        c.print(f"Mdook v{__version__}")
+        print_brand_header(c)
         return 0
 
     # Default fallback
