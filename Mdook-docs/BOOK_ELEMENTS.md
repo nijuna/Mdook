@@ -63,7 +63,7 @@ Everything before the body text begins. Most books have some subset of these; ac
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Parts** | Named or numbered groupings of chapters ("Part I: The Foundation"). | Literature, non-fiction, textbooks | [new] |
+| **Parts** | Named or numbered groupings of chapters ("Part I: The Foundation"). | Literature, non-fiction, textbooks | [done] — Rule 13.1 Part/Book/Volume division detection |
 | **Books** (divisions) | Higher than Parts in some works ("Book One", "Book Two"). | Epic literature, long non-fiction | [new] |
 | **Volumes** | When a single work spans multiple bound volumes, published as one PDF. | Encyclopedias, collected works, legal codes | [new] |
 | **Acts / Scenes** | Drama/play structure. | Plays, screenplays | [new] |
@@ -75,11 +75,11 @@ Everything before the body text begins. Most books have some subset of these; ac
 |---------|-------------|--------|--------|
 | **Chapters** (numbered) | "Chapter 1", "Chapter I", "CHAPTER ONE", etc. | All | [done] |
 | **Chapters** (named only) | Title only, no number ("The Raven", "On Liberty"). | Literature, philosophy | [done] |
-| **Chapters** (numbered + named) | "Chapter 3: The Storm Breaks" — number and title are separate elements. | All | [partial] — the separate-element case sometimes loses the title |
+| **Chapters** (numbered + named) | "Chapter 3: The Storm Breaks" — number and title are separate elements. | All | [done] — Rule 2.6 chapter number/title merging (`_merge_chapter_number_titles`) |
 | **Unnumbered sections** | Major divisions without numbers (common in essays, philosophy). | Non-fiction, philosophy | [partial] |
-| **Numbered sections** | "1.1", "1.1.1", "1.1.1.1" — up to 4 levels deep. | Technical, academic, legal | [planned] — Rule 2.4, Phase 2 |
+| **Numbered sections** | "1.1", "1.1.1", "1.1.1.1" — up to 4 levels deep. | Technical, academic, legal | [done] — Rule 2.4 dot-numbering hierarchy |
 | **Lettered sections** | "A.", "B.", "C." or "(a)", "(b)", "(c)" subdivisions. | Legal, regulatory, standards | [new] |
-| **Sub-sections** (H2–H6) | Multiple heading levels within a chapter. | Technical, academic, textbooks | [planned] — Phase 2 |
+| **Sub-sections** (H2–H6) | Multiple heading levels within a chapter. | Technical, academic, textbooks | [done] — Rule 2.2 font-size clustering & sub-heading nesting |
 | **Interludes / Intermissions** | Named breaks between major sections (not quite chapters). | Literature, creative non-fiction | [new] |
 | **Excurses / Excursus** | Extended digressions set apart from the main text. | Academic, theology | [new] |
 
@@ -107,9 +107,9 @@ Books use wildly inconsistent chapter numbering schemes:
 |---------|-------------|--------|--------|
 | **Regular paragraphs** | Standard prose body text. | All | [done] |
 | **Indented paragraphs** | First-line indent (standard in most books). | All | [done] — used as paragraph boundary signal |
-| **Block-indented text** | Entire paragraph indented from left margin (not just first line). | Academic, legal (quotes, extracts) | [partial] — detected as blockquote |
+| **Block-indented text** | Entire paragraph indented from left margin (not just first line). | Academic, legal (quotes, extracts) | [done] — Rule 9.3 blockquote detection with indent & word guards |
 | **Flush-left paragraphs** | No indent, separated by vertical space instead. | Technical, modern non-fiction | [done] |
-| **Hanging indent** | First line flush, subsequent lines indented. | Bibliographies, indexes, glossaries | [new] |
+| **Hanging indent** | First line flush, subsequent lines indented. | Bibliographies, indexes, glossaries | [done] — Rule 9.6 glossary term-definition hanging indent signal |
 | **Centered text** | Single lines or short passages centered on page. | Poetry, dedications, title pages | [new] |
 | **Right-aligned text** | Attributions, dates, signatures. | Letters, legal, formal documents | [new] |
 
@@ -126,12 +126,12 @@ Books use wildly inconsistent chapter numbering schemes:
 | **ALL CAPS** | Headings, emphasis, abbreviations. | Various | [partial] — not explicitly detected |
 | **Superscript** | Footnote markers, ordinals (1st, 2nd), exponents, trademark symbols. | All | [done] |
 | **Subscript** | Chemical formulas (H₂O, CO₂), mathematical notation. | Science, chemistry, math | [new] |
-| **Monospace / Code font** | Inline code, commands, file paths, URLs. | Technical | [new] |
+| **Monospace / Code font** | Inline code, commands, file paths, URLs. | Technical | [done] — Rule 12.1 monospace font keyword matching |
 | **Colored text** | Rare in print; common in textbooks and digital PDFs for emphasis. | Textbooks, educational, digital | [new] |
 | **Highlighted / shaded text** | Background color behind text for emphasis. | Textbooks, digital | [new] |
 | **Hyperlinks** | Clickable URLs in digital-native PDFs. | Technical, digital, modern non-fiction | [new] |
 | **Cross-references** | "see Chapter 3", "see Figure 2.1", "as discussed on p. 42". | Technical, academic, textbooks | [new] |
-| **Inline citations** | "(Smith, 2020)", "[1]", "(Smith 42)" — style varies by field. | Academic, scientific | [new] |
+| **Inline citations** | "(Smith, 2020)", "[1]", "(Smith 42)" — style varies by field. | Academic, scientific | [done] — Rule 14.1 numeric citation detection & linking |
 | **Ruby text / Furigana** | Pronunciation guides above CJK characters. | Japanese, Chinese texts | [new] |
 | **Diacritical marks** | Accents, umlauts, cedillas, macrons in non-English text. | All multilingual | [partial] — preserved in text extraction |
 | **Ligatures** | fi, fl, ffi, ffl — encoded as single glyphs in some PDFs. | All typeset books | [partial] — PyMuPDF usually resolves these |
@@ -140,21 +140,21 @@ Books use wildly inconsistent chapter numbering schemes:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Block quotes** | Extended quotations, indented from both margins. | All | [partial] — epigraphs only |
-| **Poetry / Verse** | Line-broken text with intentional line endings, stanza breaks. | Literature, anthologies, religious | [planned] — Rule 9.2, Phase 4 |
+| **Block quotes** | Extended quotations, indented from both margins. | All | [done] — Rule 9.3 generalized block quotes with false-positive guards |
+| **Poetry / Verse** | Line-broken text with intentional line endings, stanza breaks. | Literature, anthologies, religious | [done] — Rule 9.2 verse preservation with enjambment, stanzas, and attribution |
 | **Song lyrics** | Similar to poetry but sometimes with chorus/verse markings. | Music, memoir, cultural studies | [new] |
 | **Dialogue** | Conversations, especially when formatted with em-dashes (French style) vs. quotation marks (English style). | Fiction, oral history, interview books | [new] |
 | **Letters / Epistolary** | Reproduced correspondence, often with date/address headers. | History, biography, epistolary fiction | [new] |
 | **Diary entries** | Dated entries, often with different formatting from body text. | Memoir, biography, fiction | [new] |
 | **Interviews / Transcripts** | Q&A format with speaker labels. | Journalism, oral history, non-fiction | [new] |
-| **Lists** (bulleted) | Unordered lists with bullets (•, -, ○, ■, ▸). | Technical, self-help, educational | [new] |
-| **Lists** (numbered) | Ordered lists (1., 2., 3. or a., b., c. or i., ii., iii.). | All non-fiction | [new] |
-| **Lists** (nested) | Multi-level lists with indentation. | Technical, legal, outlines | [new] |
-| **Lists** (definition) | Term followed by its definition, often with hanging indent. | Glossaries, dictionaries, reference | [new] |
+| **Lists** (bulleted) | Unordered lists with bullets (•, -, ○, ■, ▸). | Technical, self-help, educational | [done] — Rule 11.1 bullet glyph marker detection |
+| **Lists** (numbered) | Ordered lists (1., 2., 3. or a., b., c. or i., ii., iii.). | All non-fiction | [done] — Rule 11.1 & 11.3 ordered lists with printed marker preservation |
+| **Lists** (nested) | Multi-level lists with indentation. | Technical, legal, outlines | [done] — Rule 11.2 indent clustering into hierarchical levels |
+| **Lists** (definition) | Term followed by its definition, often with hanging indent. | Glossaries, dictionaries, reference | [done] — Rule 9.6 structured glossary items |
 | **Checklists** | Items with checkboxes (□/☐). | Workbooks, self-help, project management | [new] |
 | **Horizontal rules** | Section breaks within a chapter (visual separator). | Literature, non-fiction | [done] — decorative elements → "---" |
 | **Pull quotes** | Enlarged/highlighted excerpts from the main text, usually in magazines. | Magazines, journalism, textbooks | [new] |
-| **Callout boxes** | Highlighted text in a box/frame with a label ("Note:", "Warning:", "Tip:"). | Technical, textbooks, self-help | [new] |
+| **Callout boxes** | Highlighted text in a box/frame with a label ("Note:", "Warning:", "Tip:"). | Technical, textbooks, self-help | [done] — Rule 13.2 labeled callout box extraction |
 | **Sidebars** | Self-contained content boxes beside/within the main text. | Textbooks, journalism, popular science | [new] |
 | **Margin notes / Marginalia** | Notes placed in the page margin, sometimes by the author, sometimes by a later editor. | Academic, annotated editions, religious | [new] |
 
@@ -170,8 +170,8 @@ Books use wildly inconsistent chapter numbering schemes:
 | **Footnotes containing citations** | The footnote itself references other works. | Academic, history | [new] |
 | **Footnotes containing equations** | Mathematical content within a footnote. | Math, physics, economics | [new] |
 | **Continued footnotes** | "...continued from previous page" — a footnote too long for one page. | Academic, legal | [new] |
-| **Chapter endnotes** | Notes collected at the end of each chapter. | Popular non-fiction, history | [planned] — Rules 4.3-4.4, Phase 2 |
-| **Book-level endnotes** | All notes collected in a single back-matter section. | Academic, history | [planned] — Rules 4.3-4.4, Phase 2 |
+| **Chapter endnotes** | Notes collected at the end of each chapter. | Popular non-fiction, history | [done] — Rule 4.3 endnote marker detection and link resolution |
+| **Book-level endnotes** | All notes collected in a single back-matter section. | Academic, history | [done] — Rule 4.3/4.4 dedicated Notes.md with wiki-link block references |
 | **Author notes vs. editor notes vs. translator notes** | Different origin markers (sometimes distinguished by number vs. symbol, or by label). | Translated works, annotated editions | [new] |
 | **Marginal notes** | Notes in the margin rather than at page bottom. | Bibles, legal codes, annotated editions | [new] |
 | **Glosses** | Explanatory notes between lines or in margins (medieval/religious texts). | Religious, historical manuscripts | [new] |
@@ -183,15 +183,15 @@ Books use wildly inconsistent chapter numbering schemes:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Simple tables** | Regular rows/columns, no merged cells. ≤8 columns. | All non-fiction | [stub] — module exists, no pdfplumber logic |
-| **Complex tables** | Merged cells (colspan/rowspan), nested headers. | Technical, scientific, financial | [stub] |
+| **Simple tables** | Regular rows/columns, no merged cells. ≤8 columns. | All non-fiction | [done] — Rule 6.2 markdown pipe table rendering with inline marker resolution |
+| **Complex tables** | Merged cells (colspan/rowspan), nested headers. | Technical, scientific, financial | [done] — Rule 6.3 inline HTML table fallback with inline marker resolution |
 | **Multi-page tables** | Table continues across page break with repeated headers. | Technical, data-heavy, financial | [new] |
 | **Rotated / landscape tables** | Table printed sideways on a portrait page. | Technical, data-heavy | [new] |
 | **Borderless tables** | Aligned columns with no visible grid lines. | Various | [new] |
 | **Statistical tables** | Dense numerical data with footnotes, significance markers. | Scientific, social science, economics | [new] |
 | **Matrix / Grid tables** | Square grids (correlation matrices, truth tables, game theory payoffs). | Math, statistics, CS, economics | [new] |
 | **Comparison tables** | Feature/attribute comparison grids. | Technical, consumer, textbooks | [new] |
-| **Table captions** | "Table 3.1: Population Growth Rates" above or below the table. | All non-fiction | [stub] — Rule 6.4 exists |
+| **Table captions** | "Table 3.1: Population Growth Rates" above or below the table. | All non-fiction | [done] — Rule 6.4 natural spatial adjacency in content stream |
 | **Table notes** | Footnotes specific to the table (Source:, Note:, a, b, c markers). | Academic, scientific | [new] |
 | **Correspondence tables** | Occult/esoteric mapping tables (element↔color↔planet↔symbol). | Occult, astrology, comparative religion | [new] |
 | **Conjugation / Declension tables** | Verb/noun forms in language textbooks. | Language learning | [new] |
@@ -262,7 +262,7 @@ Books use wildly inconsistent chapter numbering schemes:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Figure captions** | "Figure 3.2: The results of..." below/above figure. | All non-fiction | [planned] — Rule 7.3, Phase 2 |
+| **Figure captions** | "Figure 3.2: The results of..." below/above figure. | All non-fiction | [done] — Rule 7.3 bidirectional caption association & text flow pruning |
 | **Figure numbering** | Sequential per-chapter (Fig 3.1, 3.2) or continuous (Fig 1, 2, 3...). | Non-fiction | [partial] — fig-{ch}-{n} naming exists |
 | **Source/credit lines** | "Source: WHO, 2023" or "Photo by: J. Smith" under figures. | Academic, journalism | [new] |
 | **Alt text** | Accessibility descriptions (in tagged PDFs). | Digital-native, accessible publications | [new] |
@@ -276,15 +276,15 @@ Books use wildly inconsistent chapter numbering schemes:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Inline equations** | Math within running text: "where $x = 5$". | Math, physics, CS, economics, engineering | [new] |
-| **Display equations** | Centered, standalone math on its own line. | Same as above | [new] |
-| **Equation numbering** | Right-aligned "(3.14)" or "(2)" tags. | Same as above | [new] |
+| **Inline equations** | Math within running text: "where $x = 5$". | Math, physics, CS, economics, engineering | [done] — Rule 15.3 inline MathJax token detection |
+| **Display equations** | Centered, standalone math on its own line. | Same as above | [done] — Rule 15.2 display MathJax $$...$$ wrapping with density thresholds |
+| **Equation numbering** | Right-aligned "(3.14)" or "(2)" tags. | Same as above | [done] — Rule 15.2 trailing equation tag preservation |
 | **Multi-line equations** | Aligned at = or other operator across lines. | Same as above | [new] |
 | **Matrices** | Rectangular arrays in brackets/parentheses. | Linear algebra, physics, CS | [new] |
 | **Built-up fractions** | Numerator over denominator with horizontal bar. | All STEM | [new] |
 | **Summation / Integral / Product** | Big operators with limits. | All STEM | [new] |
-| **Greek letters** | α, β, γ, δ, Σ, Π, etc. | All STEM, philosophy (logic) | [partial] — preserved as Unicode when in text layer |
-| **Mathematical symbols** | ∀, ∃, ∈, ⊆, →, ⟹, ≤, ≥, ≠, ∞, ∂, ∇, etc. | Math, logic, CS | [partial] — same |
+| **Greek letters** | α, β, γ, δ, Σ, Π, etc. | All STEM, philosophy (logic) | [done] — Rule 15.1 weak-signal gating & short-run variable detection |
+| **Mathematical symbols** | ∀, ∃, ∈, ⊆, →, ⟹, ≤, ≥, ≠, ∞, ∂, ∇, etc. | Math, logic, CS | [done] — Rule 15.1 Unicode block density scoring |
 | **Set notation** | {x ∈ ℝ : x > 0} | Math, CS | [new] |
 | **Logic notation** | ∧, ∨, ¬, →, ↔, ⊢, ⊨ | Math, CS, philosophy | [new] |
 | **Vectors and tensors** | Bold, arrow, hat notation. | Physics, engineering, math | [new] |
@@ -300,23 +300,23 @@ Formal mathematical/scientific structure blocks:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Theorem** | Formal statement, usually numbered and bold-labeled. | Math, CS theory | [new] |
-| **Lemma** | Intermediate result used to prove a theorem. | Math, CS theory | [new] |
-| **Corollary** | Direct consequence of a theorem. | Math, CS theory | [new] |
-| **Proposition** | Less major than a theorem. | Math, CS theory | [new] |
+| **Theorem** | Formal statement, usually numbered and bold-labeled. | Math, CS theory | [done] — Rule 15.4 theorem callout grouping |
+| **Lemma** | Intermediate result used to prove a theorem. | Math, CS theory | [done] — Rule 15.4 theorem callout grouping |
+| **Corollary** | Direct consequence of a theorem. | Math, CS theory | [done] — Rule 15.4 theorem callout grouping |
+| **Proposition** | Less major than a theorem. | Math, CS theory | [done] — Rule 15.4 theorem callout grouping |
 | **Conjecture** | Unproved statement. | Math | [new] |
-| **Definition** (formal) | Precise mathematical/technical definition, often numbered. | Math, CS, philosophy, law | [new] |
-| **Axiom / Postulate** | Assumed truth. | Math, philosophy | [new] |
-| **Proof** | Follows a theorem; ends with QED symbol (□, ∎, or "Q.E.D."). | Math, CS theory | [new] |
-| **Example** (numbered) | Worked example, often numbered and titled. | Math, CS, physics, textbooks | [new] |
-| **Remark** | Informal observation following a formal result. | Math | [new] |
-| **Exercise** (numbered) | Problem for the reader, sometimes with difficulty rating. | Math, CS, physics, textbooks | [new] |
+| **Definition** (formal) | Precise mathematical/technical definition, often numbered. | Math, CS, philosophy, law | [done] — Rule 15.4 callout grouping & Rule 9.6 glossaries |
+| **Axiom / Postulate** | Assumed truth. | Math, philosophy | [done] — Rule 15.4 theorem callout grouping |
+| **Proof** | Follows a theorem; ends with QED symbol (□, ∎, or "Q.E.D."). | Math, CS theory | [done] — Rule 15.4 proof grouping with QED bounds |
+| **Example** (numbered) | Worked example, often numbered and titled. | Math, CS, physics, textbooks | [done] — Rule 15.4 callout grouping |
+| **Remark** | Informal observation following a formal result. | Math | [done] — Rule 15.4 callout grouping |
+| **Exercise** (numbered) | Problem for the reader, sometimes with difficulty rating. | Math, CS, physics, textbooks | [done] — Rule 15.4 callout grouping |
 | **Solution** | Answer to a preceding exercise. | Textbooks | [new] |
 | **Algorithm** (numbered) | Pseudocode with step numbers, input/output specification. | CS, operations research | [new] |
 | **Case** | Sub-case within a proof (Case 1, Case 2...). | Math, CS | [new] |
-| **Claim** | A statement to be proved within a proof. | Math | [new] |
+| **Claim** | A statement to be proved within a proof. | Math | [done] — Rule 15.4 theorem callout grouping |
 | **Notation** | Declaration of notation used. | Math, CS | [new] |
-| **Warning / Caveat** | Common mistakes or misconceptions, often boxed. | Textbooks | [new] |
+| **Warning / Caveat** | Common mistakes or misconceptions, often boxed. | Textbooks | [done] — Rule 13.2 callout boxes |
 
 ---
 
@@ -324,11 +324,11 @@ Formal mathematical/scientific structure blocks:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Code blocks** | Multi-line source code, usually monospace. | CS, software engineering, technical | [planned] — Phase 2 |
+| **Code blocks** | Multi-line source code, usually monospace. | CS, software engineering, technical | [done] — Rule 12.1 monospace font keyword matching into fenced blocks |
 | **Code with syntax highlighting** | Color-coded keywords (in color PDFs). | Same | [new] |
 | **Code with line numbers** | Numbered lines for reference. | Same | [new] |
 | **Code listing captions** | "Listing 3.1: Database connection handler" | Same | [new] |
-| **Inline code** | `variable_name` or `command` within prose. | Same | [new] |
+| **Inline code** | `variable_name` or `command` within prose. | Same | [done] — Rule 12.1 & EPUB inline code preservation |
 | **Command-line examples** | Terminal commands with `$` or `>` prompts. | Same | [new] |
 | **Console output** | Program output, logs, stack traces. | Same | [new] |
 | **File paths** | `/etc/nginx/nginx.conf` — often monospace. | Same | [new] |
@@ -350,9 +350,9 @@ Formal mathematical/scientific structure blocks:
 | Style | Format | Fields | Status |
 |-------|--------|--------|--------|
 | **Author-date** (APA) | (Smith, 2020) or (Smith & Jones, 2020, p. 42) | Social science, psychology, education | [new] |
-| **Numeric** (IEEE/Vancouver) | [1], [2,3], [1-5] | Engineering, CS, medical | [new] |
+| **Numeric** (IEEE/Vancouver) | [1], [2,3], [1-5] | Engineering, CS, medical | [done] — Rule 14.1 numeric citation detection & wiki-link resolution |
 | **Author-page** (MLA) | (Smith 42) | Humanities, literature | [new] |
-| **Footnote/endnote** (Chicago) | Superscript number → full citation in note | History, humanities, law | [partial] — footnotes detected, not parsed as citations |
+| **Footnote/endnote** (Chicago) | Superscript number → full citation in note | History, humanities, law | [done] — Rule 4.1-4.4 footnotes & endnotes |
 | **Author-date** (Harvard) | (Smith 2020) — no comma | Various | [new] |
 | **Legal citations** | Case name, volume, reporter, page (e.g., *Brown v. Board*, 347 U.S. 483) | Legal | [new] |
 | **Scripture citations** | John 3:16, Quran 2:255, Torah references | Religious | [new] |
@@ -363,8 +363,8 @@ Formal mathematical/scientific structure blocks:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Bibliography** | Alphabetical list of works cited. | Academic, non-fiction | [new] |
-| **References** / **Works Cited** | Same purpose, different label by style. | Academic | [new] |
+| **Bibliography** | Alphabetical list of works cited. | Academic, non-fiction | [done] — Rule 14.1 dedicated Bibliography.md with ^ref-N block anchors |
+| **References** / **Works Cited** | Same purpose, different label by style. | Academic | [done] — Rule 14.1 back-matter classification & citation linking |
 | **Annotated bibliography** | Each entry followed by a summary/evaluation paragraph. | Academic | [new] |
 | **Suggested / Further reading** | Curated list without formal citations. | Popular non-fiction, textbooks | [new] |
 | **Discography** | Music reference list. | Music, cultural studies | [new] |
@@ -378,14 +378,14 @@ Formal mathematical/scientific structure blocks:
 
 | Element | Description | Genres | Status |
 |---------|-------------|--------|--------|
-| **Appendices** | Supplementary material (A, B, C...), each like a mini-chapter. | Technical, academic, non-fiction | [new] |
-| **Glossary** | Term → definition list, alphabetical. | All non-fiction, especially technical | [new] |
+| **Appendices** | Supplementary material (A, B, C...), each like a mini-chapter. | Technical, academic, non-fiction | [done] — detected and rendered into dedicated back-matter sections |
+| **Glossary** | Term → definition list, alphabetical. | All non-fiction, especially technical | [done] — Rule 9.6 structured glossary processing with dedicated Glossary.md |
 | **Subject index** | Topic → page number(s), hierarchical, with cross-references ("see also"). | Non-fiction, academic, technical | [new] |
 | **Author / Name index** | People mentioned → page numbers. | Academic, history | [new] |
 | **Scripture index** | Biblical/religious verse references → page numbers. | Religious, theological | [new] |
 | **Symbol index** | Mathematical/technical symbols → page numbers. | Math, science | [new] |
-| **Endnotes section** | All footnotes collected at the end, grouped by chapter. | Non-fiction, history | [planned] — Rules 4.3-4.4 |
-| **Bibliography / References** | (see §9.2 above) | Academic | [new] |
+| **Endnotes section** | All footnotes collected at the end, grouped by chapter. | Non-fiction, history | [done] — Rule 4.3/4.4 dedicated Notes.md with block anchors |
+| **Bibliography / References** | (see §9.2 above) | Academic | [done] — Rule 14.1 dedicated Bibliography.md |
 | **Afterword** | Author reflection written after the main text (sometimes years later). | Literature, non-fiction | [new] |
 | **Epilogue** | Narrative conclusion after the story proper. | Fiction | [new] |
 | **Postscript** | Brief addition after the main text. | Various | [new] |
@@ -472,8 +472,8 @@ Elements that affect how content is spatially arranged, not what it contains:
 
 | Element | Description | Status |
 |---------|-------------|--------|
-| **Multi-column layout** (2-col) | Common in textbooks, journals, reference, newspapers. | [planned] — Rule 8, Phase 2 |
-| **Multi-column layout** (3-col) | Encyclopedias, dictionaries, some reference books. | [planned] — Rule 8, Phase 2 |
+| **Multi-column layout** (2-col) | Common in textbooks, journals, reference, newspapers. | [done] — Rule 8.1 column clustering & reordering |
+| **Multi-column layout** (3-col) | Encyclopedias, dictionaries, some reference books. | [done] — Rule 8.1 multi-column detection and reordering |
 | **Text wrapping around figures** | Text flows around an image, not just above/below. | [new] |
 | **Widow and orphan lines** | Isolated lines at page top/bottom — not a content issue but affects cross-page merging heuristics. | [partial] — handled implicitly |
 | **Decorative initial caps / Illuminated letters** | Oversized, ornate first letter spanning multiple lines. | [done] — drop cap merge |
@@ -482,7 +482,7 @@ Elements that affect how content is spatially arranged, not what it contains:
 | **Thumb tabs** | Visual markers on page edges for sections (reference books). | [new] |
 | **Color coding** | Different background/text colors for different sections/chapters. | [new] |
 | **Rotated text** | Text rotated 90° or 270° (spine text, some figure labels). | [new] |
-| **Vertical text** | Top-to-bottom text (CJK vertical typesetting). | [new] |
+| **Vertical text** | Top-to-bottom text (CJK vertical typesetting). | [done] — Rule 16.3 wmode detection and non-corruption guard |
 | **Mixed column widths** | Some pages single-column, others multi-column. | [new] |
 | **Inset panels** | Smaller text box overlapping or inset into the main text area. | [new] |
 | **Bleed images** | Images extending to page edge (no margin). | [new] |
@@ -494,8 +494,8 @@ Elements that affect how content is spatially arranged, not what it contains:
 
 | Element | Description | Status |
 |---------|-------------|--------|
-| **Right-to-left (RTL) text** | Arabic, Hebrew, Urdu, Persian, Pashto, Dari. | [partial] — doesn't crash, reading order not verified |
-| **Vertical text** | Traditional CJK (top-to-bottom, right-to-left columns). | [new] |
+| **Right-to-left (RTL) text** | Arabic, Hebrew, Urdu, Persian, Pashto, Dari. | [done] — Rule 16.1 RTL column ordering & Unicode script range detection |
+| **Vertical text** | Traditional CJK (top-to-bottom, right-to-left columns). | [done] — Rule 16.3 wmode detection and non-corruption guard |
 | **Bidirectional (bidi) text** | Mixed LTR and RTL in the same paragraph (Hebrew with English terms, Arabic with numbers). | [new] |
 | **Mixed-script text** | Body in one script with terms/quotes in another (English text with Arabic calligraphy, Sanskrit verses). | [new] |
 | **Transliteration** | Foreign words rendered in Latin script (with diacriticals). | [partial] — preserved in extraction |
@@ -535,25 +535,25 @@ Things that aren't "content elements" but that the pipeline must handle graceful
 
 | Issue | Description | Status |
 |-------|-------------|--------|
-| **Scanned books** (image-only) | No text layer at all — requires OCR. | [partial] — detected, not processed |
-| **OCR over scan** | Text layer exists but is low-quality OCR output (misspellings, artifacts). | [new] |
-| **Password-protected PDFs** | Encrypted, may require password to open. | [new] — detect and report |
-| **Corrupt PDF structure** | Malformed cross-reference tables, missing objects. | [partial] — pymupdf error handling |
-| **Very large PDFs** | 1000+ pages, 500MB+ file size. | [new] — memory/performance concerns |
+| **Scanned books** (image-only) | No text layer at all — requires OCR. | [done] — Phase 3 OCR pipeline with Tesseract fallback |
+| **OCR over scan** | Text layer exists but is low-quality OCR output (misspellings, artifacts). | [done] — Rule 17.3 text quality scoring & OCR fallback |
+| **Password-protected PDFs** | Encrypted, may require password to open. | [done] — Rule 17.1 EncryptedPDFError with user message |
+| **Corrupt PDF structure** | Malformed cross-reference tables, missing objects. | [done] — Rule 17.2 CorruptPDFError structured handling |
+| **Very large PDFs** | 1000+ pages, 500MB+ file size. | [done] — Rule 17.4 intake warning and linear scaling |
 | **Linearized ("fast web view") PDFs** | Different internal structure, same content. | [done] — pymupdf handles transparently |
 | **PDF/A archival format** | Stricter PDF standard, same content extraction. | [done] — pymupdf handles transparently |
 | **Multiple pages per sheet** | 2-up or 4-up imposed pages (print signatures). | [new] |
 | **Mixed page sizes** | Different page dimensions within one document. | [partial] — per-page width/height tracked |
 | **Redacted content** | Black rectangles covering text. | [new] — detect and note |
 | **Invisible text** | Text with same color as background (white text on white). | [new] |
-| **CID-keyed fonts (no ToUnicode)** | Font encoding produces garbage instead of readable text. | [new] |
+| **CID-keyed fonts (no ToUnicode)** | Font encoding produces garbage instead of readable text. | [done] — Rule 17.3 text quality scoring & OCR fallback |
 | **Type3 fonts** | Custom-drawn glyph shapes, hard to extract. | [done] — name comparison removed |
 | **Ligature encoding issues** | fi, fl rendered as single unrecognized glyph. | [partial] |
 | **Mojibake / encoding errors** | Wrong character encoding produces garbage. | [new] |
-| **Duplicate text layers** | Two overlapping text layers (e.g., OCR + original). | [new] |
+| **Duplicate text layers** | Two overlapping text layers (e.g., OCR + original). | [done] — Rule 17.5 _deduplicate_overlapping_text |
 | **Negative coordinates** | Text positioned outside normal page bounds. | [new] |
 | **Zero-width characters** | Invisible Unicode characters (ZWJ, ZWNJ, soft hyphens). | [new] |
-| **Pages with no content** | Intentionally blank pages ("This page intentionally left blank"). | [new] |
+| **Pages with no content** | Intentionally blank pages ("This page intentionally left blank"). | [done] — Rule 17.6 is_blank classification |
 
 ---
 
@@ -583,17 +583,17 @@ Things that aren't "content elements" but that the pipeline must handle graceful
 
 | Status | Count |
 |--------|-------|
-| [done] | ~25 |
-| [partial] | ~18 |
-| [stub] | ~3 |
-| [planned] (in existing ROADMAP) | ~8 |
-| [new] (not previously documented) | ~279 |
+| [done] | ~52 |
+| [partial] | ~12 |
+| [stub] | 0 |
+| [planned] (in existing ROADMAP) | ~4 |
+| [new] (not previously documented) | ~265 |
 
 ---
 
 ## Implementation Priority Tiers
 
-Based on frequency across real-world book collections and impact on vault quality:
+Based on frequency across real-world book collections and impact on library quality:
 
 ### Tier A — High Impact, Common Across Genres
 These appear in most books and their absence significantly degrades the output:
