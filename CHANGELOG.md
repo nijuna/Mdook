@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Interactive Terminal Wizard & Publication Scanner**:
+  - `mdook scan [directory]`: High-performance discovery of supported publications (`.pdf`, `.epub`, `.docx`) in current or target directories with fast metadata sniffing (title, author, format, size) rendered as a Rich tabular overview or structured JSON export (`--json`, `-r`/`--recursive`).
+  - `mdook interactive` / `mdook -i`: Interactive terminal wizard guiding publication selection (indices `1`, ranges `1-3`, `all`, or manual paths), output structure selection (`Modular Library` vs `Single Document`), semantic parsing profile (`auto`, `literature`, `technical`), destination directory, and optional AI structure review configuration with pre-flight summary confirmation.
+  - Headless auto-prompt: Automatically detects publications in the current working directory when `mdook` is launched without arguments in an interactive terminal session, offering an instant prompt to launch the wizard.
 - **Brand Identity & Icon Assets**:
   - Official brand mark established with dark squircle, embossed open book "M", and gold ribbon bookmark.
   - Generated multi-resolution asset suite (`assets/icons/` with 16x16 through 512x512 PNG, multi-resolution Windows `mdook.ico`, and `mdook/assets/`).

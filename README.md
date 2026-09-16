@@ -81,6 +81,11 @@ Input: Book (.pdf / .epub / .docx)
 - **Modular Library (Default)**: Splits the book into numbered chapter notes, isolated front-matter and back-matter divisions, and a top-level Index note with Part hierarchies.
 - **Single Document Mode (`-s` / `--single-file`)**: Renders a verbatim 1:1 complete book copy into a single continuous Markdown file (`Title.md`) with standard markdown image links (`![caption](attachments/fig.png)`), local block anchor linking, and consolidated collision-free footnotes.
 
+### Interactive Terminal Wizard & Directory Scanner
+- **Publication Discovery (`mdook scan`)**: Fast scanning of local directories for supported books (`.pdf`, `.epub`, `.docx`) with instant metadata sniffing (title, author, format, size) rendered in a Rich table or clean JSON (`--json`).
+- **Interactive Conversion Wizard (`mdook -i` / `mdook interactive`)**: Step-by-step terminal wizard guiding publication selection (indices, ranges, or manual paths), output mode, semantic profile, destination directory, and optional AI structure review.
+- **Headless Auto-Prompt**: Automatically detects publications in the current directory when running `mdook` without arguments in an interactive terminal session and prompts to launch the wizard.
+
 ### Modern Desktop GUI (PySide6)
 - **Two-Tier Architecture**: Streamlined main window with file inspection card, segmented output selector, and breadcrumb stage stepper, paired with a dedicated modal `SettingsDialog`.
 - **3 Theme Families (Dark & Light)**: Choose between *The Library* (warm bookmaker amber), *Amethyst* (royal violet), and *Carbon* (ice cyan).
@@ -131,6 +136,21 @@ Launch the PySide6 application:
 ```bash
 uv run mdook
 # or: uv run python -m mdook
+```
+
+#### Interactive CLI & Publication Scanner
+Discover books or run the guided interactive conversion wizard:
+```bash
+# Scan current directory for supported publications (.pdf, .epub, .docx):
+uv run mdook scan
+
+# Recursively scan directory and output JSON metadata:
+uv run mdook scan /path/to/books -r --json
+
+# Launch the interactive terminal conversion wizard:
+uv run mdook interactive
+# or shorthand:
+uv run mdook -i
 ```
 
 #### Headless CLI
@@ -185,7 +205,7 @@ Settings can be configured directly inside the desktop GUI (via **Settings** dia
 
 ## Development & Testing
 
-Mdook is thoroughly tested with 296 unit and integration tests configured to run headless offscreen:
+Mdook is thoroughly tested with 324 unit and integration tests configured to run headless offscreen:
 
 ```bash
 # Run the test suite
