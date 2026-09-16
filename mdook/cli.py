@@ -1,16 +1,19 @@
 """Mdook Command-Line Interface (CLI).
 
-Provides headless terminal commands for converting PDF books into Obsidian vaults,
+Provides headless terminal commands for converting publications into
+chapter-split Markdown libraries or single documents, scanning directories,
 checking versions, and launching the desktop GUI.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
 
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
@@ -27,6 +30,7 @@ from mdook import __version__
 from mdook.core.errors import MdookError
 from mdook.core.llm import LLMConfig
 from mdook.core.pipeline import convert
+from mdook.core.scanner import format_file_size, scan_directory
 
 
 def is_gui_available() -> bool:
@@ -138,6 +142,35 @@ Examples:
         "--quiet",
         action="store_true",
         help="Suppress progress bars, banners, and non-error output.",
+    )
+
+    # `scan` subcommand
+    scan_parser = subparsers.add_parser(
+        "scan",
+        help="Scan a directory for supported publications (.pdf, .epub, .docx).",
+        description=(
+            "Discover supported publications in a directory and display their "
+            "metadata, format, and file size in a structured table."
+        ),
+    )
+    scan_parser.add_argument(
+        "directory",
+        nargs="?",
+        default=Path("."),
+        type=Path,
+        help="Directory to scan (defaults to current working directory).",
+    )
+    scan_parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Recursively scan subdirectories, ignoring cache and hidden folders.",
+    )
+    scan_parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output scanned publication metadata in JSON format.",
     )
 
     # `gui` subcommand
@@ -311,6 +344,86 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
     return overall_exit_code
 
 
+def run_scan(args: argparse.Namespace, console: Console) -> int:
+    """Executes directory scanning and renders results as a Rich table or JSON."""
+    target_dir: Path = args.directory
+    try:
+        books = scan_directory(target_dir, recursive=args.recursive)
+    except (FileNotFoundError, NotADirectoryError) as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        return 1
+    except Exception as e:
+        console.print(f"[bold red]Error scanning directory:[/bold red] {e}")
+        return 1
+
+    if getattr(args, "json_output", False):
+        data = [
+            {
+                "path": str(b.path),
+                "filename": b.filename,
+                "format": b.format,
+                "size_bytes": b.size_bytes,
+                "formatted_size": b.formatted_size,
+                "title": b.title,
+                "author": b.author,
+            }
+            for b in books
+        ]
+        console.print(json.dumps(data, indent=2))
+        return 0
+
+    print_brand_header(console)
+    console.print()
+
+    resolved_path = target_dir.expanduser().resolve()
+    if not books:
+        console.print(
+            f"[dim]No supported publications (.pdf, .epub, .docx) found in "
+            f"[bold]{resolved_path}[/bold].[/dim]"
+        )
+        return 0
+
+    table = Table(
+        title=f"Discovered Publications ({len(books)})",
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        border_style="dim",
+        show_lines=False,
+    )
+    table.add_column("#", justify="right", style="dim", width=4)
+    table.add_column("Format", justify="center", width=8)
+    table.add_column("Filename", style="bold white")
+    table.add_column("Size", justify="right", style="dim", width=10)
+    table.add_column("Title", style="italic")
+    table.add_column("Author", style="dim")
+
+    format_styles = {
+        "pdf": "[bold red]PDF[/bold red]",
+        "epub": "[bold green]EPUB[/bold green]",
+        "docx": "[bold blue]DOCX[/bold blue]",
+    }
+
+    total_bytes = 0
+    for idx, b in enumerate(books, 1):
+        total_bytes += b.size_bytes
+        fmt_badge = format_styles.get(b.format.lower(), b.format.upper())
+        table.add_row(
+            str(idx),
+            fmt_badge,
+            b.filename,
+            b.formatted_size,
+            b.title,
+            b.author,
+        )
+
+    console.print(table)
+    console.print(
+        f"[dim]Total: [bold]{len(books)}[/bold] publication(s), "
+        f"[bold]{format_file_size(total_bytes)}[/bold] in [bold]{resolved_path}[/bold][/dim]"
+    )
+    return 0
+
+
 def launch_gui(console: Console | None = None) -> int:
     """Launches the PySide6 desktop GUI."""
     try:
@@ -341,7 +454,7 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
     # Shorthand rule: if user runs `mdook book.pdf ...`, auto-prepend `convert`
     if args_list and not args_list[0].startswith("-"):
         first_token = args_list[0]
-        if first_token not in ("convert", "gui", "version", "help"):
+        if first_token not in ("convert", "gui", "version", "help", "scan"):
             candidate = Path(first_token)
             if candidate.suffix.lower() in (".pdf", ".epub", ".docx") or candidate.exists():
                 args_list.insert(0, "convert")
@@ -364,6 +477,8 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
 
     if parsed_args.subcommand == "convert":
         return run_convert(parsed_args, c)
+    if parsed_args.subcommand == "scan":
+        return run_scan(parsed_args, c)
     if parsed_args.subcommand == "gui":
         return launch_gui(c)
     if parsed_args.subcommand == "version":

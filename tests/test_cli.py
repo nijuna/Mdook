@@ -10,8 +10,19 @@ from mdook import __version__
 from mdook.cli import build_parser, run_cli
 
 
-def _create_sample_pdf(path: Path, title: str = "CLI Test Book") -> Path:
+def _create_sample_pdf(
+    path: Path,
+    title: str | None = None,
+    author: str | None = None,
+) -> Path:
     doc = pymupdf.open()
+    meta: dict[str, str] = {}
+    if title:
+        meta["title"] = title
+    if author:
+        meta["author"] = author
+    if meta:
+        doc.set_metadata(meta)
     for i in range(2):
         page = doc.new_page(width=400, height=600)
         page.insert_text((72, 60), f"Chapter {i + 1}", fontsize=20, fontname="helv")
@@ -132,3 +143,68 @@ def test_cli_no_args_in_headless(monkeypatch: pytest.MonkeyPatch) -> None:
     console = Console(record=True)
     exit_code = run_cli([], console=console)
     assert exit_code == 0
+
+
+def test_cli_scan_empty_directory(tmp_path: Path) -> None:
+    console = Console(record=True)
+    exit_code = run_cli(["scan", str(tmp_path)], console=console)
+    assert exit_code == 0
+    output = console.export_text()
+    assert "No supported publications" in output
+
+
+def test_cli_scan_with_publications(tmp_path: Path) -> None:
+    _create_sample_pdf(tmp_path / "book1.pdf", title="PDF Book")
+    console = Console(record=True)
+    exit_code = run_cli(["scan", str(tmp_path)], console=console)
+    assert exit_code == 0
+    output = console.export_text()
+    assert "Discovered Publications (1)" in output
+    assert "book1.pdf" in output
+    assert "PDF Book" in output
+    assert "Total: 1 publication(s)" in output
+
+
+def test_cli_scan_json_output(tmp_path: Path) -> None:
+    import json
+
+    _create_sample_pdf(tmp_path / "book1.pdf", title="PDF Book")
+    console = Console(record=True)
+    exit_code = run_cli(["scan", str(tmp_path), "--json"], console=console)
+    assert exit_code == 0
+    output = console.export_text()
+    data = json.loads(output)
+    assert len(data) == 1
+    assert data[0]["filename"] == "book1.pdf"
+    assert data[0]["format"] == "pdf"
+    assert data[0]["title"] == "PDF Book"
+
+
+def test_cli_scan_recursive(tmp_path: Path) -> None:
+    sub = tmp_path / "nested"
+    sub.mkdir()
+    _create_sample_pdf(sub / "nested.pdf", title="Nested Book")
+
+    console = Console(record=True)
+    # Non-recursive should find 0
+    exit_code = run_cli(["scan", str(tmp_path)], console=console)
+    assert exit_code == 0
+    assert "No supported publications" in console.export_text()
+
+    # Recursive should find 1
+    console_rec = Console(record=True)
+    exit_code_rec = run_cli(["scan", str(tmp_path), "-r"], console=console_rec)
+    assert exit_code_rec == 0
+    output_rec = console_rec.export_text()
+    assert "nested.pdf" in output_rec
+    assert "Nested Book" in output_rec
+
+
+def test_cli_scan_missing_directory(tmp_path: Path) -> None:
+    console = Console(record=True)
+    missing = tmp_path / "not_found"
+    exit_code = run_cli(["scan", str(missing)], console=console)
+    assert exit_code == 1
+    output = console.export_text()
+    assert "Error:" in output
+
