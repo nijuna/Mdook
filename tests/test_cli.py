@@ -208,3 +208,119 @@ def test_cli_scan_missing_directory(tmp_path: Path) -> None:
     output = console.export_text()
     assert "Error:" in output
 
+
+def test_cli_interactive_subcommand_execution(tmp_path: Path) -> None:
+    _create_sample_pdf(tmp_path / "wizard_book.pdf", title="Wizard Book")
+    console = Console(record=True)
+    out_dir = tmp_path / "wizard_out"
+
+    inputs = [
+        "1",              # Select book 1
+        "1",              # Mode: Modular Library
+        "1",              # Profile: Auto
+        str(out_dir),     # Destination
+        "n",              # No AI
+        "y",              # Confirm
+    ]
+    input_idx = 0
+
+    def mock_input(prompt: str) -> str:
+        nonlocal input_idx
+        val = inputs[input_idx]
+        input_idx += 1
+        return val
+
+    exit_code = run_cli(
+        ["interactive", str(tmp_path)],
+        console=console,
+        input_fn=mock_input,
+    )
+    assert exit_code == 0
+    output = console.export_text()
+    assert "Pre-Flight Conversion Summary" in output
+    assert "Vault Generated: Wizard Book" in output
+    assert (out_dir / "Wizard Book").exists()
+
+
+def test_cli_interactive_flag_cancelled(tmp_path: Path) -> None:
+    pdf = _create_sample_pdf(tmp_path / "cancel_book.pdf")
+    console = Console(record=True)
+
+    inputs = [
+        str(pdf),         # Direct path prompt (since scan defaults to cwd)
+        "1",              # Modular Library
+        "1",              # Auto
+        str(tmp_path / "out"),
+        "n",              # No AI
+        "n",              # Cancel!
+    ]
+    input_idx = 0
+
+    def mock_input(prompt: str) -> str:
+        nonlocal input_idx
+        val = inputs[input_idx]
+        input_idx += 1
+        return val
+
+    exit_code = run_cli(
+        ["-i"],
+        console=console,
+        input_fn=mock_input,
+    )
+    assert exit_code == 0
+    output = console.export_text()
+    assert "Conversion cancelled." in output
+
+
+def test_cli_headless_autoprompt_decline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    monkeypatch.setattr("sys.platform", "linux")
+    monkeypatch.chdir(tmp_path)
+
+    _create_sample_pdf(tmp_path / "cwd_book.pdf", title="CWD Book")
+    console = Console(record=True)
+
+    exit_code = run_cli([], console=console, input_fn=lambda _: "n")
+    assert exit_code == 0
+    output = console.export_text()
+    assert "Found 1 supported publication(s) in current directory" in output
+    assert "usage:" in output
+
+
+def test_cli_headless_autoprompt_accept(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    monkeypatch.setattr("sys.platform", "linux")
+    monkeypatch.chdir(tmp_path)
+
+    _create_sample_pdf(tmp_path / "auto_book.pdf", title="Auto Book")
+    console = Console(record=True)
+    out_dir = tmp_path / "auto_out"
+
+    inputs = [
+        "y",              # Accept auto-prompt to launch wizard
+        "1",              # Book 1
+        "1",              # Modular library
+        "1",              # Profile auto
+        str(out_dir),     # Dest
+        "n",              # No AI
+        "y",              # Confirm
+    ]
+    input_idx = 0
+
+    def mock_input(prompt: str) -> str:
+        nonlocal input_idx
+        val = inputs[input_idx]
+        input_idx += 1
+        return val
+
+    exit_code = run_cli([], console=console, input_fn=mock_input)
+    assert exit_code == 0
+    output = console.export_text()
+    assert "Found 1 supported publication(s) in current directory" in output
+    assert "Pre-Flight Conversion Summary" in output
+    assert "Vault Generated: Auto Book" in output
+    assert (out_dir / "Auto Book").exists()
+
+

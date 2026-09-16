@@ -12,6 +12,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Callable
 
 from rich import box
 from rich.console import Console
@@ -27,6 +28,7 @@ from rich.progress import (
 from rich.table import Table
 
 from mdook import __version__
+from mdook.cli_wizard import interactive_wizard
 from mdook.core.errors import MdookError
 from mdook.core.llm import LLMConfig
 from mdook.core.pipeline import convert
@@ -64,6 +66,12 @@ Examples:
         action="version",
         version=f"Mdook v{__version__}",
         help="Show program version and exit.",
+    )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help="Launch the interactive terminal conversion wizard.",
     )
 
     subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
@@ -171,6 +179,23 @@ Examples:
         action="store_true",
         dest="json_output",
         help="Output scanned publication metadata in JSON format.",
+    )
+
+    # `interactive` subcommand
+    interactive_parser = subparsers.add_parser(
+        "interactive",
+        help="Launch the interactive terminal conversion wizard.",
+        description=(
+            "Guided step-by-step terminal wizard for discovering publications, "
+            "selecting output structures, setting parsing profiles, and configuring AI review."
+        ),
+    )
+    interactive_parser.add_argument(
+        "directory",
+        nargs="?",
+        default=Path("."),
+        type=Path,
+        help="Directory to scan for publications (defaults to current working directory).",
     )
 
     # `gui` subcommand
@@ -424,6 +449,32 @@ def run_scan(args: argparse.Namespace, console: Console) -> int:
     return 0
 
 
+def run_interactive(
+    args: argparse.Namespace,
+    console: Console,
+    input_fn: Callable[[str], str] | None = None,
+) -> int:
+    """Launches the interactive conversion wizard and executes conversion on confirmation."""
+    target_dir = getattr(args, "directory", None) or Path(".")
+    cfg = interactive_wizard(console=console, start_dir=target_dir, input_fn=input_fn)
+    if cfg is None:
+        return 0
+
+    convert_args = argparse.Namespace(
+        books=cfg.books,
+        output=cfg.output_dir,
+        profile=cfg.profile,
+        single_file=cfg.single_file,
+        ai=cfg.ai_enabled,
+        no_ai=not cfg.ai_enabled,
+        ai_model=cfg.ai_model,
+        ai_base_url=cfg.ai_base_url,
+        ai_api_key=cfg.ai_api_key,
+        quiet=False,
+    )
+    return run_convert(convert_args, console=console)
+
+
 def launch_gui(console: Console | None = None) -> int:
     """Launches the PySide6 desktop GUI."""
     try:
@@ -442,11 +493,16 @@ def launch_gui(console: Console | None = None) -> int:
         return 1
 
 
-def run_cli(argv: list[str] | None = None, console: Console | None = None) -> int:
+def run_cli(
+    argv: list[str] | None = None,
+    console: Console | None = None,
+    input_fn: Callable[[str], str] | None = None,
+) -> int:
     """Main CLI dispatch entry point.
 
     Handles argument pre-processing (e.g. shorthand `mdook book.pdf` -> `mdook convert book.pdf`),
-    subcommand execution, and automatic GUI launching when invoked with no arguments on a desktop.
+    subcommand execution, interactive wizard launches, and automatic GUI launching when
+    invoked with no arguments on a desktop.
     """
     c = console or Console()
     args_list = list(sys.argv[1:] if argv is None else argv)
@@ -454,7 +510,7 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
     # Shorthand rule: if user runs `mdook book.pdf ...`, auto-prepend `convert`
     if args_list and not args_list[0].startswith("-"):
         first_token = args_list[0]
-        if first_token not in ("convert", "gui", "version", "help", "scan"):
+        if first_token not in ("convert", "gui", "version", "help", "scan", "interactive"):
             candidate = Path(first_token)
             if candidate.suffix.lower() in (".pdf", ".epub", ".docx") or candidate.exists():
                 args_list.insert(0, "convert")
@@ -465,8 +521,30 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
             return launch_gui(c)
         print_brand_header(c)
         c.print()
+        try:
+            discovered = scan_directory(Path("."), recursive=False)
+        except Exception:
+            discovered = []
+        if discovered and (input_fn is not None or sys.stdin.isatty()):
+            c.print(
+                f"[bold cyan]Found {len(discovered)} supported publication(s) "
+                f"in current directory.[/bold cyan]"
+            )
+            prompt_str = "Launch interactive conversion wizard? [Y/n]: "
+            if input_fn is not None:
+                c.print(prompt_str, end="")
+                resp = input_fn(prompt_str).strip().lower()
+                c.print(resp)
+            else:
+                resp = c.input(prompt_str).strip().lower()
+            if resp in ("y", "yes", ""):
+                return run_interactive(
+                    argparse.Namespace(directory=Path(".")),
+                    c,
+                    input_fn=input_fn,
+                )
         parser = build_parser()
-        parser.print_help()
+        c.print(parser.format_help())
         return 0
 
     parser = build_parser()
@@ -475,6 +553,8 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 1
 
+    if getattr(parsed_args, "interactive", False) or parsed_args.subcommand == "interactive":
+        return run_interactive(parsed_args, c, input_fn=input_fn)
     if parsed_args.subcommand == "convert":
         return run_convert(parsed_args, c)
     if parsed_args.subcommand == "scan":
@@ -486,7 +566,7 @@ def run_cli(argv: list[str] | None = None, console: Console | None = None) -> in
         return 0
 
     # Default fallback
-    parser.print_help()
+    c.print(parser.format_help())
     return 0
 
 
