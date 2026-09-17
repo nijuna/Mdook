@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-296%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-324%20passed-brightgreen.svg)]()
 
 </div>
 
@@ -91,8 +91,43 @@ Input: Book (.pdf / .epub / .docx)
 - **3 Theme Families (Dark & Light)**: Choose between *The Library* (warm bookmaker amber), *Amethyst* (royal violet), and *Carbon* (ice cyan).
 - **Drag-and-Drop & Queue**: Seamless drag-and-drop book intake and sequential multi-file batch conversion queue with clean status indicators (`•`, `▶`, `✓`, `✗`).
 - **Strictly Typography-First**: Zero emojis anywhere in the interface.
-
----
+ 
+ ---
+ 
++## User Interface & Themes
++
++Mdook features a typography-first desktop interface built with PySide6. The interface offers three distinct theme palettes with both dark and light modes, along with a dedicated configuration modal.
++
++### The Library (Warm Amber)
++Inspired by classical bookmaking, letterpress printing, and aged parchment.
++
++| Dark Mode | Light Mode |
++| :---: | :---: |
++| ![The Library - Dark](assets/screenshots/gui-library-dark.png) | ![The Library - Light](assets/screenshots/gui-library-light.png) |
++
++### Amethyst (Royal Violet)
++A modern editorial aesthetic featuring royal violet accents and balanced slate surfaces.
++
++| Dark Mode | Light Mode |
++| :---: | :---: |
++| ![Amethyst - Dark](assets/screenshots/gui-amethyst-dark.png) | ![Amethyst - Light](assets/screenshots/gui-amethyst-light.png) |
++
++### Carbon (Graphite & Ice Cyan)
++A focused monochrome workspace with crisp ice cyan interactive elements.
++
++| Dark Mode | Light Mode |
++| :---: | :---: |
++| ![Carbon - Dark](assets/screenshots/gui-carbon-dark.png) | ![Carbon - Light](assets/screenshots/gui-carbon-light.png) |
++
++### Preference & AI Configuration Modal
++Manage theme palettes, default output modes, extraction profiles, and live LLM reachability testing:
++
++<p align="center">
++  <img src="assets/screenshots/gui-settings-modal.png" alt="Mdook Settings Modal" width="560" />
++</p>
++
++---
++
 
 ## Installation & Quickstart
 
@@ -178,6 +213,19 @@ uv run mdook convert book.pdf -o ./output/ --ai --ai-model gemini-2.5-flash
 # Display typographic version or help:
 uv run mdook version
 uv run mdook convert --help
+```
+
+#### Standalone Executable & Linux Desktop Integration
+Build a self-contained executable that runs without requiring Python:
+```bash
+# Build standalone executable using PyInstaller:
+uv run pyinstaller mdook.spec
+
+# Run the standalone binary:
+./dist/mdook --help
+
+# (Linux) Install desktop entry and multi-resolution brand icons:
+bash packaging/linux/install-desktop.sh
 ```
 
 #### Obsidian Desktop Plugin
