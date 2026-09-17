@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Mdook
+GenericName=Book to Markdown Converter
+Comment=Convert PDF, EPUB, and DOCX publications into structured Markdown libraries and single documents
+Exec=mdook %F
+Icon=mdook
+Terminal=false
+Categories=Office;Publishing;Utility;
+MimeType=application/pdf;application/epub+zip;application/vnd.openxmlformats-officedocument.wordprocessingml.document;
+StartupNotify=true

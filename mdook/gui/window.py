@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
@@ -97,6 +98,19 @@ def _input_row(label_text: str, placeholder: str = "") -> tuple[QWidget, QLineEd
     return row, line_edit
 
 
+def _get_asset_path(filename: str) -> Path:
+    """Returns the absolute path to an application asset, supporting PyInstaller bundles."""
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        meipass = Path(sys._MEIPASS)
+        candidate = meipass / "mdook" / "assets" / filename
+        if candidate.exists():
+            return candidate
+        candidate_root = meipass / "assets" / filename
+        if candidate_root.exists():
+            return candidate_root
+    return Path(__file__).resolve().parent.parent / "assets" / filename
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -104,7 +118,7 @@ class MainWindow(QMainWindow):
         self.resize(880, 560)
         self.setAcceptDrops(True)
 
-        icon_path = Path(__file__).resolve().parent.parent / "assets" / "icon.png"
+        icon_path = _get_asset_path("icon.png")
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
@@ -209,7 +223,7 @@ class MainWindow(QMainWindow):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(12)
 
-        icon_path = Path(__file__).resolve().parent.parent / "assets" / "icon.png"
+        icon_path = _get_asset_path("icon.png")
         if icon_path.exists():
             logo_label = QLabel()
             logo_pixmap = QPixmap(str(icon_path)).scaled(
