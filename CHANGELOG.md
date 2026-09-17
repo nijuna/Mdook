@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-17
+
 ### Added
+- **Standalone Application Packaging & Linux Integration**:
+  - Standalone executable build specification (`mdook.spec`) producing self-contained executables for Linux (`dist/mdook`) and Windows (`dist/mdook.exe`) via PyInstaller.
+  - Runtime asset resolver supporting PyInstaller bundle extraction environments (`sys._MEIPASS`) for brand icons and theme resources.
+  - Linux FreeDesktop integration (`packaging/linux/mdook.desktop`) with document mime-type registrations (`.pdf`, `.epub`, `.docx`).
+  - Automated desktop integration installer script (`packaging/linux/install-desktop.sh`) installing binaries, `.desktop` launchers, and multi-resolution icons into standard user hierarchies.
+  - Automated offscreen documentation screenshot capture pipeline (`scripts/capture_screenshots.py`) rendering high-resolution theme showcases in headless environments.
 - **Interactive Terminal Wizard & Publication Scanner**:
   - `mdook scan [directory]`: High-performance discovery of supported publications (`.pdf`, `.epub`, `.docx`) in current or target directories with fast metadata sniffing (title, author, format, size) rendered as a Rich tabular overview or structured JSON export (`--json`, `-r`/`--recursive`).
   - `mdook interactive` / `mdook -i`: Interactive terminal wizard guiding publication selection (indices `1`, ranges `1-3`, `all`, or manual paths), output structure selection (`Modular Library` vs `Single Document`), semantic parsing profile (`auto`, `literature`, `technical`), destination directory, and optional AI structure review configuration with pre-flight summary confirmation.

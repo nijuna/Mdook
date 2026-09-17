@@ -1,3 +1,5 @@
-"""Mdook — convert PDF books into structured, readable Obsidian vaults."""
+"""Mdook — convert publications (PDF, EPUB, DOCX) into structured Markdown
+libraries and single documents.
+"""
 
-__version__ = "0.2.0"
+__version__ = "2.0.0"
