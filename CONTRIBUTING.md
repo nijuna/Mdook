@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Mdook!
 
-Mdook is a desktop application that converts PDF books into structured, readable Obsidian vaults using deterministic layout heuristics, robust OCR fallback, and an optional token-efficient AI structure reviewer.
+Mdook is an application that converts publications (PDF, EPUB, DOCX) into structured Markdown libraries and single documents using deterministic layout heuristics, robust OCR fallback, and an optional token-efficient AI structure reviewer.
 
 ---
 
@@ -52,12 +52,49 @@ uv run mdook
 # or: uv run python -m mdook
 ```
 
-### 2. Headless CLI Converter
+### 2. Publication Discovery Scanner
+Discover supported documents and view metadata in a Rich table or JSON:
+```bash
+# Scan current directory:
+uv run mdook scan
+
+# Recursively scan directory and output JSON:
+uv run mdook scan /path/to/books -r --json
+```
+
+### 3. Interactive Conversion Wizard
+Launch the guided terminal conversion wizard:
+```bash
+uv run mdook interactive
+# or shorthand:
+uv run mdook -i
+```
+
+### 4. Headless CLI Converter
 Run conversions directly in the terminal:
 ```bash
-uv run mdook convert path/to/book.pdf -o ./vaults/
-uv run mdook convert novel.epub -o ./vaults/ --profile literature
-uv run mdook convert manuscript.docx -o ./vaults/ --profile technical
+# Modular chapter-split library:
+uv run mdook convert path/to/book.pdf -o ./output/
+
+# Verbatim single continuous document:
+uv run mdook convert path/to/book.pdf -o ./output/ --single-file
+
+# Format-specific conversions:
+uv run mdook convert novel.epub -o ./output/ --profile literature
+uv run mdook convert manuscript.docx -o ./output/ --profile technical
+```
+
+### 5. Standalone Binary Packaging
+Build standalone self-contained binaries using PyInstaller:
+```bash
+# Compile standalone executable:
+uv run pyinstaller mdook.spec
+
+# Test standalone binary:
+./dist/mdook --version
+
+# (Linux) Install desktop entry and icons:
+bash packaging/linux/install-desktop.sh
 ```
 
 ---
