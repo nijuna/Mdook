@@ -53,6 +53,9 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
+  mdook scan
+  mdook scan /path/to/books -r
+  mdook interactive
   mdook convert book.pdf -o ./output/
   mdook convert novel.epub --single-file
   mdook convert textbook.pdf --profile technical
