@@ -2,7 +2,7 @@
 
 Input: `mdook.core.models.DocumentTree` + `mdook.core.models.BookManifest` +
 an output directory path.
-Output: files on disk — the Obsidian vault.
+Output: files on disk — modular chapter library or single continuous document.
 
 Implements the conventions from `Mdook-docs/ARCHITECTURE.md` ("Stage 4"):
 - Index file with YAML frontmatter and a linked chapter list

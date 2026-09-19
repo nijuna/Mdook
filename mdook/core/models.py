@@ -133,7 +133,7 @@ class PageData(BaseModel):
 
 
 class BookMetadata(BaseModel):
-    """Front-matter-derived metadata surfaced in the vault's Index file."""
+    """Front-matter-derived metadata surfaced in the library's Index file."""
 
     title: str
     author: str
@@ -343,8 +343,7 @@ class ValidationReport(BaseModel):
 class ConversionResult(BaseModel):
     """Final result handed back from `mdook.core.pipeline.convert`.
 
-    Consumed by the GUI's `conversion_finished` signal to populate the
-    summary area and enable the "Open Vault" button.
+    Consumed by the GUI and CLI to report conversion metrics and validate outputs.
     """
 
     success: bool

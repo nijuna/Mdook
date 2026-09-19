@@ -1,10 +1,11 @@
 """Pipeline orchestrator — runs Stage 1 -> 5 in sequence.
 
-Sprint 4: all five stages are real. `convert()` reads a PDF, builds the
-document tree, writes an actual Obsidian vault to `output_dir / {title}/`,
-and validates what it wrote. `ConversionResult.output_dir` reports that
-`{title}/` subfolder -- the vault's actual location -- not the raw
-`output_dir` the caller passed in.
+Coordinates document intake, extraction, semantic enrichment, output rendering,
+and validation audits. `convert()` ingests a PDF, EPUB, or DOCX publication,
+constructs the DocumentTree, renders either a chapter-split modular library or
+a continuous single reading document into `output_dir / {title}/`, and validates
+integrity. `ConversionResult.output_dir` reports that `{title}/` subfolder -- the
+actual output location -- not the raw parent `output_dir`.
 """
 
 from __future__ import annotations
@@ -36,7 +37,10 @@ def convert(
     pdf_path: Path | None = None,
     single_file: bool = False,
 ) -> ConversionResult:
-    """Convert a PDF, EPUB, or DOCX book into an Obsidian vault, writing it to `output_dir`."""
+    """Convert a PDF, EPUB, or DOCX book into a Markdown library or single document.
+
+    Writes the generated output into `output_dir`.
+    """
     target_path = book_path if book_path is not None else pdf_path
     if target_path is None or output_dir is None:
         raise ValueError("Both input book path and output_dir must be provided.")

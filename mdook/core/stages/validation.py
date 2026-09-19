@@ -1,6 +1,6 @@
 """Stage 5 — Validation.
 
-Input: the rendered vault (`mdook.core.stages.rendering.RenderResult`) +
+Input: the rendered output directory (`mdook.core.stages.rendering.RenderResult`) +
 `mdook.core.models.DocumentTree` + `mdook.core.models.BookManifest`.
 Output: `mdook.core.models.ValidationReport`.
 
@@ -8,7 +8,7 @@ Implements the checks from `Mdook-docs/ARCHITECTURE.md` ("Stage 5"):
 footnote integrity, image integrity, heading hierarchy sanity, page
 continuity, and chapter file size warnings. Reads the files actually
 written to disk rather than re-deriving everything from the tree, so it
-validates what a reader would actually open in Obsidian.
+validates what a reader would actually experience.
 """
 
 from __future__ import annotations
