@@ -48,14 +48,14 @@ What building Mdook requires and develops — framed for portfolio value and AI 
 
 ## Software Engineering Skills
 
-### Python Packaging & GUI Design
-
-> **Update 2026-09-04:** this section originally assumed a CLI (Typer/Click). The project became a PySide6 desktop GUI instead (`mdook/gui/`) — see `ARCHITECTURE.md`. The skills below are the same in spirit (clean packaging, dependency management, entry-point distribution) with "GUI event-driven design" replacing "CLI subcommands/flags."
+### Packaging, GUI & CLI Design
 
 - Clean project structure with `pyproject.toml`, proper package layout
-- PySide6 GUI design: signal/slot wiring, background `QThread` workers so the UI never blocks, QSS theming
+- PySide6 GUI design: signal/slot wiring, background `QThread` workers so the UI never blocks, tokenized QSS theming across 3 theme families
+- Rich terminal CLI & Interactive Wizard: animated progress bars, live stage indicators, interactive prompts via Questionary, and directory scanning
+- Standalone PyInstaller compilation (`mdook.spec`) and Linux FreeDesktop integration (`packaging/linux/`)
 - Dependency management: core vs. optional (OCR engine) vs. dev dependencies
-- Entry point distribution: `pip install mdook` → `python -m mdook` launches the app
+- Entry point distribution: `pip install mdook` → `mdook` launches the app (GUI or CLI based on display context)
 
 ### Data Modeling
 
@@ -68,7 +68,7 @@ What building Mdook requires and develops — framed for portfolio value and AI 
 
 - Unit tests per rule (given this text block with this font at this position, does the heading detector fire?)
 - Integration tests per stage (given this PageData, does semantic analysis produce the expected DocumentTree?)
-- End-to-end tests (given this PDF, does the vault match the expected output?)
+- End-to-end tests (given this publication, does the output library or single document match the expected output?)
 - Test fixtures: curated PDFs covering known edge cases (drop caps, multi-column, symbol footnotes)
 - Regression testing: when a new rule is added, old books don't break
 
@@ -132,16 +132,17 @@ What building Mdook requires and develops — framed for portfolio value and AI 
 - Git and version control
 - Problem decomposition
 
-### Will Develop During This Project
+### Developed During This Project
 
-- PDF processing libraries (PyMuPDF, pdfplumber) — learn by building
-- Heuristic design and tuning — learn by iteration
-- CLI tool design and packaging — learn by shipping
-- Open source project management — learn by publishing
+- Multi-format ingestion pipelines (PyMuPDF, pdfplumber, ebooklib, beautifulsoup4, python-docx)
+- Heuristic design, profile tuning, and per-page OCR fallback chains
+- Desktop GUI (PySide6), headless CLI (Rich), and interactive terminal wizard (Questionary)
+- Obsidian companion plugin engineering (TypeScript, Obsidian API, IPC child process)
+- LaTeX math detection and MathJax rendering (`$...$` and `$$...$$`)
+- Standalone packaging with PyInstaller and Linux desktop integration
 
-### Stretch Goals (Phase 4)
+### Future Stretch Goals
 
-- Obsidian plugin development (TypeScript/JavaScript)
-- Web service architecture (if Phase 3 web service is pursued)
-- LaTeX math rendering
-- Advanced OCR with vision-language models
+- Web service architecture (headless HTTP conversion queue)
+- Multimodal Vision-Language Model (VLM) diagram captioning and alt-text generation
+- Visual graph and reading canvas overviews
