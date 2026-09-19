@@ -12,7 +12,7 @@ the code and its accompanying test suite (`tests/`) serve as the source of truth
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 296 passed
+uv run pytest -q         # should show 324 passed
 uv run ruff check .      # should show "All checks passed!"
 uv run python -m mdook   # launches the GUI (or: uv run mdook convert ...)
 ```
@@ -22,15 +22,20 @@ handoff describes — figure out why before trusting the rest of this file.
 
 ### Quick facts
 
-- **Both Desktop GUI and Headless CLI** — PySide6 GUI (`mdook`, `mdook gui`,
-  `python -m mdook`) and Rich headless CLI (`mdook convert book.pdf -o ./vaults/`).
+- **Desktop GUI, Headless CLI, and Wizard** — PySide6 GUI (`mdook`, `mdook gui`,
+  `python -m mdook`), Rich headless CLI (`mdook convert book.pdf -o ./output/`),
+  and interactive terminal wizard (`mdook interactive` / `mdook -i`).
+- **Publication Scanner Engine** — Recursive pre-flight document discovery for
+  PDF, EPUB, and DOCX publications via `mdook/core/scanner.py` (`mdook scan`).
 - **Multi-Format Ingestion** — Direct XHTML/TOC parsing for EPUB3 (`epub.py`)
   and OpenXML/Styles parsing for DOCX (`docx.py`) directly into `DocumentTree`.
-- **Dual Output Modes** — Modular Obsidian Vault (multi-file) or verbatim
-  Single Document mode (`-s` / `--single-file` emitting `Title.md`).
+- **Dual Output Modes** — Modular Library (multi-file chapter hierarchy with
+  Index) or verbatim Single Document mode (`-s` / `--single-file` emitting `Title.md`).
 - **OCR engine is Tesseract** (a system package, not pip-installed —
   `sudo dnf install tesseract` / `sudo apt install tesseract-ocr`),
   routed per-page, not per-book.
+- **Standalone Packaging & OS Integration** — PyInstaller compilation (`mdook.spec`)
+  and Linux desktop integration (`packaging/linux/install-desktop.sh`).
 - **AI Structure Review** — Implemented in Phase 5 via `mdook/core/llm/`
   with zero-dependency OpenAI-compatible client, `/models` discovery,
   and connection test latency measurement.
@@ -44,7 +49,7 @@ handoff describes — figure out why before trusting the rest of this file.
   preserving letter dividers (`## A`, `## B`), and rejoining hyphenated multi-line definitions.
 - **Modern Theme System** — 3 Theme Families (*The Library*, *Amethyst*, *Carbon*)
   in dark/light modes managed by `theme.py` and persistent `config.py`.
-- **296 tests, `ruff` clean**, all passing offscreen.
+- **324 tests, `ruff` clean**, all passing offscreen.
 
 
 ---
@@ -95,7 +100,7 @@ right and the doc needs fixing — that's true even of this file eventually.
 
 - **Both GUI and CLI exist and are active.** While Mdook originally started
   GUI-first, a complete headless CLI (`mdook/cli.py`) is fully implemented and
-  supports `mdook convert book.pdf -o ./vaults/ --single-file --ai` along with
+  supports `mdook convert book.pdf -o ./output/ --single-file --ai` along with
   headless automated batch pipelines.
 - **The Obsidian Plugin is implemented.** The desktop plugin lives in
   `obsidian-plugin/` and allows direct in-vault conversions.

@@ -38,11 +38,12 @@ pip install pymupdf4llm
 
 > **Update: never actually used.** It's still declared in `pyproject.toml`, but nothing in `mdook/` imports it — Stage 2/3 went straight to hand-built heuristic rules (`mdook/core/rules/*.py`) instead of using pymupdf4llm's structural pre-pass as a baseline. It's unused weight in the dependency tree at this point; worth removing unless a future use for it turns up.
 
-### PySide6 & Rich
-**Role:** Dual desktop GUI and terminal interfaces.
+### PySide6, Rich & Questionary
+**Role:** Desktop GUI, headless CLI, and interactive terminal wizard.
 **Why:**
 - **PySide6 (Qt for Python):** Powers the desktop GUI (`mdook/gui/`) with custom QSS styling, 3 theme families, non-blocking `QThread` workers, and a sequential batch queue.
 - **Rich & argparse:** Powers the headless CLI (`mdook/cli.py`) with live progress bars, spinners, and formatted validation tables without heavy CLI dependencies (Typer/Click were superseded).
+- **Questionary:** Powers the interactive CLI wizard (`mdook/cli_wizard.py`) with keyboard-driven prompt flows for directory scanning, book multi-selection, format toggle, and conversion configuration.
 
 ### EbookLib & BeautifulSoup4
 **Role:** EPUB3 / EPUB2 publication ingestion.
@@ -123,7 +124,7 @@ Stored as separate files in a `prompts/` directory. Versioned and testable indep
 ### pytest
 Unit tests for each pipeline stage. Integration tests that run a known PDF through the full pipeline and diff the output against an expected vault.
 
-> **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 119 tests as of the last implementation session, including several regression tests written directly against real books from the user's own collection once a bug was found there (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
+> **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 324 tests as of the latest test suite, including regression tests written directly against real books from the user's own collection once a bug was found there (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
 
 ### Rich
 Terminal UI for the headless CLI (`mdook convert`) — provides animated progress bars across conversion stages, colored status indicators, and formatted summary/validation tables.
@@ -136,6 +137,18 @@ pip install rich
 - **`ebooklib`**: Ingests EPUB2/EPUB3 archives, providing access to Dublin Core metadata, OPF manifests, spine reading orders, and navigation documents (`nav.xhtml` / `toc.ncx`).
 - **`beautifulsoup4`**: Walks XHTML spine DOMs, mapping semantic tags (`<h1>`-`<h6>`, `<p>`, `<blockquote>`, `<table>`, `<pre>/<code>`, `<aside>`, `<math>`) into `DocumentTree` blocks.
 - **`python-docx`**: Parses Microsoft Word `.docx` documents and OpenXML styles, mapping Heading 1–6 hierarchies, inline runs (bold, italic, code, hyperlinks), tables, and footnotes.
+
+---
+
+## Standalone Packaging & Desktop Integration
+
+### PyInstaller
+**Role:** Standalone executable compilation.
+**Why:** Freezes the complete Python 3.12 runtime, PySide6 Qt libraries, PyMuPDF, and all dependencies into a standalone distribution directory (`dist/mdook/`) via `mdook.spec`. Allows users to execute Mdook without configuring a Python virtual environment.
+
+### Linux FreeDesktop Integration
+**Role:** OS application menu, icon, and MIME-type handling.
+**Why:** `packaging/linux/install-desktop.sh` installs `mdook.desktop` into application launchers, installs `mdook.svg` into system icon paths, and registers MIME-type associations for `.pdf`, `.epub`, and `.docx` documents.
 
 ---
 
