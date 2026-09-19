@@ -27,13 +27,13 @@ Input File (.pdf / .epub / .docx)
    │                                                                 │
    └── [DOCX] ─► python-docx / OpenXML Direct Mapping to DocumentTree ┤
                                                                      ▼
-                                                         Stage 4 (Vault Rendering)
+                                                         Stage 4 (Rendering & Output Generation)
                                                                      │
                                                                      ▼
                                                          Stage 5 (Validation Audit)
                                                                      │
                                                                      ▼
-                                                         Obsidian Vault Output
+                                                         Structured Markdown Output (Modular Library or Single Document)
 ```
 
 `mdook/core/pipeline.py`'s `convert()` orchestrates the pipeline and reports progress
@@ -232,13 +232,13 @@ for the full reasoning on each):
 ## Stage 4 — Rendering (`mdook/core/stages/rendering.py`)
 
 **Input:** `DocumentTree` + `BookManifest` + output directory + `output_mode`
-**Output:** Files on disk (Modular Obsidian vault or Single Document)
+**Output:** Files on disk (Modular Library or Single Document)
 
 Mdook supports two distinct output architectures:
 
-### Mode 1: Modular Vault (Default)
+### Mode 1: Modular Library (Default)
 
-Emits a multi-file Obsidian knowledge vault:
+Emits a multi-file structured knowledge library:
 
 ```
 MyBook/
@@ -277,21 +277,19 @@ MyBook/
 
 - Page breaks → collapsed callouts: `> [!quote]- p. 142 · Book Title, Ch. 3`
 - Footnotes → `[^n]`; endnotes and citations → wiki-links to a `^note-N` /
-  `^ref-N` block anchor in the back-matter file (Obsidian footnotes are
+  `^ref-N` block anchor in the back-matter file (standard footnotes are
   file-scoped, so a cross-file reference needs a real link, not `[^n]`)
-- `CalloutBlock` → `> [!type] Label` (Obsidian renders any type name with a
-  generic bordered style, even ones it doesn't specifically recognize)
-- `MathBlock` → `$$...$$` (display) or `$...$` (inline) — Obsidian's native
-  MathJax, not a custom fenced block
+- `CalloutBlock` → `> [!type] Label` (standard callout syntax)
+- `MathBlock` → `$$...$$` (display) or `$...$` (inline) — standard LaTeX math syntax
 - Tables → markdown pipe tables (simple) or inline HTML (complex/merged
   cells)
-- Images → `![[fig-3-2.png]]` (vault mode) or `![caption](attachments/fig.png)` (single-doc mode)
+- Images → `![[fig-3-2.png]]` (library mode) or `![caption](attachments/fig.png)` (single-doc mode)
 
 ---
 
 ## Stage 5 — Validation (`mdook/core/stages/validation.py`)
 
-**Input:** The rendered vault + `DocumentTree` + `list[PageData]`
+**Input:** The rendered output directory + `DocumentTree` + `list[PageData]`
 **Output:** `ValidationReport`
 
 ```
@@ -315,11 +313,13 @@ covered), file size sanity.
 
 ## Interfaces: GUI & CLI
 
-Mdook offers both a rich desktop graphical user interface and a headless command-line interface:
+## Interfaces: GUI, CLI & Wizard
+
+Mdook offers a rich desktop graphical user interface, a headless command-line interface, and an interactive terminal wizard:
 
 ### Desktop GUI (`mdook/gui/`)
 Launched via `mdook`, `mdook gui`, or `python -m mdook`:
-- `window.py` — `MainWindow`: file inspection card, segmented output format toggle (`Modular Vault` vs `Single Document`), sequential queue, 5-stage breadcrumbs, and "Open Vault / Note" action.
+- `window.py` — `MainWindow`: file inspection card, segmented output format toggle (`Modular Library` vs `Single Document`), sequential queue, 5-stage breadcrumbs, and "Open Output / Note" action.
 - `settings_dialog.py` — `SettingsDialog`: modal settings interface for theme palette selection, conversion defaults, and live AI provider configuration.
 - `theme.py` — 3 theme families (*The Library*, *Amethyst*, *Carbon*) across dark and light modes with tokenized stylesheet generation.
 - `config.py` — `GUIConfig` model and JSON persistence (`~/.config/mdook/gui_config.json`).
@@ -328,12 +328,24 @@ Launched via `mdook`, `mdook gui`, or `python -m mdook`:
 
 ### Headless CLI (`mdook/cli.py`)
 Terminal-first and headless server automation:
-- `mdook convert <pdf...> -o <vaults/> [--single-file] [--profile literature|technical] [--ai]`:
+- `mdook convert <path...> -o <output/> [--single-file] [--profile literature|technical] [--ai]`:
   converts books with Rich spinners, progress bars, and formatted validation summary tables.
+- `mdook scan [path] [-r] [-v]`: publication scanner identifying and inspecting supported documents (`.pdf`, `.epub`, `.docx`) across directories with metadata, page counts, and sizes.
+- `mdook interactive` / `mdook -i`: rich interactive terminal wizard guiding directory scanning, document selection, format toggle (modular library or single document), destination folder, profile, and execution.
 - `mdook gui`: explicitly launches the PySide6 desktop GUI.
 - `mdook --version` / `mdook version`: displays version information.
 - Display-aware dispatch: running `mdook` with no arguments automatically opens the
   desktop GUI on graphical environments, while displaying help in headless/remote environments.
+
+### Interactive CLI Wizard (`mdook/cli_wizard.py`)
+- Step-by-step interactive terminal wizard powered by Questionary and Rich.
+- Guides users through directory scanning, multi-book selection, format mode toggle (`Modular Library` vs `Single Document`), destination folder configuration, profile selection, and AI structure review options.
+- Dispatches directly into `mdook/core/pipeline.py` with live terminal progress reporting.
+
+### Publication Scanner Engine (`mdook/core/scanner.py`)
+- Traverses local filesystems recursively (`-r`) or shallowly to discover supported publications (`.pdf`, `.epub`, `.docx`).
+- Extracts lightweight pre-flight metadata (title, author, page count, file size) without running the full extraction pipeline.
+- Returns structured `DiscoveredBook` models for ingestion by the interactive wizard, batch CLI commands, or GUI queue.
 
 `ConversionResult` (returned by `convert()`, consumed by the GUI's
 `conversion_finished` signal):
@@ -357,13 +369,15 @@ Mdook/
 ├── mdook/
 │   ├── __init__.py
 │   ├── __main__.py             # Entry point dispatch (GUI or CLI)
-│   ├── cli.py                  # Headless CLI entry point (mdook convert)
+│   ├── cli.py                  # Headless CLI entry point (convert, scan, interactive)
+│   ├── cli_wizard.py           # Interactive terminal wizard
 │   │
 │   ├── core/
 │   │   ├── __init__.py
 │   │   ├── errors.py           # Typed error definitions (EncryptedPDFError, etc.)
 │   │   ├── models.py           # Pydantic contracts across stages
 │   │   ├── pipeline.py         # Pipeline orchestrator: convert(), Stage 1→5
+│   │   ├── scanner.py          # Directory publication scanner engine
 │   │   │
 │   │   ├── formats/            # Non-PDF format direct ingestion
 │   │   │   ├── epub.py         # EPUB3 container, TOC, XHTML & footnote mapping
@@ -377,7 +391,7 @@ Mdook/
 │   │   │   ├── intake.py       # Stage 1: metadata, bookmarks, zone detection
 │   │   │   ├── extraction.py   # Stage 2: blocks, tables, images, Tesseract OCR
 │   │   │   ├── semantic.py     # Stage 3: headings, notes, verse, glossaries
-│   │   │   ├── rendering.py    # Stage 4: modular vault or single-doc rendering
+│   │   │   ├── rendering.py    # Stage 4: modular library or single-doc rendering
 │   │   │   └── validation.py   # Stage 5: integrity audits & validation reports
 │   │   │
 │   │   └── rules/              # Pure semantic detection heuristics (no I/O)
@@ -409,12 +423,19 @@ Mdook/
 │       ├── queue_manager.py    # Sequential queue state
 │       └── worker.py           # Background QThread workers
 │
-├── obsidian-plugin/            # Official Obsidian desktop plugin
+├── packaging/                  # Standalone distribution & OS integration
+│   └── linux/
+│       ├── install-desktop.sh  # Desktop entry & mime-type installer
+│       ├── mdook.desktop       # FreeDesktop entry
+│       └── mdook.svg           # Application vector icon
+│
+├── mdook.spec                  # PyInstaller standalone build specification
+├── obsidian-plugin/            # Official Obsidian desktop companion plugin
 │   ├── main.ts
 │   ├── manifest.json
 │   └── package.json
 │
-├── tests/                      # Pytest test suite (296 passing tests)
+├── tests/                      # Pytest test suite (324 passing tests)
 ├── Mdook-docs/                 # Architectural specifications & rules catalog
 ├── pyproject.toml
 ├── uv.lock
@@ -441,7 +462,7 @@ in `mdook/core/formats/` parse the container markup and populate `BookManifest` 
 
 Both ingestion modules feed their output directly into **Stage 4 (Rendering)** and
 **Stage 5 (Validation)**, verifying that `DocumentTree` serves as a true format-agnostic
-contract for vault generation.
+contract for Markdown library generation.
 
 ---
 
@@ -452,20 +473,20 @@ PDF Document  ──► [Stage 1: Intake] ──► [Stage 2: Extraction] ──
 EPUB3 Book    ──► [formats/epub.py: Ingestion] ──────────────────────────────────────────┼──► DocumentTree + BookManifest
 DOCX File     ──► [formats/docx.py: Ingestion] ──────────────────────────────────────────┘           │
                                                                                                      ▼
-                                                                                       [Stage 4: Vault Rendering]
+                                                                                       [Stage 4: Rendering & Output Generation]
                                                                                                      │
                                                                                                      ▼
                                                                                        [Stage 5: Validation Audit]
                                                                                                      │
                                                                                                      ▼
-                                                                                          Obsidian Vault Output
+                                                                                       Structured Markdown Output (Modular Library or Single Document)
 ```
 
 ---
 
-## Obsidian Desktop Plugin Architecture
+## Obsidian Desktop Companion Plugin Architecture
 
-The official Obsidian companion plugin (`obsidian-plugin/`) runs directly within Obsidian's Electron desktop runtime, providing in-vault book conversions without external application switching.
+The official Obsidian companion plugin (`obsidian-plugin/`) runs directly within Obsidian's Electron desktop runtime, providing in-app book conversions without external application switching.
 
 ### 1. Execution Model & IPC Bridge
 - **Zero Cloud Dependencies**: Operates 100% locally and privately. No network servers, external proxies, or subscriptions are required.
@@ -479,10 +500,25 @@ The official Obsidian companion plugin (`obsidian-plugin/`) runs directly within
 ### 2. Streaming Progress & Status Bar
 - Listens to the spawned CLI's `stdout` and `stderr` streams in real time.
 - Regex pattern matchers identify stage transitions (`Stage 1/5: Intake` through `Stage 5/5: Validation`) and calculate a continuous percentage score (0% to 100%).
-- Displays live status in an interactive Obsidian status bar item (`⚡ Mdook: Dune.epub [60%]`) and modal progress bars.
+- Displays live status in an interactive Obsidian status bar item (`Mdook: Dune.epub [60%]`) and modal progress bars.
 
-### 3. Vault Lifecycle & Non-Destructive Ingestion
-- **Preservation of Source Material**: The original `.pdf`, `.epub`, or `.docx` file is left untouched in its existing vault location.
+### 3. Non-Destructive Ingestion
+- **Preservation of Source Material**: The original `.pdf`, `.epub`, or `.docx` file is left untouched in its existing location.
 - **Configurable Destination**: Output can be routed to a global default directory (e.g. `Books/`) or chosen on each conversion via the interactive modal.
-- **Automatic Index Navigation**: On successful conversion, the plugin triggers an Obsidian filesystem refresh and automatically opens the newly generated book Index note (`Title - Index.md`) in a new editor tab.
+- **Automatic Navigation**: On successful conversion, the plugin triggers an Obsidian filesystem refresh and automatically opens the newly generated book Index note (`Title - Index.md`) in a new editor tab.
+
+---
+
+## Standalone Packaging & Desktop Integration Architecture
+
+Mdook provides a standalone binary packaging layer enabling distribution without requiring a pre-existing Python environment:
+
+### 1. PyInstaller Standalone Build (`mdook.spec`)
+- Freezes Python 3.12, PySide6 Qt binaries, PyMuPDF, and all dependencies into a standalone distribution directory (`dist/mdook/`).
+- Includes application metadata, icons, and dynamic shared library bindings.
+
+### 2. Linux Desktop Integration (`packaging/linux/`)
+- **Desktop Entry (`mdook.desktop`)**: Registers Mdook in application launchers and desktop environments.
+- **MIME Associations**: Associates Mdook with `.pdf` (`application/pdf`), `.epub` (`application/epub+zip`), and `.docx` (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`).
+- **Installer Script (`install-desktop.sh`)**: Deploys the desktop launcher and scalable SVG icon into user (`~/.local/share/applications`) or system (`/usr/share/applications`) paths.
 
