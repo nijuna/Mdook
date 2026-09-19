@@ -222,16 +222,16 @@ Build a self-contained executable that runs without requiring Python:
 uv run pyinstaller mdook.spec
 
 # Run the standalone binary:
-./dist/mdook --help
+./dist/mdook/mdook --help
 
 # (Linux) Install desktop entry and multi-resolution brand icons:
 bash packaging/linux/install-desktop.sh
 ```
 
 #### Obsidian Desktop Plugin
-Convert books directly inside Obsidian without leaving your vault:
+Convert books directly inside Obsidian without leaving your workspace:
 - Right-click any `.pdf`, `.epub`, or `.docx` in the file tree $\rightarrow$ **"Mdook: Convert to Book Notes"**.
-- Choose between **Modular Vault** and **Single Document** output modes.
+- Choose between **Modular Library** and **Single Document** output modes.
 - Batch convert entire folders of books with live queue progress.
 - See [obsidian-plugin/](obsidian-plugin/README.md) for installation and settings details.
 
@@ -273,8 +273,10 @@ uv run ruff check --fix .
 Full architectural documentation and design logs are maintained in [`Mdook-docs/`](Mdook-docs/):
 
 - [`Mdook-docs/PROJECT.md`](Mdook-docs/PROJECT.md): Project vision and scope.
-- [`Mdook-docs/ARCHITECTURE.md`](Mdook-docs/ARCHITECTURE.md): Data models, 5-stage pipeline, and GUI structure.
+- [`Mdook-docs/ARCHITECTURE.md`](Mdook-docs/ARCHITECTURE.md): Data models, 5-stage pipeline, and system architecture.
 - [`Mdook-docs/RULES.md`](Mdook-docs/RULES.md): Catalog of all 18 semantic detection rules and edge cases.
+- [`Mdook-docs/PROFILES.md`](Mdook-docs/PROFILES.md): Heuristic profiles (Auto-Detect, Literature, Technical).
+- [`Mdook-docs/STACK.md`](Mdook-docs/STACK.md): Technical stack, OCR engines, and packaging choices.
 - [`Mdook-docs/ROADMAP.md`](Mdook-docs/ROADMAP.md): Milestone tracking across development phases.
 - [`Mdook-docs/HANDOFF.md`](Mdook-docs/HANDOFF.md): Engineering orientation and design trade-offs.
 
