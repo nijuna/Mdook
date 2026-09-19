@@ -4,21 +4,23 @@ Mdook uses processing profiles to tune its heuristics for different book types. 
 
 ## Selecting a Profile
 
-Profile selection is available across all three Mdook interfaces:
+Profile selection is available across all Mdook interfaces:
 
 1. **Headless CLI (`mdook convert`)**:
    Pass `-p` or `--profile`:
    ```bash
-   mdook convert book.pdf -o ./vaults/ --profile auto        # Default auto-detection
-   mdook convert novel.epub -o ./vaults/ --profile literature # Explicit literature
-   mdook convert textbook.docx -o ./vaults/ --profile technical # Explicit technical
+   mdook convert book.pdf -o ./output/ --profile auto        # Default auto-detection
+   mdook convert novel.epub -o ./output/ --profile literature # Explicit literature
+   mdook convert textbook.docx -o ./output/ --profile technical # Explicit technical
    ```
-2. **Desktop GUI**:
+2. **Interactive Terminal Wizard (`mdook interactive` / `mdook -i`)**:
+   Select the desired profile (`Auto-Detect`, `Literature`, `Technical`) directly from the interactive selection prompt.
+3. **Desktop GUI**:
    Select from the **Profile** dropdown in the conversion window:
    - `Auto-Detect` (default)
    - `Literature`
    - `Technical`
-3. **Obsidian Desktop Plugin**:
+4. **Obsidian Desktop Companion Plugin**:
    Configure the default in **Settings** $\rightarrow$ **Mdook Book Importer**, or select the profile interactively in the **Conversion Modal**.
 
 ---
@@ -116,10 +118,10 @@ decorative_filter = "aggressive" # literary books have more ornamental images to
       return True
   ```
 
-#### Math/Formula Handling (Future — Phase 4)
+#### Math and Formula Handling
 
-- **Condition:** Text contains mathematical symbols, superscripts/subscripts forming equations, or LaTeX-like notation
-- **Action:** For now, preserve as-is in plain text. Future: convert to LaTeX notation wrapped in `$...$` for Obsidian's MathJax support.
+- **Condition:** Text contains mathematical symbols, superscripts/subscripts forming equations, or LaTeX-like notation.
+- **Action:** Implemented via `mdook/core/rules/math.py` (Rule 7.1). Detects Unicode math symbols, operators, and theorem environments, preserving them as LaTeX equations wrapped in standard inline `$...$` and display `$$...$$` syntax.
 
 ### Tuning Parameters
 
