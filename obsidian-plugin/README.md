@@ -2,20 +2,21 @@
 
 The official desktop companion plugin for [Mdook](https://github.com/nijuna/Mdook) — bringing multi-format book conversion directly into Obsidian.
 
-Convert `.pdf`, `.epub`, and `.docx` books into structured, readable Obsidian vaults without leaving your personal knowledge base.
+Convert `.pdf`, `.epub`, and `.docx` books into structured Markdown libraries or single continuous documents directly within Obsidian.
 
 ---
 
 ## Features
 
-- **In-Vault Book Conversion**: Right-click any `.pdf`, `.epub`, or `.docx` file in your file explorer to convert it into an interconnected book note hierarchy.
+- **In-Vault Book Conversion**: Right-click any `.pdf`, `.epub`, or `.docx` file in your file explorer to convert it into an interconnected book note hierarchy or single document.
+- **Dual Output Formats**: Choose between **Modular Library** (chapter-split notes with Part hierarchies and index) or **Single Document** (continuous 1:1 reading copy with universal image syntax and consolidated notes).
 - **Folder Batch Processing**: Right-click any folder containing books to batch convert all of them with live queue progress.
 - **Custom Destination Picker**: Choose where converted books should be created (default `Books/`, or customize per book).
 - **Non-Destructive**: Original book files always remain untouched in your vault.
 - **Profile Selection**: Auto-detect, Literature, or Technical profiles.
 - **AI Structure Review**: Optional OpenAI-compatible LLM review for heading hierarchies.
 - **Live Status Bar Feedback**: Real-time progress percentage and stage indicators while you work.
-- **Auto-Open Index**: Automatically opens the generated Index note once conversion finishes.
+- **Auto-Open Index**: Automatically opens the generated Index note or reading document once conversion finishes.
 
 ---
 
@@ -61,7 +62,7 @@ mdook version
 ### 1. Convert an Individual Book
 1. In the Obsidian File Explorer, right-click any `.pdf`, `.epub`, or `.docx` file.
 2. Select **Mdook: Convert to Book Notes**.
-3. Watch the progress in the bottom status bar (`⚡ Mdook: [Title] [65%]`).
+3. Watch the progress in the bottom status bar (`Mdook: [Title] [65%]`).
 4. When finished, Obsidian automatically opens the book's Index note!
 
 ### 2. Convert with Custom Options
@@ -83,6 +84,7 @@ In Obsidian under **Settings** $\rightarrow$ **Mdook Book Importer**:
 - **Mdook Executable Path**: Custom path to `mdook` binary (or auto-detected from `$PATH`).
 - **Test Connection**: Click to verify that Obsidian can communicate with the `mdook` CLI.
 - **Default Output Folder**: Folder where converted books are saved (default: `Books`).
+- **Default Output Mode**: Choose between Modular Library or Single Document.
 - **Prompt for Destination Folder**: Whether to prompt for output folder on every conversion.
 - **Default Profile**: `Auto-Detect`, `Literature`, or `Technical`.
 - **Open Index Note Automatically**: Toggle whether to open the book index after conversion.
