@@ -30,6 +30,8 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Action:** Mark from the first back-matter keyword page onward as `back_matter`.
 - **Failure mode:** "Notes" is ambiguous — could be a chapter title. Require it to be followed by numbered note entries, not prose.
 
+> **Update: line-level precision scanning prevents prose substring false positives.** Whole-page substring searching caused severe anomalies when ordinary prose in the body contained words like "contents" or "notes" (found in Arthur Schopenhauer's *The World as Will and Representation*, where page 19 prose `space—viewed purely, without contents—as a special and...` falsely matched "contents", extending front matter to page 19 and swallowing Book I into front matter). Fixed in `mdook/core/rules/zones.py` by requiring line-level structural criteria: section heading keywords ("Table of Contents", "Preface", "Bibliography", "Index") must occur on short lines (≤ 6 words), while copyright metadata keywords ("Published by", "ISBN", "All rights reserved") must occur on publishing lines (≤ 12 words).
+
 ### Rule 1.4 — Title Page Detection
 
 - **Condition:** One of the first 5 pages contains: text significantly larger than body font, centered horizontally, with very little other text on the page
@@ -127,6 +129,8 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 
 > **Update: "very similar" was never actually implemented until Phase 3 (OCR) forced the issue.** `mdook/core/rules/headers_footers.py` originally grouped candidates by exact normalized-text equality (digit-masked, whitespace-collapsed) — fine for native PDFs, where a running header repeats byte-for-byte, but Tesseract misreads a handful of characters differently on *every* page of a scanned book (`"THURLOW WEED ON..."`, `"...OM THE MORGAN ABDEUOTION."`, `"...WHED ON..."`), so exact matching never reached the 5-page threshold and the header leaked into the body of every single page. Fixed with `difflib.SequenceMatcher`-based clustering (similarity ≥ 0.82) instead of exact equality — this is what the "very similar" language above was already describing for the alternating-header case, just not built that way originally. Separately, the 8%/8% band itself was widened to 15%/15%: a scanned page's canvas has a wider blank border around the actual printed area than a tightly-cropped native PDF, and a real book's header measured 9-13% down from the page top. The wider band is safe for native PDFs too since a candidate still only strips if it *also* repeats — an ordinary paragraph's first line never does.
 
+> **Update: repeating side margin band candidates.** In addition to horizontal top and bottom bands (15%/15%), candidate detection was expanded to check extreme outer side margins (outer 12% width: $x_1 \le 12\%$ or $x_0 \ge 88\%$). Real-world publications (e.g. William S. Burroughs' *The Electronic Revolution*) place vertical running publisher watermarks along page margins (`ubuclassics / ubu.com`) that span almost the entire page height. Capturing repeating margin candidates across $\ge 5$ pages and stripping them prevents them from polluting the document flow or being falsely classified as chapter headings.
+
 ### Rule 3.2 — Page Number Extraction
 
 - **Condition:** A short text block (1–4 characters) in the header/footer band that matches a sequential number pattern across pages
@@ -203,6 +207,8 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 
 - **Condition:** Two consecutive text blocks share the same `font_name`, `font_size`, and `is_bold`/`is_italic` flags. No heading, image, table, or footnote block between them.
 - **Action:** Merge into a single paragraph. Join with a space.
+
+> **Update: drop-shadow and layered span deduplication.** Graphic design packages and PDF layout engines (e.g. in Peter Wessel Zapffe's *The Last Messiah*) often print layered text (such as white text over dark drop shadows or stroke outlines) as multiple spans with identical text at overlapping coordinates. `_deduplicate_spans` in `mdook/core/stages/extraction.py` filters duplicate spans on the same line whose bounding boxes overlap or differ by $\le 2.0\text{pt}$, preventing numerals like "II" from concatenating into "IIII".
 
 ### Rule 5.2 — Hyphenated Line Rejoin
 
@@ -298,6 +304,8 @@ Rules are organized by the problem they solve. Each rule has a condition (when i
 - **Action:** Discard. Do not save to attachments folder.
 
 > **Update: one more condition added, and it turned out to matter more than anything in the original list.** Two real scanned books (a 75-image and a 168-image count before the fix) revealed that a scanned book's underlying page-photo is embedded as one full-page image on *every single page* — extracting those bloats the library's attachments folder with a duplicate of the entire book and multiplies conversion time for no benefit. Added: an image covering ≥90% of the page area is treated as a scan background and discarded, same as this rule's other conditions. `mdook/core/stages/extraction.py`'s `FULL_PAGE_IMAGE_AREA_RATIO`. After the fix, those two books' image counts dropped to 3 and 4 respectively.
+
+> **Update: micro-raster image filtering.** In addition to full-page scan backgrounds, tiny printer dingbats and sub-pixel flourish rasters (found in Emil Cioran's *The Trouble with Being Born*, where 1,127 tiny 1x1 to 5x5 pixel printer dots were extracted) are discarded using minimum dimension and area thresholds (width $\ge 20\text{px}$, height $\ge 20\text{px}$, area $\ge 400\text{px}^2$, and bounding box $\ge 15\text{pt} \times 15\text{pt}$, area $\ge 225\text{pt}^2$). Genuine diagrammatic vector paths rasterized via Rule 7.2 remain protected.
 
 ### Rule 7.5 — Image Reference in Markdown
 

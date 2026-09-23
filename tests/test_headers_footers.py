@@ -85,3 +85,23 @@ def test_non_repeating_header_band_text_is_left_alone() -> None:
     for page in pages:
         assert page.header_text is None
         assert len(page.blocks) == 2
+
+
+def test_repeating_margin_watermark_is_stripped() -> None:
+    def _margin(text: str, page_number: int) -> TextBlock:
+        return TextBlock(
+            text=text,
+            font_name="Helvetica",
+            font_size=10.0,
+            bbox=(360, 100, 390, 700),  # x0=360 >= 400 * 0.88 = 352
+            page_number=page_number,
+        )
+
+    pages = [
+        _page(n, [_margin("watermark.com", n), _body(f"Body text {n}.", n)]) for n in range(1, 6)
+    ]
+    detect_headers_footers(pages)
+
+    for page in pages:
+        assert len(page.blocks) == 1
+        assert page.blocks[0].text.startswith("Body text")

@@ -18,20 +18,24 @@ import re
 
 from mdook.core.models import ZoneEntry
 
-FRONT_KEYWORDS = [
+FRONT_HEADING_KEYWORDS = {
     "table of contents",
     "contents",
     "preface",
     "foreword",
     "dedication",
     "acknowledgments",
+    "acknowledgements",
+}
+
+FRONT_METADATA_KEYWORDS = {
     "copyright",
     "published by",
     "isbn",
     "all rights reserved",
-]
+}
 
-BACK_KEYWORDS = [
+BACK_HEADING_KEYWORDS = {
     "bibliography",
     "references",
     "works cited",
@@ -41,11 +45,54 @@ BACK_KEYWORDS = [
     "endnotes",
     "appendix",
     "about the author",
-]
+}
+
+FRONT_KEYWORDS = sorted(FRONT_HEADING_KEYWORDS | FRONT_METADATA_KEYWORDS)
+BACK_KEYWORDS = sorted(BACK_HEADING_KEYWORDS)
 
 ROMAN_NUMERAL_RE = re.compile(r"^[ivxlcdm]+$", re.IGNORECASE)
 FRONT_MATTER_SEARCH_RATIO = 0.15
 BACK_MATTER_SEARCH_RATIO = 0.20
+
+
+def _page_has_front_matter_signal(page) -> bool:
+    for line in page.get_text("text").splitlines():
+        cleaned = line.strip().lower()
+        if not cleaned:
+            continue
+        words = cleaned.split()
+        if len(words) <= 6:
+            for kw in FRONT_HEADING_KEYWORDS:
+                if (
+                    cleaned == kw
+                    or cleaned.startswith(kw + " ")
+                    or cleaned.startswith(kw + ":")
+                    or cleaned.endswith(" " + kw)
+                ):
+                    return True
+        if len(words) <= 12:
+            if any(kw in cleaned for kw in FRONT_METADATA_KEYWORDS):
+                return True
+    return False
+
+
+def _page_has_back_matter_signal(page) -> bool:
+    for line in page.get_text("text").splitlines():
+        cleaned = line.strip().lower()
+        if not cleaned:
+            continue
+        words = cleaned.split()
+        if len(words) <= 6:
+            for kw in BACK_HEADING_KEYWORDS:
+                if (
+                    cleaned == kw
+                    or cleaned.startswith(kw + " ")
+                    or cleaned.startswith(kw + ":")
+                    or cleaned.endswith(" " + kw)
+                    or re.match(r"^appendix\s+[a-z0-9]", cleaned)
+                ):
+                    return True
+    return False
 
 
 def detect_zones(doc) -> list[ZoneEntry]:
@@ -80,8 +127,7 @@ def _detect_front_matter_end(doc, total_pages: int) -> int:
 
     last_keyword_page = 0
     for i in range(limit):
-        text = doc[i].get_text("text").lower()
-        if any(keyword in text for keyword in FRONT_KEYWORDS):
+        if _page_has_front_matter_signal(doc[i]):
             last_keyword_page = i + 1
 
     transition_page = _find_roman_to_arabic_transition(doc, limit)
@@ -116,7 +162,6 @@ def _bottom_band_short_text(page) -> str | None:
 def _detect_back_matter_start(doc, total_pages: int, front_end: int) -> int | None:
     start_index = max(front_end, int(total_pages * (1 - BACK_MATTER_SEARCH_RATIO)))
     for i in range(start_index, total_pages):
-        text = doc[i].get_text("text").lower()
-        if any(keyword in text for keyword in BACK_KEYWORDS):
+        if _page_has_back_matter_signal(doc[i]):
             return i + 1
     return None

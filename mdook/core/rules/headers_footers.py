@@ -17,13 +17,15 @@ from mdook.core.models import PageData, TextBlock
 
 TOP_BAND_RATIO = 0.15
 BOTTOM_BAND_RATIO = 0.15
+SIDE_MARGIN_RATIO = 0.12
 """A scanned page's canvas (Phase 3) routinely includes a wider blank
 border around the actual printed area than a tightly-cropped native PDF --
 a real scanned book's running header was measured landing 9-13% down from
 the page top, just outside an 8% band. The wider band is safe even for
 native PDFs: a candidate only gets stripped if it also *repeats* across
 `MIN_REPEAT_PAGES` pages below, and an ordinary paragraph's first line
-essentially never does."""
+essentially never does. Similarly, the 12% outer margin bands capture
+vertical running headers, footers, and repeated publisher brand stamps."""
 MIN_REPEAT_PAGES = 5
 SIMILARITY_THRESHOLD = 0.82
 """Two normalized header/footer candidates cluster together at or above this
@@ -40,15 +42,18 @@ def detect_headers_footers(pages: list[PageData]) -> None:
     """Mutates `pages` in place."""
     header_candidates: list[tuple[int, TextBlock, str]] = []
     footer_candidates: list[tuple[int, TextBlock, str]] = []
+    margin_candidates: list[tuple[int, TextBlock, str]] = []
 
     for page in pages:
         top_limit = page.height * TOP_BAND_RATIO
         bottom_limit = page.height * (1 - BOTTOM_BAND_RATIO)
+        left_limit = page.width * SIDE_MARGIN_RATIO
+        right_limit = page.width * (1 - SIDE_MARGIN_RATIO)
 
         for block in page.blocks:
             if not isinstance(block, TextBlock):
                 continue
-            _, y0, _, y1 = block.bbox
+            x0, y0, x1, y1 = block.bbox
             normalized = _normalize(block.text)
             if not normalized:
                 continue
@@ -56,12 +61,17 @@ def detect_headers_footers(pages: list[PageData]) -> None:
                 header_candidates.append((page.page_number, block, normalized))
             elif y0 >= bottom_limit:
                 footer_candidates.append((page.page_number, block, normalized))
+            elif x1 <= left_limit or x0 >= right_limit:
+                margin_candidates.append((page.page_number, block, normalized))
 
     repeating_headers = _select_repeating(header_candidates)
     repeating_footers = _select_repeating(footer_candidates)
+    repeating_margins = _select_repeating(margin_candidates)
     header_text_by_page = {p: b.text for p, b, _ in repeating_headers}
     footer_text_by_page = {p: b.text for p, b, _ in repeating_footers}
-    strip_ids = {id(block) for _, block, _ in repeating_headers + repeating_footers}
+    strip_ids = {
+        id(block) for _, block, _ in repeating_headers + repeating_footers + repeating_margins
+    }
 
     for page in pages:
         if page.page_number in header_text_by_page:

@@ -158,6 +158,19 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ---
 
+## Sprint 2.0.1 — Real-World PDF Evaluation & Layout Heuristics Hardening
+
+**Goal:** Stress-test Mdook against diverse real-world publications (~11 philosophical and academic test books, 2,479 total pages) and harden generic layout heuristics against formatting anomalies.
+
+- [x] **Empirical multi-book test suite run** — Evaluated 11 full-length PDFs (2,479 pages) across philosophy, sociology, trauma theory, and avant-garde literature with automated metric collection and 0 crashes.
+- [x] **Line-level zone detection** — Upgraded `mdook/core/rules/zones.py` to match keywords on short lines (<= 6 words for section headings, <= 12 words for publishing metadata) rather than whole-page substring matching, eliminating front-matter overextension in multi-volume works.
+- [x] **Drop-shadow span deduplication** — Implemented `_deduplicate_spans` in `mdook/core/stages/extraction.py` filtering duplicate text spans with identical content and overlapping bboxes, preventing chapter roman numerals from stuttering (e.g. `IIII` -> `II`).
+- [x] **Margin running text filtering** — Extended candidate detection in `mdook/core/rules/headers_footers.py` to the outer 12% side margins, capturing and stripping full-height vertical publisher watermarks that previously fragmented essays into dozens of spurious empty chapters.
+- [x] **Micro-image dimension thresholds** — Enforced 20px / 15pt and 400px^2 / 225pt^2 thresholds in `mdook/core/stages/extraction.py`, dropping over 1,000 printer dingbats and sub-pixel flourish artifacts while preserving genuine diagrammatic figures.
+- [x] **Metadata sanitization** — Stripped DTP layout document extensions (`.qxd`, `.indd`, `.pmd`) and downloader promotional suffixes (`- PDFDrive.com`, `- Z-Library`).
+
+---
+
 ## Testing Strategy Across Phases
 
 ### Test Library

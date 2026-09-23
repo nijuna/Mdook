@@ -30,6 +30,16 @@ def test_clean_title() -> None:
     assert _clean_title("C:\\Users\\Book\\title.htm", fallback="default") == "default"
     assert _clean_title("file%20path%20encoded", fallback="default") == "default"
     assert _clean_title("A" * 151, fallback="default") == "default"
+    assert (
+        _clean_title("silliman_chinese.qxd", fallback="Electronic Revolution")
+        == "Electronic Revolution"
+    )
+    assert _clean_title("book_layout.indd", fallback="Real Book") == "Real Book"
+    assert (
+        _clean_title("The Body Keeps the Score - PDFDrive.com", fallback="default")
+        == "The Body Keeps the Score"
+    )
+    assert _clean_title("Nietzsche - Z-Library", fallback="default") == "Nietzsche"
 
 
 def test_scan_directory_errors(tmp_path: Path) -> None:

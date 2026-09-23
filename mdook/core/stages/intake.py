@@ -28,6 +28,14 @@ SAMPLE_PAGE_COUNT = 8
 MIN_CHARS_FOR_TEXT_LAYER = 20
 MAX_PLAUSIBLE_TITLE_LENGTH = 150
 GARBAGE_TITLE_RE = re.compile(r"%[0-9A-Fa-f]{2}|[\\/]")
+LAYOUT_FILENAME_RE = re.compile(
+    r"^[\w\-.]+\.(?:qxd|indd|pmd|doc|docx|pdf|htm|html)$", re.IGNORECASE
+)
+WATERMARK_RE = re.compile(
+    r"\s*(?:[-–—]\s*(?:PDFDrive(?:\.com)?|Z-Library|Libgen|Singlelogin|Anna's Archive).*"
+    r"|\((?:z-lib\.org|pdfdrive\.com)\)\s*)$",
+    re.IGNORECASE,
+)
 LARGE_BOOK_PAGE_COUNT = 1000
 """Batch 19: purely an observability threshold, logged so a very large
 conversion's slowness has an explanation up front -- not a hard limit, and
@@ -93,15 +101,25 @@ def run_intake(pdf_path: Path, profile_override: ProfileName | str | None = None
 def _clean_metadata_title(raw_title: str | None, fallback: str) -> str:
     """PDF metadata titles are sometimes garbage rather than an actual book
     title: seen in the wild, a title that was literally a URL-encoded local
-    file path ending in ".htm", baked in by whatever tool produced the PDF
-    from an HTML source. Propagating that verbatim makes an unusable vault
-    folder name and page-marker callout text, so reject anything implausibly
-    long or containing URL-encoding/path-separator artifacts."""
+    file path ending in ".htm", a desktop publishing layout filename like
+    "silliman_chinese.qxd", or contaminated with downloader watermarks like
+    "- PDFDrive.com". Reject garbage titles in favor of the fallback stem,
+    and strip promotional watermarks."""
     if not raw_title:
-        return fallback
-    if len(raw_title) > MAX_PLAUSIBLE_TITLE_LENGTH or GARBAGE_TITLE_RE.search(raw_title):
-        return fallback
-    return raw_title
+        title = fallback
+    else:
+        stripped = raw_title.strip()
+        if (
+            len(stripped) > MAX_PLAUSIBLE_TITLE_LENGTH
+            or GARBAGE_TITLE_RE.search(stripped)
+            or LAYOUT_FILENAME_RE.match(stripped)
+        ):
+            title = fallback
+        else:
+            title = stripped
+
+    cleaned = WATERMARK_RE.sub("", title).strip()
+    return cleaned or fallback
 
 
 def _detect_needs_ocr(doc) -> bool:

@@ -92,3 +92,33 @@ def test_corrupt_pdf_fails_intake_with_clear_message(tmp_path: Path) -> None:
 
     with pytest.raises(CorruptPDFError):
         run_intake(pdf_path)
+
+
+def test_dtp_layout_title_falls_back_to_filename(tmp_path: Path) -> None:
+    import pymupdf
+
+    pdf_path = tmp_path / "burroughs_essay.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=400, height=600)
+    page.insert_text((72, 100), "Essay body text.", fontsize=11, fontname="helv")
+    doc.set_metadata({"title": "silliman_chinese.qxd"})
+    doc.save(str(pdf_path))
+    doc.close()
+
+    manifest = run_intake(pdf_path)
+    assert manifest.title == "burroughs_essay"
+
+
+def test_download_watermark_in_title_is_stripped(tmp_path: Path) -> None:
+    import pymupdf
+
+    pdf_path = tmp_path / "book.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=400, height=600)
+    page.insert_text((72, 100), "Body text.", fontsize=11, fontname="helv")
+    doc.set_metadata({"title": "The Body Keeps the Score - PDFDrive.com"})
+    doc.save(str(pdf_path))
+    doc.close()
+
+    manifest = run_intake(pdf_path)
+    assert manifest.title == "The Body Keeps the Score"

@@ -35,6 +35,14 @@ IGNORED_DIR_NAMES: frozenset[str] = frozenset(
 
 MAX_PLAUSIBLE_TITLE_LENGTH = 150
 GARBAGE_TITLE_RE = re.compile(r"%[0-9A-Fa-f]{2}|[\\/]")
+LAYOUT_FILENAME_RE = re.compile(
+    r"^[\w\-.]+\.(?:qxd|indd|pmd|doc|docx|pdf|htm|html)$", re.IGNORECASE
+)
+WATERMARK_RE = re.compile(
+    r"\s*(?:[-–—]\s*(?:PDFDrive(?:\.com)?|Z-Library|Libgen|Singlelogin|Anna's Archive).*"
+    r"|\((?:z-lib\.org|pdfdrive\.com)\)\s*)$",
+    re.IGNORECASE,
+)
 
 
 def format_file_size(size_bytes: int) -> str:
@@ -49,15 +57,24 @@ def format_file_size(size_bytes: int) -> str:
 
 
 def _clean_title(raw_title: str | None, fallback: str) -> str:
-    """Validates raw metadata titles, rejecting file paths or URL-encoded noise."""
+    """Validates raw metadata titles, rejecting file paths, layout filenames, or
+    URL-encoded noise."""
     if not raw_title:
-        return fallback
-    stripped = raw_title.strip()
-    if not stripped:
-        return fallback
-    if len(stripped) > MAX_PLAUSIBLE_TITLE_LENGTH or GARBAGE_TITLE_RE.search(stripped):
-        return fallback
-    return stripped
+        title = fallback
+    else:
+        stripped = raw_title.strip()
+        if (
+            not stripped
+            or len(stripped) > MAX_PLAUSIBLE_TITLE_LENGTH
+            or GARBAGE_TITLE_RE.search(stripped)
+            or LAYOUT_FILENAME_RE.match(stripped)
+        ):
+            title = fallback
+        else:
+            title = stripped
+
+    cleaned = WATERMARK_RE.sub("", title).strip()
+    return cleaned or fallback
 
 
 def _sniff_pdf_metadata(path: Path) -> tuple[str, str]:

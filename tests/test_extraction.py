@@ -6,6 +6,8 @@ import pytest
 
 from mdook.core.models import ImageBlock, TableBlock, TextBlock
 from mdook.core.stages.extraction import (
+    _deduplicate_spans,
+    _extract_images,
     _group_spans_by_style,
     _span_group_to_text_block,
     run_extraction,
@@ -342,3 +344,43 @@ def test_gap_without_a_literal_space_span_still_gets_a_synthetic_space() -> None
     spans = [_span("OF", 200.0, 217.0, size=11.0), _span("R", 221.0, 230.0, size=14.0)]
     block = _span_group_to_text_block(spans, page_number=1)
     assert block.text == "OF R"
+
+
+def test_drop_shadow_superimposed_spans_are_deduplicated() -> None:
+    span_fill = {
+        "text": "II",
+        "size": 84.0,
+        "font": "BodoniMT-Bold",
+        "bbox": (166.5, 33.0, 229.5, 131.6),
+        "flags": 20,
+    }
+    span_shadow = {
+        "text": "II",
+        "size": 84.0,
+        "font": "BodoniMT-Bold",
+        "bbox": (166.5, 33.0, 229.5, 131.6),
+        "flags": 20,
+    }
+    deduped = _deduplicate_spans([span_fill, span_shadow])
+    assert len(deduped) == 1
+    groups = _group_spans_by_style(deduped)
+    block = _span_group_to_text_block(groups[0], page_number=1)
+    assert block.text == "II"
+
+
+def test_micro_images_below_threshold_are_filtered(tmp_path: Path) -> None:
+    doc = pymupdf.open()
+    page = doc.new_page(width=400, height=600)
+    tiny_pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 5, 5))
+    tiny_pix.set_rect(tiny_pix.irect, (0, 0, 0))
+    page.insert_image(pymupdf.Rect(50, 50, 55, 55), stream=tiny_pix.tobytes("png"))
+
+    real_pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 50, 50))
+    real_pix.set_rect(real_pix.irect, (100, 100, 100))
+    page.insert_image(pymupdf.Rect(100, 100, 200, 200), stream=real_pix.tobytes("png"))
+
+    images = _extract_images(doc, page, page_number=1, tmp_dir=tmp_path)
+    doc.close()
+
+    assert len(images) == 1
+    assert images[0].bbox == (100.0, 100.0, 200.0, 200.0)

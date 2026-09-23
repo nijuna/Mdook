@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-23
+
+### Fixed
+- **Line-Level Front/Back Matter Keyword Scanning**:
+  - Replaced whole-page raw substring keyword matching with line-level structure verification in `mdook/core/rules/zones.py`.
+  - Distinguishes structural headings (short lines <= 6 words like "Table of Contents", "Preface", "Bibliography", "Index") and publishing metadata (lines <= 12 words like "Published by", "ISBN", "All rights reserved") from running body prose containing words like "contents" or "notes".
+  - Resolves front-matter boundary overextension in multi-volume works (e.g. Arthur Schopenhauer's *The World as Will and Representation*, preserving Book I as Chapter 1).
+- **Drop-Shadow and Layered Span Deduplication**:
+  - Added `_deduplicate_spans` in `mdook/core/stages/extraction.py` filtering duplicate spans on the same line that share identical text and overlapping bounding boxes.
+  - Eliminates character stuttering from graphic design layered effects (e.g. Peter Wessel Zapffe's *The Last Messiah* Chapter II duplicating `# II` into `# IIII`).
+- **Outer Side Margin Watermark Filtering**:
+  - Expanded repeating candidate detection in `mdook/core/rules/headers_footers.py` to inspect the extreme outer side margin bands (outer 12% width: x1 <= 12% or x0 >= 88%).
+  - Detects and strips full-page-height vertical publisher watermarks (e.g. William S. Burroughs' *The Electronic Revolution* `ubuclassics / ubu.com`), preventing 26 spurious empty chapter divisions.
+- **Micro-Raster Image Filtering**:
+  - Added minimum dimension and area thresholds in `mdook/core/stages/extraction.py` (raster width >= 20px, height >= 20px, area >= 400px^2, and bbox >= 15pt x 15pt).
+  - Drops thousands of printer dingbats, 1-pixel rules, and sub-pixel flourish artifacts (e.g. Emil Cioran's *The Trouble with Being Born*, reducing image count from 1,127 to 56 genuine figures).
+- **Metadata Title Sanitization**:
+  - Added desktop publishing layout extension rejection (`.qxd`, `.indd`, `.pmd`, `.pdf`, `.doc`, `.docx`) in `mdook/core/stages/intake.py` and `mdook/core/scanner.py`, falling back to clean file stems.
+  - Added automated downloader watermark stripping (`- PDFDrive.com`, `- Z-Library`, `Libgen`, `Singlelogin`, `Anna's Archive`).
+
 ## [2.0.0] - 2026-09-17
 
 ### Added

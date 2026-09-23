@@ -74,6 +74,14 @@ FULL_PAGE_IMAGE_AREA_RATIO = 0.9
 treated as the page's own scan background (Rule 7.4 extension), not a real
 figure -- see `_extract_images`."""
 
+MIN_IMAGE_DIMENSION_PX = 20
+MIN_IMAGE_AREA_PX = 400
+MIN_IMAGE_DIMENSION_PT = 15.0
+MIN_IMAGE_AREA_PT = 225.0
+"""Micro-raster image filtering thresholds (Rule 7.1/7.4 extension). Tiny
+printer dingbats, 1-pixel rules, and sub-15pt flourish artifacts create
+noise and clutter attachments without representing genuine figures."""
+
 
 PageProgressCallback = Callable[[int, int], None]
 
@@ -226,7 +234,8 @@ def _extract_native_text_blocks(
         if raw_block.get("type") != 0:
             continue  # 0 = text, 1 = image; images are pulled separately elsewhere
         for line in raw_block["lines"]:
-            for span_group in _group_spans_by_style(line["spans"]):
+            spans = _deduplicate_spans(line["spans"])
+            for span_group in _group_spans_by_style(spans):
                 block = _span_group_to_text_block(span_group, page_number)
                 if _falls_inside_a_table(block.bbox, table_blocks):
                     continue  # already captured as this table's own cell text
@@ -303,6 +312,33 @@ def _falls_inside_a_table(
         if tx0 <= center_x <= tx1 and ty0 <= center_y <= ty1:
             return True
     return False
+
+
+def _deduplicate_spans(spans: list[dict]) -> list[dict]:
+    """Remove drop-shadow or layered duplicate spans within a line.
+
+    Graphic design software and PDF export engines often render layered text
+    (e.g. white text over a dark shadow, or stroke outline over fill) as
+    multiple spans with identical text at overlapping coordinates. Keeping
+    both duplicates the characters (e.g. Roman numeral 'II' becoming 'IIII').
+    """
+    kept: list[dict] = []
+    for span in spans:
+        span_text = span["text"].strip()
+        if not span_text:
+            kept.append(span)
+            continue
+        is_dup = False
+        for existing in kept:
+            if existing["text"].strip() == span_text:
+                if _bbox_overlap_ratio(span["bbox"], existing["bbox"]) >= 0.7 or all(
+                    abs(c1 - c2) <= 2.0 for c1, c2 in zip(span["bbox"], existing["bbox"])
+                ):
+                    is_dup = True
+                    break
+        if not is_dup:
+            kept.append(span)
+    return kept
 
 
 def _group_spans_by_style(spans: list[dict]) -> list[list[dict]]:
@@ -414,10 +450,28 @@ def _extract_images(doc, page, page_number: int, tmp_dir: Path) -> list[ImageBlo
             # attachments/ and multiplies conversion time for no benefit.
             continue
 
+        bbox_w = max(bbox[2] - bbox[0], 0.0)
+        bbox_h = max(bbox[3] - bbox[1], 0.0)
+        if (
+            bbox_w < MIN_IMAGE_DIMENSION_PT
+            or bbox_h < MIN_IMAGE_DIMENSION_PT
+            or (bbox_w * bbox_h) < MIN_IMAGE_AREA_PT
+        ):
+            continue
+
         try:
             base_image = doc.extract_image(xref)
         except Exception:
             continue  # unsupported/corrupt image stream — skip rather than fail the page
+
+        img_w = base_image.get("width", 0)
+        img_h = base_image.get("height", 0)
+        if (
+            img_w < MIN_IMAGE_DIMENSION_PX
+            or img_h < MIN_IMAGE_DIMENSION_PX
+            or (img_w * img_h) < MIN_IMAGE_AREA_PX
+        ):
+            continue
 
         ext = base_image.get("ext", "png")
         image_path = tmp_dir / f"page-{page_number}-img-{image_index}.{ext}"
