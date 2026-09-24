@@ -12,7 +12,7 @@ the code and its accompanying test suite (`tests/`) serve as the source of truth
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 324 passed
+uv run pytest -q         # should show 336 passed
 uv run ruff check .      # should show "All checks passed!"
 uv run python -m mdook   # launches the GUI (or: uv run mdook convert ...)
 ```
@@ -49,7 +49,11 @@ handoff describes — figure out why before trusting the rest of this file.
   preserving letter dividers (`## A`, `## B`), and rejoining hyphenated multi-line definitions.
 - **Modern Theme System** — 3 Theme Families (*The Library*, *Amethyst*, *Carbon*)
   in dark/light modes managed by `theme.py` and persistent `config.py`.
-- **324 tests, `ruff` clean**, all passing offscreen.
+- **Hardened Layout Heuristics (v2.0.1)** — Line-level structural zone scanning (`zones.py`),
+  drop-shadow span deduplication (`extraction.py`), 12% outer side margin watermark suppression
+  (`headers_footers.py`), micro-raster printer dingbat filtering (`extraction.py`), and DTP/download
+  metadata sanitization (`intake.py`, `scanner.py`).
+- **336 tests, `ruff` clean**, all passing offscreen.
 
 
 ---
