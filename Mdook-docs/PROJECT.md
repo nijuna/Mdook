@@ -16,6 +16,8 @@ The goal is not pixel fidelity. It is semantic fidelity — preserving the struc
 
 - Ingests PDF documents, EPUB3 publications, and Word DOCX manuscripts
 - Detects the book's internal structure: front matter, chapters, back matter, footnotes, figures, citations, math, callout boxes
+- Hardened against real-world layout anomalies: line-level structural zone scanning, drop-shadow duplicate span deduplication, outer side margin watermark suppression, and sub-pixel printer dingbat filtering
+- Sanitizes publication metadata, stripping desktop publishing layout document filenames (.qxd, .indd, .pmd) and downloader promotional watermarks
 - Converts each structural unit into clean, well-formatted Markdown
 - Emits dual output formats: **Modular Library** (chapter-split files with Part grouping and Index) or **Single Document** (continuous reading copy with consolidated notes)
 - Preserves the book's own organizational conventions (chapters, modules, parts, named sections — whatever the book uses)
@@ -79,6 +81,7 @@ Detailed task and milestone tracking is maintained in `Mdook-docs/ROADMAP.md`:
 - **Phase 4 — Multi-Format Input Support (EPUB3 & DOCX)** *(Complete)*
 - **Phase 5 — Polish & Edge Cases (AI Review, Poetry, Glossaries, Dedicated Back-Matter)** *(Complete)*
 - **Phase 6 — Distribution (Obsidian Plugin, Wizard, & Standalone Packaging)** *(Complete)*
+- **Sprint 2.0.1 — Real-World PDF Evaluation & Layout Heuristics Hardening** *(Complete — verified against 11 diverse test books, 2,479 total pages, with 0 crashes)*
 
 ---
 
