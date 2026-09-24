@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-324%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-336%20passed-brightgreen.svg)]()
 
 </div>
 
@@ -57,6 +57,7 @@ Input: Book (.pdf / .epub / .docx)
 - **Part / Book / Volume Segmentation**: Recognizes multi-tier books and groups chapters under Part divisions in the library Index.
 - **Front & Back Matter Isolation**: Automatically isolates Preface, Introduction, Notes, Bibliography, and Appendices into dedicated sections.
 - **Multi-Column & Bidirectional Reading Order**: Column detection with right-to-left (RTL) reading order for Hebrew and Arabic scripts.
+- **Hardened Real-World Layout Heuristics**: Line-level structural zone scanning, drop-shadow duplicate span deduplication, outer side margin watermark suppression, micro-raster printer dingbat filtering, and layout/downloader metadata sanitization.
 
 ### Scanned Book OCR Fallback (Tesseract)
 - Evaluates text-layer quality per page.
@@ -94,40 +95,39 @@ Input: Book (.pdf / .epub / .docx)
  
  ---
  
-+## User Interface & Themes
-+
-+Mdook features a typography-first desktop interface built with PySide6. The interface offers three distinct theme palettes with both dark and light modes, along with a dedicated configuration modal.
-+
-+### The Library (Warm Amber)
-+Inspired by classical bookmaking, letterpress printing, and aged parchment.
-+
-+| Dark Mode | Light Mode |
-+| :---: | :---: |
-+| ![The Library - Dark](assets/screenshots/gui-library-dark.png) | ![The Library - Light](assets/screenshots/gui-library-light.png) |
-+
-+### Amethyst (Royal Violet)
-+A modern editorial aesthetic featuring royal violet accents and balanced slate surfaces.
-+
-+| Dark Mode | Light Mode |
-+| :---: | :---: |
-+| ![Amethyst - Dark](assets/screenshots/gui-amethyst-dark.png) | ![Amethyst - Light](assets/screenshots/gui-amethyst-light.png) |
-+
-+### Carbon (Graphite & Ice Cyan)
-+A focused monochrome workspace with crisp ice cyan interactive elements.
-+
-+| Dark Mode | Light Mode |
-+| :---: | :---: |
-+| ![Carbon - Dark](assets/screenshots/gui-carbon-dark.png) | ![Carbon - Light](assets/screenshots/gui-carbon-light.png) |
-+
-+### Preference & AI Configuration Modal
-+Manage theme palettes, default output modes, extraction profiles, and live LLM reachability testing:
-+
-+<p align="center">
-+  <img src="assets/screenshots/gui-settings-modal.png" alt="Mdook Settings Modal" width="560" />
-+</p>
-+
-+---
-+
+## User Interface & Themes
+
+Mdook features a typography-first desktop interface built with PySide6. The interface offers three distinct theme palettes with both dark and light modes, along with a dedicated configuration modal.
+
+### The Library (Warm Amber)
+Inspired by classical bookmaking, letterpress printing, and aged parchment.
+
+| Dark Mode | Light Mode |
+| :---: | :---: |
+| ![The Library - Dark](assets/screenshots/gui-library-dark.png) | ![The Library - Light](assets/screenshots/gui-library-light.png) |
+
+### Amethyst (Royal Violet)
+A modern editorial aesthetic featuring royal violet accents and balanced slate surfaces.
+
+| Dark Mode | Light Mode |
+| :---: | :---: |
+| ![Amethyst - Dark](assets/screenshots/gui-amethyst-dark.png) | ![Amethyst - Light](assets/screenshots/gui-amethyst-light.png) |
+
+### Carbon (Graphite & Ice Cyan)
+A focused monochrome workspace with crisp ice cyan interactive elements.
+
+| Dark Mode | Light Mode |
+| :---: | :---: |
+| ![Carbon - Dark](assets/screenshots/gui-carbon-dark.png) | ![Carbon - Light](assets/screenshots/gui-carbon-light.png) |
+
+### Preference & AI Configuration Modal
+Manage theme palettes, default output modes, extraction profiles, and live LLM reachability testing:
+
+<p align="center">
+  <img src="assets/screenshots/gui-settings-modal.png" alt="Mdook Settings Modal" width="560" />
+</p>
+
+---
 
 ## Installation & Quickstart
 
