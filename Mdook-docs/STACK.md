@@ -122,9 +122,9 @@ Stored as separate files in a `prompts/` directory. Versioned and testable indep
 ## Dev & Testing Tools
 
 ### pytest
-Unit tests for each pipeline stage. Integration tests that run a known PDF through the full pipeline and diff the output against an expected vault.
+Unit tests for each pipeline stage. Integration tests that run a known PDF through the full pipeline and diff the output against an expected Markdown library.
 
-> **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 324 tests as of the latest test suite, including regression tests written directly against real books from the user's own collection once a bug was found there (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
+> **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 336 tests as of Sprint 2.0.1, including multi-book regression suites covering line-level zone signals, drop-shadow span deduplication, margin watermark filtering, and micro-raster suppression written directly against real books from the user's collection (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
 
 ### Rich
 Terminal UI for the headless CLI (`mdook convert`) — provides animated progress bars across conversion stages, colored status indicators, and formatted summary/validation tables.
