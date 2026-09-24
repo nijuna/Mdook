@@ -53,9 +53,17 @@ consume this callback.
   producing garbage or an opaque traceback if the file is password-protected or corrupt.
 - Samples pages to flag `needs_ocr` (a whole-book estimate; per-page OCR routing
   occurs in Stage 2).
+- Extracts and sanitizes metadata: `_clean_metadata_title()` rejects internal desktop
+  publishing layout document filenames (`.qxd`, `.indd`, `.pmd`, `.pdf`, `.doc`, `.docx`)
+  in favor of clean file stems, and automatically strips common web downloader promotional
+  tags (`- PDFDrive.com`, `- Z-Library`, `Libgen`, `Singlelogin`, `Anna's Archive`).
 - Extracts the PDF's own bookmark/outline tree (`doc.get_toc()`) — the preferred source
   for heading hierarchy when available (Rule 2.1).
-- Detects zones (front matter / body / back matter) via `mdook.core.rules.zones`.
+- Detects zones (front matter / body / back matter) via `mdook.core.rules.zones`. Employs
+  line-level structural verification: section headings ("Table of Contents", "Preface",
+  "Bibliography", "Index") must occur on short lines (<= 6 words) and copyright metadata
+  ("Published by", "ISBN", "All rights reserved") on publishing lines (<= 12 words),
+  preventing normal body prose from prematurely shifting zone boundaries.
 - **Profile Auto-Detection (`mdook/core/rules/profiles.py`)**: When profile is `auto` (default),
   evaluates structural signals across sampled pages (table density, numbered section headings
   `1.1`, monospaced code blocks, and math symbol density) to automatically classify the document
@@ -84,8 +92,11 @@ BookManifest:
 For each page:
 
 1. PyMuPDF extracts every text span (font, size, bold/italic/superscript,
-   bbox), grouped into `TextBlock`s by style continuity (Rule 5.1's
-   font-name-independent matching — see `RULES.md`).
+   bbox). Before style grouping, `_deduplicate_spans()` filters layered duplicate
+   or drop-shadow spans within the same line that share identical text and overlapping
+   coordinates (within 2.0pt tolerance or >= 0.7 area overlap), preventing character
+   stuttering in graphic design headings (e.g. `IIII` -> `II`). Spans are then grouped
+   into `TextBlock`s by style continuity (Rule 5.1).
 2. pdfplumber runs table detection (`mdook.core.rules.tables`) — PyMuPDF
    has no equivalent.
 3. **Per-page text-quality scoring** (`mdook.core.rules.text_quality`)
@@ -97,17 +108,24 @@ For each page:
    downstream rule runs unchanged regardless of source. A page with no
    text *and* no images is recorded as intentionally blank and skips OCR
    entirely rather than logging a false "OCR failed" warning.
-4. Embedded raster images are extracted (`get_images()`); vector-drawn
-   diagrams with no embedded raster (flowcharts, charts drawn as PDF
-   paths) are detected via `page.get_drawings()` and rasterized
-   (`mdook.core.rules.images`). Nearby caption text is associated and
+4. Embedded raster images are extracted (`get_images()`) with micro-raster
+   thresholds (width >= 20px, height >= 20px, area >= 400px^2, and bbox >= 15pt x 15pt)
+   that discard printer dingbats, 1-pixel rules, and sub-pixel flourish dots while
+   preserving genuine visual figures. Vector-drawn diagrams with no embedded raster
+   (flowcharts, charts drawn as PDF paths) are detected via `page.get_drawings()`
+   and rasterized (`mdook.core.rules.images`). Nearby caption text is associated and
    removed from the ordinary text flow.
 5. A page whose lines report vertical writing mode (traditional CJK
    typesetting) is flagged (`is_vertical_text`) so later stages know not
    to apply horizontal-reading-order assumptions to it.
 6. Duplicate overlapping text layers (a scan carrying both a faint
    original layer and a separately-baked-in OCR layer) are deduplicated.
-7. Multi-column reading order (`mdook.core.rules.columns`) is
+7. Repeating headers, footers, and outer side margin running elements are
+   detected and stripped (`mdook.core.rules.headers_footers`). Candidate selection
+   includes horizontal bands (top 15% / bottom 15%) as well as extreme outer side
+   margins (outer 12% width: x1 <= 12% or x0 >= 88%), stripping full-page vertical
+   publisher watermarks that repeat across >= 5 pages.
+8. Multi-column reading order (`mdook.core.rules.columns`) is
    reconstructed as a final whole-book pass, once every page's blocks
    exist — right-to-left column order when the page's dominant script is
    RTL (`mdook.core.rules.scripts`).
