@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 
 from mdook.core.llm import LLMConfig
 from mdook.core.models import ConversionResult
+from mdook.core.scanner import scan_directory
 from mdook.gui.config import GUIConfig
 from mdook.gui.queue_manager import QueueItem, QueueManager
 from mdook.gui.settings_dialog import SettingsDialog
@@ -271,8 +272,15 @@ class MainWindow(QMainWindow):
         form_layout.setSpacing(12)
 
         # Book input row
-        pdf_row, self.pdf_path_edit, pdf_button = _field_row("Book File")
+        pdf_row, self.pdf_path_edit, pdf_button = _field_row("Input Source")
+        pdf_button.setText("File…")
         pdf_button.clicked.connect(self.browse_pdf)
+
+        folder_button = QPushButton("Folder…")
+        folder_button.clicked.connect(self.browse_input_folder)
+
+        pdf_row.layout().addWidget(folder_button)
+
         self.pdf_path_edit.textChanged.connect(self._on_book_path_changed)
         form_layout.addWidget(pdf_row)
 
@@ -573,6 +581,11 @@ class MainWindow(QMainWindow):
         if path_str:
             self.pdf_path_edit.setText(path_str)
 
+    def browse_input_folder(self) -> None:
+        path_str = QFileDialog.getExistingDirectory(self, "Select Folder of Books")
+        if path_str:
+            self.pdf_path_edit.setText(path_str)
+
     def browse_output(self) -> None:
         path_str = QFileDialog.getExistingDirectory(self, "Select Output Folder")
         if path_str:
@@ -588,6 +601,7 @@ class MainWindow(QMainWindow):
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls() and any(
             url.toLocalFile().lower().endswith((".pdf", ".epub", ".docx"))
+            or Path(url.toLocalFile()).is_dir()
             for url in event.mimeData().urls()
         ):
             self._set_dragging(True)
@@ -600,12 +614,20 @@ class MainWindow(QMainWindow):
 
     def dropEvent(self, event: QDropEvent) -> None:
         self._set_dragging(False)
-        pdf_paths = [
-            Path(url.toLocalFile())
-            for url in event.mimeData().urls()
-            if url.toLocalFile().lower().endswith((".pdf", ".epub", ".docx"))
-        ]
-        if not pdf_paths:
+        book_paths: list[Path] = []
+        for url in event.mimeData().urls():
+            local_path = Path(url.toLocalFile())
+            if local_path.is_file() and local_path.suffix.lower() in (".pdf", ".epub", ".docx"):
+                book_paths.append(local_path)
+            elif local_path.is_dir():
+                try:
+                    discovered = scan_directory(local_path, recursive=True)
+                    for book in discovered:
+                        book_paths.append(book.path)
+                except Exception:
+                    pass
+
+        if not book_paths:
             event.ignore()
             return
         event.acceptProposedAction()
@@ -622,7 +644,7 @@ class MainWindow(QMainWindow):
         llm_config = self.get_current_llm_config()
         single_file = self.single_radio.isChecked()
 
-        for pdf_path in pdf_paths:
+        for pdf_path in book_paths:
             self.queue_manager.add(
                 pdf_path, output_dir, profile, llm_config=llm_config, single_file=single_file
             )
@@ -742,17 +764,43 @@ class MainWindow(QMainWindow):
         output_dir_str = self.output_dir_edit.text().strip()
 
         if not pdf_path_str or not output_dir_str:
-            self.status_label.setText("Select a book file and an output folder first.")
+            self.status_label.setText("Select an input source and an output folder first.")
             return
 
+        input_path = Path(pdf_path_str)
+        output_dir = Path(output_dir_str)
+
+        book_paths: list[Path] = []
+        if input_path.is_file():
+            if input_path.suffix.lower() in (".pdf", ".epub", ".docx"):
+                book_paths.append(input_path)
+            else:
+                self.status_label.setText("Selected file is not a supported book format.")
+                return
+        elif input_path.is_dir():
+            try:
+                discovered = scan_directory(input_path, recursive=True)
+                for book in discovered:
+                    book_paths.append(book.path)
+            except Exception:
+                pass
+
+            if not book_paths:
+                self.status_label.setText("No supported books found in the selected folder.")
+                return
+
         single_file = self.single_radio.isChecked()
-        self.queue_manager.add(
-            Path(pdf_path_str),
-            Path(output_dir_str),
-            self.selected_profile(),
-            llm_config=self.get_current_llm_config(),
-            single_file=single_file,
-        )
+        profile = self.selected_profile()
+        llm_config = self.get_current_llm_config()
+
+        for p in book_paths:
+            self.queue_manager.add(
+                p,
+                output_dir,
+                profile,
+                llm_config=llm_config,
+                single_file=single_file,
+            )
         self._refresh_queue_list()
         self._start_next_queue_item()
 
