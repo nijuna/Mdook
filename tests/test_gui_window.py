@@ -219,7 +219,9 @@ def test_drag_enter_rejects_non_pdf(window: MainWindow) -> None:
     assert not event.isAccepted()
 
 
-def test_drop_without_output_folder_shows_status_and_does_not_queue(window: MainWindow, tmp_path: Path) -> None:
+def test_drop_without_output_folder_shows_status_and_does_not_queue(
+    window: MainWindow, tmp_path: Path
+) -> None:
     file = tmp_path / "book.pdf"
     file.touch()
 

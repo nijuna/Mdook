@@ -265,13 +265,17 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
             if item.suffix.lower() in (".pdf", ".epub", ".docx"):
                 book_files.append(item)
             else:
-                console.print(f"[bold yellow]Warning:[/bold yellow] Skipping unsupported file: '{item}'")
+                console.print(
+                    f"[bold yellow]Warning:[/bold yellow] Skipping unsupported file: '{item}'"
+                )
         elif item.is_dir():
             recursive = getattr(args, "recursive", False)
             try:
                 discovered = scan_directory(item, recursive=recursive)
                 if not discovered:
-                    console.print(f"[bold yellow]Warning:[/bold yellow] No supported books found in directory: '{item}'")
+                    console.print(
+                        f"[bold yellow]Warning:[/bold yellow] No supported books found in: '{item}'"
+                    )
                 for book in discovered:
                     book_files.append(book.path)
             except Exception as e:

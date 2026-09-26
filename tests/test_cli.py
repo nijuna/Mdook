@@ -64,10 +64,10 @@ def test_cli_convert_missing_file(tmp_path: Path) -> None:
 def test_cli_convert_directory_recursive(tmp_path: Path) -> None:
     book_dir = tmp_path / "mybooks"
     book_dir.mkdir()
-    pdf1 = _create_sample_pdf(book_dir / "book1.pdf")
+    _create_sample_pdf(book_dir / "book1.pdf")
     sub_dir = book_dir / "subdir"
     sub_dir.mkdir()
-    pdf2 = _create_sample_pdf(sub_dir / "book2.pdf")
+    _create_sample_pdf(sub_dir / "book2.pdf")
 
     vault_out = tmp_path / "out"
     console = Console(record=True)
