@@ -206,6 +206,12 @@ def test_drag_enter_accepts_pdf_and_sets_dragging_property(window: MainWindow) -
     assert event.isAccepted()
     assert window.form_card.property("dragging") is True
 
+def test_drag_enter_accepts_directory(window: MainWindow, tmp_path: Path) -> None:
+    _mime, event = _pdf_drag_enter_event([str(tmp_path)])
+    window.dragEnterEvent(event)
+    assert event.isAccepted()
+    assert window.form_card.property("dragging") is True
+
 
 def test_drag_enter_rejects_non_pdf(window: MainWindow) -> None:
     _mime, event = _pdf_drag_enter_event(["/tmp/book.txt"])
@@ -213,9 +219,12 @@ def test_drag_enter_rejects_non_pdf(window: MainWindow) -> None:
     assert not event.isAccepted()
 
 
-def test_drop_without_output_folder_shows_status_and_does_not_queue(window: MainWindow) -> None:
+def test_drop_without_output_folder_shows_status_and_does_not_queue(window: MainWindow, tmp_path: Path) -> None:
+    file = tmp_path / "book.pdf"
+    file.touch()
+
     window.output_dir_edit.setText("")
-    _mime, event = _pdf_drop_event(["/tmp/book.pdf"])
+    _mime, event = _pdf_drop_event([str(file)])
     window.dropEvent(event)
 
     assert window.queue_manager.items == []
@@ -223,33 +232,69 @@ def test_drop_without_output_folder_shows_status_and_does_not_queue(window: Main
 
 
 def test_drop_with_output_folder_queues_and_clears_dragging(
-    window: MainWindow, fake_worker: type[FakeWorker]
+    window: MainWindow, fake_worker: type[FakeWorker], tmp_path: Path
 ) -> None:
     window.output_dir_edit.setText("/out")
     window._set_dragging(True)
 
-    _mime, event = _pdf_drop_event(["/tmp/book1.pdf", "/tmp/book2.pdf"])
+    file1 = tmp_path / "book1.pdf"
+    file2 = tmp_path / "book2.pdf"
+    file1.touch()
+    file2.touch()
+
+    _mime, event = _pdf_drop_event([str(file1), str(file2)])
     window.dropEvent(event)
 
     assert len(window.queue_manager.items) == 2
     assert window.form_card.property("dragging") is False
     assert len(fake_worker.instances) == 1  # sequential processing started automatically
 
+def _create_sample_pdf(path: Path) -> Path:
+    import pymupdf
+    doc = pymupdf.open()
+    doc.new_page()
+    doc.save(path)
+    doc.close()
+    return path
+
+def test_drop_with_directory_scans_and_queues(
+    window: MainWindow, fake_worker: type[FakeWorker], tmp_path: Path
+) -> None:
+    window.output_dir_edit.setText("/out")
+    window._set_dragging(True)
+
+    book_dir = tmp_path / "mybooks"
+    book_dir.mkdir()
+    pdf1 = _create_sample_pdf(book_dir / "book1.pdf")
+
+    _mime, event = _pdf_drop_event([str(book_dir)])
+    window.dropEvent(event)
+
+    assert len(window.queue_manager.items) == 1
+    assert window.queue_manager.items[0].pdf_path == pdf1
+    assert window.form_card.property("dragging") is False
+    assert len(fake_worker.instances) == 1
+
 
 # -- Sequential queue processing ---------------------------------------------------
 
 
 def test_convert_click_starts_worker_for_queued_item(
-    window: MainWindow, fake_worker: type[FakeWorker]
+    window: MainWindow, fake_worker: type[FakeWorker], tmp_path: Path
 ) -> None:
-    window.pdf_path_edit.setText("/tmp/book.pdf")
-    window.output_dir_edit.setText("/out")
+    file = tmp_path / "book.pdf"
+    file.touch()
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+
+    window.pdf_path_edit.setText(str(file))
+    window.output_dir_edit.setText(str(out_dir))
 
     window.on_convert_clicked()
 
     assert len(fake_worker.instances) == 1
     worker = fake_worker.instances[0]
-    assert worker.pdf_path == Path("/tmp/book.pdf")
+    assert worker.pdf_path == file
     assert worker.started is True
     assert window.convert_button.isEnabled() is False
     assert window.queue_manager.items[0].status == "active"

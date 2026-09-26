@@ -59,7 +59,24 @@ def test_cli_convert_missing_file(tmp_path: Path) -> None:
     exit_code = run_cli(["convert", str(missing_path)], console=console)
     assert exit_code == 1
     output = console.export_text()
-    assert "File not found" in output
+    assert "Path not found" in output
+
+def test_cli_convert_directory_recursive(tmp_path: Path) -> None:
+    book_dir = tmp_path / "mybooks"
+    book_dir.mkdir()
+    pdf1 = _create_sample_pdf(book_dir / "book1.pdf")
+    sub_dir = book_dir / "subdir"
+    sub_dir.mkdir()
+    pdf2 = _create_sample_pdf(sub_dir / "book2.pdf")
+
+    vault_out = tmp_path / "out"
+    console = Console(record=True)
+
+    exit_code = run_cli(["convert", "-r", str(book_dir), "-o", str(vault_out)], console=console)
+    assert exit_code == 0
+
+    assert (vault_out / "book1").exists()
+    assert (vault_out / "book2").exists()
 
 
 def test_cli_convert_successful(tmp_path: Path) -> None:

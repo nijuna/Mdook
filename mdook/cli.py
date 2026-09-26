@@ -96,7 +96,13 @@ Examples:
         metavar="BOOK",
         nargs="+",
         type=Path,
-        help="Path to one or more input book files (.pdf, .epub, .docx).",
+        help="Path to one or more input book files or directories containing books.",
+    )
+    convert_parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Recursively scan any provided directories for supported books.",
     )
     convert_parser.add_argument(
         "-o",
@@ -247,17 +253,37 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
     llm_config = LLMConfig.from_env(**llm_overrides)
 
     overall_exit_code = 0
-    book_files: list[Path] = getattr(args, "books", None) or getattr(args, "pdf", [])
+    raw_inputs: list[Path] = getattr(args, "books", None) or getattr(args, "pdf", [])
+    book_files: list[Path] = []
+
+    for item in raw_inputs:
+        if not item.exists():
+            console.print(f"[bold red]Error:[/bold red] Path not found: '{item}'")
+            overall_exit_code = 1
+            continue
+        if item.is_file():
+            if item.suffix.lower() in (".pdf", ".epub", ".docx"):
+                book_files.append(item)
+            else:
+                console.print(f"[bold yellow]Warning:[/bold yellow] Skipping unsupported file: '{item}'")
+        elif item.is_dir():
+            recursive = getattr(args, "recursive", False)
+            try:
+                discovered = scan_directory(item, recursive=recursive)
+                if not discovered:
+                    console.print(f"[bold yellow]Warning:[/bold yellow] No supported books found in directory: '{item}'")
+                for book in discovered:
+                    book_files.append(book.path)
+            except Exception as e:
+                console.print(f"[bold red]Error scanning directory '{item}':[/bold red] {e}")
+                overall_exit_code = 1
+                continue
+
+    if not book_files and raw_inputs:
+        console.print("[bold red]Error:[/bold red] No valid book files to process.")
+        return 1
 
     for book_path in book_files:
-        if not book_path.exists():
-            console.print(f"[bold red]Error:[/bold red] File not found: '{book_path}'")
-            overall_exit_code = 1
-            continue
-        if not book_path.is_file():
-            console.print(f"[bold red]Error:[/bold red] Path is not a file: '{book_path}'")
-            overall_exit_code = 1
-            continue
 
         if not args.quiet:
             ai_status = (
