@@ -36,11 +36,15 @@ def convert(
     *,
     pdf_path: Path | None = None,
     single_file: bool = False,
+    core_only: bool = False,
 ) -> ConversionResult:
     """Convert a PDF, EPUB, or DOCX book into a Markdown library or single document.
 
     Writes the generated output into `output_dir`.
     """
+    if core_only:
+        single_file = True
+
     target_path = book_path if book_path is not None else pdf_path
     if target_path is None or output_dir is None:
         raise ValueError("Both input book path and output_dir must be provided.")
@@ -68,7 +72,7 @@ def convert(
 
         report(70, "Writing Markdown files...")
         if single_file:
-            render_result = render_single_file(tree, manifest, output_dir)
+            render_result = render_single_file(tree, manifest, output_dir, core_only=core_only)
         else:
             render_result = render_vault(tree, manifest, output_dir)
 
@@ -90,6 +94,7 @@ def convert(
             images=validation_report.total_images,
             llm_review_applied=False,
             single_file=single_file,
+            core_only=core_only,
         )
 
     if suffix == ".docx":
@@ -101,7 +106,7 @@ def convert(
 
         report(70, "Writing Markdown files...")
         if single_file:
-            render_result = render_single_file(tree, manifest, output_dir)
+            render_result = render_single_file(tree, manifest, output_dir, core_only=core_only)
         else:
             render_result = render_vault(tree, manifest, output_dir)
 
@@ -123,6 +128,7 @@ def convert(
             images=validation_report.total_images,
             llm_review_applied=False,
             single_file=single_file,
+            core_only=core_only,
         )
 
     effective_llm_config = llm_config if llm_config is not None else LLMConfig.from_env()
@@ -147,7 +153,7 @@ def convert(
 
     report(75, "Writing Markdown files...")
     if single_file:
-        render_result = render_single_file(tree, manifest, output_dir)
+        render_result = render_single_file(tree, manifest, output_dir, core_only=core_only)
     else:
         render_result = render_vault(tree, manifest, output_dir)
 
@@ -173,4 +179,5 @@ def convert(
         images=validation_report.total_images,
         llm_review_applied=llm_review_applied,
         single_file=single_file,
+        core_only=core_only,
     )

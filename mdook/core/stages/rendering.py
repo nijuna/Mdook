@@ -224,11 +224,18 @@ def render_vault(tree: DocumentTree, manifest: BookManifest, output_dir: Path) -
 
 
 def render_single_file(
-    tree: DocumentTree, manifest: BookManifest, output_dir: Path
+    tree: DocumentTree,
+    manifest: BookManifest,
+    output_dir: Path,
+    core_only: bool = False,
 ) -> RenderResult:
     """Renders the entire book into a single continuous Markdown file:
     `output_dir / {book title} / {book title}.md`, along with an `attachments/`
     subfolder for extracted images.
+
+    If `core_only` is True, front matter (prefaces, dedications, notices) and
+    back matter (indices, bibliographies) are omitted, producing a clean,
+    focused document containing only the core chapters and their footnotes.
 
     Images use universal standard markdown syntax: `![caption](attachments/filename)`.
     Footnotes across all chapters are consolidated into a single unified `## Footnotes`
@@ -241,12 +248,21 @@ def render_single_file(
     attachment_filenames: set[str] = set()
 
     # Determine internal anchor targets for endnotes / bibliographies in single file
-    has_notes = any(
-        _normalize_matter_title(s.title or "") in NOTE_SECTION_LABELS for s in tree.back_matter
+    has_notes = (
+        False
+        if core_only
+        else any(
+            _normalize_matter_title(s.title or "") in NOTE_SECTION_LABELS
+            for s in tree.back_matter
+        )
     )
-    has_bib = any(
-        _normalize_matter_title(s.title or "") in BIBLIOGRAPHY_SECTION_LABELS
-        for s in tree.back_matter
+    has_bib = (
+        False
+        if core_only
+        else any(
+            _normalize_matter_title(s.title or "") in BIBLIOGRAPHY_SECTION_LABELS
+            for s in tree.back_matter
+        )
     )
     notes_stem = "" if has_notes else None
     bibliography_stem = "" if has_bib else None
@@ -289,6 +305,8 @@ def render_single_file(
         frontmatter.append(f"edition: {tree.metadata.edition}")
     frontmatter.append(f"profile: {manifest.profile}")
     frontmatter.append("output_mode: single_document")
+    if core_only:
+        frontmatter.append("scope: core_chapters")
     frontmatter.append(f"converted: {date.today().isoformat()}")
     frontmatter.append("---")
     frontmatter.append("")
@@ -298,7 +316,7 @@ def render_single_file(
     lines.append("")
 
     # Front Matter
-    if tree.front_matter:
+    if not core_only and tree.front_matter:
         lines.append("## Front Matter")
         lines.append("")
         fm_lines, fm_used = _render_sections(
@@ -344,7 +362,7 @@ def render_single_file(
         attachment_filenames.update(ch_used)
 
     # Back Matter
-    if tree.back_matter:
+    if not core_only and tree.back_matter:
         back_matter_divisions = _split_back_matter(tree.back_matter)
         lines.append("## Back Matter")
         lines.append("")
@@ -813,11 +831,11 @@ def _render_footnote_markers(text: str, footnote_mapping: dict[str, str] | None 
 
 def _render_endnote_markers(text: str, notes_stem: str | None) -> str:
     """Rule 4.3/4.4 — turn a sentinel-wrapped endnote reference into a
-    wiki-link at the Notes section's `^note-N` block anchor, since Obsidian
+    link at the Notes section's `^note-N` block anchor, since markdown
     footnotes are file-scoped and can't point at a definition living in a
     different file."""
     if notes_stem is None:
-        return text
+        return ENDNOTE_SENTINEL_RE.sub(r"\1", text)
     target = f"{notes_stem}#" if notes_stem else "#"
     return ENDNOTE_SENTINEL_RE.sub(
         lambda m: f"[[{target}^note-{m.group(1)}|{m.group(1)}]]", text
@@ -825,11 +843,11 @@ def _render_endnote_markers(text: str, notes_stem: str | None) -> str:
 
 
 def _render_citation_markers(text: str, bibliography_stem: str | None) -> str:
-    """Batch 15 — turn a sentinel-wrapped numeric citation into a wiki-link
+    """Batch 15 — turn a sentinel-wrapped numeric citation into a link
     at the Bibliography/References section's `^ref-N` block anchor, the
     same mechanism `_render_endnote_markers` uses for `^note-N`."""
     if bibliography_stem is None:
-        return text
+        return CITATION_SENTINEL_RE.sub(r"\1", text)
     target = f"{bibliography_stem}#" if bibliography_stem else "#"
     return CITATION_SENTINEL_RE.sub(
         lambda m: f"[[{target}^ref-{m.group(1)}|{m.group(1)}]]", text

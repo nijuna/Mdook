@@ -345,3 +345,156 @@ def test_cli_parser_single_file_flag() -> None:
 
     args_default = parser.parse_args(["convert", "book.pdf"])
     assert args_default.single_file is False
+
+
+def test_render_single_file_core_only_omits_front_and_back_matter(tmp_path: Path) -> None:
+    manifest = _dummy_manifest("Core Focus Book")
+    ch_img = tmp_path / "chapter_diagram.png"
+    ch_img.write_bytes(b"\x89PNG\r\n\x1a\nFakeChImage")
+    fm_img = tmp_path / "front_cover.png"
+    fm_img.write_bytes(b"\x89PNG\r\n\x1a\nFakeFmImage")
+
+    tree = DocumentTree(
+        metadata=BookMetadata(
+            title="Core Focus Book",
+            author="Scholar Author",
+            isbn="978-1-234567-89-0",
+        ),
+        front_matter=[
+            Section(
+                title="Preface",
+                level=1,
+                content=[
+                    Paragraph(text="This is front matter preface.", page_number=1),
+                    ImageRef(
+                        source_path=str(fm_img),
+                        figure_id="fm-fig",
+                        caption="Frontispiece",
+                        page_number=1,
+                    ),
+                ],
+            )
+        ],
+        chapters=[
+            Chapter(
+                number=1,
+                title="Chapter 1: The Core",
+                level=1,
+                sections=[
+                    Section(
+                        title=None,
+                        level=1,
+                        content=[
+                            Paragraph(
+                                text=(
+                                    f"Main chapter discourse"
+                                    f"{FOOTNOTE_MARKER_SENTINEL}1{FOOTNOTE_MARKER_SENTINEL}."
+                                ),
+                                page_number=2,
+                            ),
+                            ImageRef(
+                                source_path=str(ch_img),
+                                figure_id="core-fig",
+                                caption="Core Schema",
+                                page_number=2,
+                            ),
+                        ],
+                    )
+                ],
+                footnotes=[
+                    Footnote(
+                        marker="1",
+                        text="Crucial chapter footnote.",
+                        page_number=2,
+                        style="page_bottom",
+                    )
+                ],
+            ),
+            Chapter(
+                number=2,
+                title="Chapter 2: The Conclusion",
+                level=1,
+                sections=[
+                    Section(
+                        title=None,
+                        level=1,
+                        content=[
+                            Paragraph(
+                                text="The core findings concluded here.",
+                                page_number=3,
+                            )
+                        ],
+                    )
+                ],
+            ),
+        ],
+        back_matter=[
+            Section(
+                title="Index",
+                level=1,
+                content=[Paragraph(text="Index entries and references.", page_number=4)],
+            ),
+            Section(
+                title="Notes",
+                level=1,
+                content=[Paragraph(text="Back matter endnotes.", page_number=5)],
+            ),
+        ],
+    )
+
+    out_dir = tmp_path / "output"
+    result = render_single_file(tree, manifest, out_dir, core_only=True)
+
+    assert result.index_path.exists()
+    content = result.index_path.read_text(encoding="utf-8")
+
+    # Frontmatter verifies single document and core_chapters scope
+    assert "output_mode: single_document" in content
+    assert "scope: core_chapters" in content
+
+    # Title is present
+    assert "# Core Focus Book" in content
+
+    # Front matter and back matter sections are strictly omitted
+    assert "## Front Matter" not in content
+    assert "Preface" not in content
+    assert "Frontispiece" not in content
+    assert "## Back Matter" not in content
+    assert "Index entries" not in content
+
+    # Core chapters are preserved
+    assert "## Chapter 1: The Core" in content
+    assert "Main chapter discourse[^1]." in content
+    assert "## Chapter 2: The Conclusion" in content
+    assert "The core findings concluded here." in content
+
+    # Footnotes from core chapters are preserved
+    assert "## Footnotes" in content
+    assert "[^1]: Crucial chapter footnote." in content
+
+    # Chapter images are copied; front matter images are not
+    assert (result.attachments_dir / "core-fig.png").exists()
+    assert not (result.attachments_dir / "fm-fig.png").exists()
+
+    # Validation passes cleanly
+    val_report = run_validation(tree, manifest, result)
+    assert not val_report.errors
+
+
+def test_pipeline_core_only_epub_integration(tmp_path: Path) -> None:
+    from tests.test_epub import _create_sample_epub
+
+    epub_path = _create_sample_epub(tmp_path / "sample.epub", title="Epub Core Sample")
+    out_dir = tmp_path / "epub_core_out"
+    conv_result = convert(book_path=epub_path, output_dir=out_dir, core_only=True)
+
+    assert conv_result.success
+    assert conv_result.single_file is True
+    assert conv_result.core_only is True
+
+    single_doc = conv_result.output_dir / f"{conv_result.manifest.title}.md"
+    assert single_doc.exists()
+    text = single_doc.read_text(encoding="utf-8")
+    assert "output_mode: single_document" in text
+    assert "scope: core_chapters" in text
+    assert "# Epub Core Sample" in text
