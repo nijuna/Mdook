@@ -81,6 +81,7 @@ Input: Book (.pdf / .epub / .docx)
 ### Dual Output Modes
 - **Modular Library (Default)**: Splits the book into numbered chapter notes, isolated front-matter and back-matter divisions, and a top-level Index note with Part hierarchies.
 - **Single Document Mode (`-s` / `--single-file`)**: Renders a verbatim 1:1 complete book copy into a single continuous Markdown file (`Title.md`) with standard markdown image links (`![caption](attachments/fig.png)`), local block anchor linking, and consolidated collision-free footnotes.
+- **Core Chapters Only Scope (`--core-only` / `--chapters-only`)**: In single document mode, selectively export strictly Chapter 1 through the final chapter, omitting front matter (prefaces, dedications) and back matter (indices, bibliographies).
 
 ### Interactive Terminal Wizard & Directory Scanner
 - **Publication Discovery (`mdook scan`)**: Fast scanning of local directories for supported books (`.pdf`, `.epub`, `.docx`) with instant metadata sniffing (title, author, format, size) rendered in a Rich table or clean JSON (`--json`).
@@ -196,6 +197,9 @@ uv run mdook convert book.pdf -o ./output/
 
 # Convert a book into a single continuous 1:1 Markdown file:
 uv run mdook convert book.pdf -o ./output/ --single-file
+
+# Convert core chapters only (omits front matter prefaces and back matter indices):
+uv run mdook convert book.pdf -o ./output/ --core-only
 
 # Convert an EPUB3 book:
 uv run mdook convert novel.epub -o ./output/

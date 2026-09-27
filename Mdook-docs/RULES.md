@@ -684,5 +684,32 @@ See Rule 2.3's OCR & Script Considerations above. `mdook/core/rules/scripts.py`'
 
 `mdook/core/formats/epub.py`'s `_parse_epub`.
 
+---
+
+## 20. Single Document Rendering & Scope Control
+
+**Goal:** Provide clean, distraction-free reading formats for single-document exports, allowing readers to isolate core narrative chapters from supplementary front-matter and back-matter apparatus.
+
+### Rule 20.1 — Continuous Single Document Rendering
+
+- **Condition:** Single document output mode (`single_file=True`, `-s` / `--single-file`).
+- **Action:** Render entire book into a single continuous file (`{title}.md`), omitting per-page callouts (`> [!quote]- p. N`) to preserve flowing reading continuity.
+- **Image Links:** Universal standard markdown syntax (`![caption](attachments/filename)`).
+- **Footnote Handling:** Consolidate footnotes across all chapters into a unified `## Footnotes` section at the document footer, resolving marker collisions with sequential counters.
+
+### Rule 20.2 — Core Chapters Only Scoping (`--core-only` / `--chapters-only`)
+
+- **Condition:** Core-only scope requested (`core_only=True`).
+- **Action:**
+  1. **Front Matter Filtering:** Omit all sections in `DocumentTree.front_matter` (title pages, copyright, dedications, prefaces, forewords).
+  2. **Back Matter Filtering:** Omit all sections in `DocumentTree.back_matter` (indices, glossaries, endnotes, bibliographies, appendices).
+  3. **Core Chapter Preservation:** Render strictly from Chapter 1 through the final chapter in `DocumentTree.chapters` (including Part divisions if present).
+  4. **Footnote Attachment:** Consolidate footnotes attached to the included core chapters in `## Footnotes`.
+  5. **Attachment Scoping:** Only copy images and figures referenced within the included core chapters into `attachments/`.
+  6. **Sentinel Protection:** Strip unresolved endnote and citation sentinels when back-matter targets are omitted, preventing broken internal anchors or raw control bytes.
+  7. **Metadata Tagging:** Record `output_mode: single_document` and `scope: core_chapters` in YAML frontmatter.
+
+`mdook/core/stages/rendering.py`'s `render_single_file`.
+
 
 

@@ -171,6 +171,14 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 
 ---
 
+## Sprint 2.1.0 — Core-Only Chapter Scoping for Single Documents
+
+**Goal:** Provide focused reading exports in Single Document mode, omitting apparatus clutter (copyright pages, prefaces, dedications, notices, back-matter indices, bibliographies).
+
+- [x] **Core-Only Single Document Scoping (`--core-only` / `--chapters-only`)** — Added focused reading scope for single document conversions. Users can omit apparatus clutter, generating a clean, continuous document strictly containing Chapter 1 through the final chapter with unified footnote consolidation and referenced image scoping.
+- [x] **Unified CLI & Interactive Wizard Scope Controls** — Integrated `--core-only` and `--chapters-only` flags into `mdook convert` and added guided scope prompting (`Full Document` vs `Core Chapters Only`) when Single Document format is selected in the interactive terminal wizard.
+- [x] **Desktop GUI Scope Toggle** — Added interactive `Core chapters only` checkbox under Output Mode, enabled conditionally when Single Document mode is active, integrated into background conversion queues and settings persistence.
+
 ## Testing Strategy Across Phases
 
 ### Test Library

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Core-Only Single Document Scoping (`--core-only` / `--chapters-only`)**:
+  - Implemented focused reading scope for single document conversions (`render_single_file` with `core_only=True`).
+  - Omits front matter (copyright pages, prefaces, dedications, notices) and back matter (indices, bibliographies, appendices), rendering strictly from Chapter 1 through the final chapter.
+  - Consolidates footnotes attached to the core chapters at the bottom of the document and copies only attachments referenced within included chapters.
+  - Normalizes endnote and citation sentinels when back-matter targets are omitted, preventing broken internal anchors or leaked control characters.
+  - Adds `scope: core_chapters` in YAML frontmatter alongside `output_mode: single_document`.
+- **Interactive CLI & Wizard Scope Integration**:
+  - Added `--core-only` (and alias `--chapters-only`) to `mdook convert` CLI parser, automatically enabling single document output mode with formatted Rich summary reporting.
+  - Added interactive scope prompt in `mdook interactive` wizard when Single Document format is selected (`Full Document` vs `Core Chapters Only`).
+- **Desktop GUI Scope Control**:
+  - Added `Core chapters only` checkbox to the desktop GUI output mode selector, enabled conditionally when Single Document mode is active.
+  - Added core-only default preference support in the Settings dialog and persisted configuration (`gui_config.json`).
+  - Updated conversion queue management, status indicators, and completion actions to reflect library and single-document modes.
+
 ## [2.0.1] - 2026-09-23
 
 ### Fixed

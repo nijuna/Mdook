@@ -290,6 +290,7 @@ MyBook/
 - **Standard Image Links**: Uses universal markdown syntax (`![caption](attachments/fig.png)`).
 - **Intra-Document Anchors**: Footnotes and citations link locally via `[[#^note-1|1]]` and `[[#^ref-1|1]]`.
 - **Consolidated Footnotes**: Deduplicates marker collisions across chapters and collects all notes into a document-level `## Footnotes` section.
+- **Core Chapters Only Scope (`--core-only` / `--chapters-only`)**: When activated, selectively omits front matter (prefaces, dedications, notices) and back matter (indices, bibliographies, appendices), outputting strictly Chapter 1 through the final chapter with attached footnotes preserved.
 
 ### Content-Type Rendering Details
 
