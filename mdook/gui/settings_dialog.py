@@ -137,14 +137,22 @@ class SettingsDialog(QDialog):
         out_mode_row = QHBoxLayout()
         out_mode_label = QLabel("Default Output Mode:")
         out_mode_label.setFixedWidth(150)
-        self.vault_radio = QRadioButton("Modular Vault")
+        self.vault_radio = QRadioButton("Modular Library")
         self.single_radio = QRadioButton("Single Document (.md)")
+        self.core_only_cb = QCheckBox("Core chapters only")
+        self.core_only_cb.setToolTip(
+            "Omit front matter and back matter indices, exporting strictly from Chapter 1 to end"
+        )
+        self.core_only_cb.setEnabled(False)
+        self.single_radio.toggled.connect(self.core_only_cb.setEnabled)
+
         self.out_mode_group = QButtonGroup(self)
         self.out_mode_group.addButton(self.vault_radio)
         self.out_mode_group.addButton(self.single_radio)
         out_mode_row.addWidget(out_mode_label)
         out_mode_row.addWidget(self.vault_radio)
         out_mode_row.addWidget(self.single_radio)
+        out_mode_row.addWidget(self.core_only_cb)
         out_mode_row.addStretch()
         pref_layout.addLayout(out_mode_row)
 
@@ -273,8 +281,11 @@ class SettingsDialog(QDialog):
         # Conversion Preferences
         if self.config.output_mode == "single_document":
             self.single_radio.setChecked(True)
+            self.core_only_cb.setEnabled(True)
         else:
             self.vault_radio.setChecked(True)
+            self.core_only_cb.setEnabled(False)
+        self.core_only_cb.setChecked(getattr(self.config, "core_only", False))
 
         prof_idx = self.profile_combo.findData(self.config.profile)
         if prof_idx >= 0:
@@ -363,6 +374,9 @@ class SettingsDialog(QDialog):
         self.config.theme_family = family
         self.config.color_mode = mode
         self.config.output_mode = out_mode
+        self.config.core_only = (
+            self.core_only_cb.isChecked() if self.single_radio.isChecked() else False
+        )
         self.config.profile = profile
         self.config.output_dir = output_dir
         self.config.ai_enabled = ai_enabled

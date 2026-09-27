@@ -71,7 +71,7 @@ def test_cli_convert_successful(tmp_path: Path) -> None:
     assert exit_code == 0
 
     output = console.export_text()
-    assert "Vault Generated" in output
+    assert "Library Generated" in output
     assert "Chapters" in output
 
     vault_dir = vault_out / "sample"
@@ -94,7 +94,7 @@ def test_cli_convert_quiet_mode(tmp_path: Path) -> None:
 
     output = console.export_text()
     # In quiet mode, progress bar and summary table are suppressed
-    assert "Vault Generated" not in output
+    assert "Library Generated" not in output
 
     vault_dir = vault_out / "quiet_sample"
     assert vault_dir.exists()
@@ -238,7 +238,7 @@ def test_cli_interactive_subcommand_execution(tmp_path: Path) -> None:
     assert exit_code == 0
     output = console.export_text()
     assert "Pre-Flight Conversion Summary" in output
-    assert "Vault Generated: Wizard Book" in output
+    assert "Library Generated: Wizard Book" in output
     assert (out_dir / "Wizard Book").exists()
 
 
@@ -320,7 +320,29 @@ def test_cli_headless_autoprompt_accept(tmp_path: Path, monkeypatch: pytest.Monk
     output = console.export_text()
     assert "Found 1 supported publication(s) in current directory" in output
     assert "Pre-Flight Conversion Summary" in output
-    assert "Vault Generated: Auto Book" in output
+    assert "Library Generated: Auto Book" in output
     assert (out_dir / "Auto Book").exists()
+
+
+def test_cli_convert_core_only_flag(tmp_path: Path) -> None:
+    pdf_path = _create_sample_pdf(tmp_path / "core_cli.pdf", title="Core CLI Book")
+    out_dir = tmp_path / "core_cli_out"
+    console = Console(record=True)
+
+    exit_code = run_cli(
+        ["convert", str(pdf_path), "-o", str(out_dir), "--core-only"],
+        console=console,
+    )
+    assert exit_code == 0
+
+    output = console.export_text()
+    assert "Document Generated: Core CLI Book" in output
+    assert "Single Document (.md) [Core Only]" in output
+
+    doc_file = out_dir / "Core CLI Book" / "Core CLI Book.md"
+    assert doc_file.exists()
+    content = doc_file.read_text(encoding="utf-8")
+    assert "output_mode: single_document" in content
+    assert "scope: core_chapters" in content
 
 

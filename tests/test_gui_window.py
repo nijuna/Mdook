@@ -47,6 +47,7 @@ class FakeWorker:
         parent=None,
         llm_config=None,
         single_file: bool = False,
+        core_only: bool = False,
         **kwargs,
     ):
         self.pdf_path = pdf_path
@@ -54,6 +55,7 @@ class FakeWorker:
         self.profile = profile
         self.llm_config = llm_config
         self.single_file = single_file
+        self.core_only = core_only
         self.started = False
         self._progress_slots: list[Callable[[int, str], None]] = []
         self._finished_slots: list[Callable[[ConversionResult], None]] = []
@@ -439,3 +441,57 @@ def test_ai_test_connection_model_not_found_hint(window: MainWindow) -> None:
     assert "Model not found" in window.test_connection_status.text()
     assert "Fetch Models" in window.test_connection_status.text()
     assert window.test_connection_status.property("status") == "error"
+
+
+def test_gui_core_only_checkbox_interaction_and_conversion(
+    window: MainWindow, fake_worker: type[FakeWorker], tmp_path: Path
+) -> None:
+    # Initially vault_radio is checked, so core_only_check must be disabled
+    assert window.vault_radio.isChecked() is True
+    assert window.core_only_check.isEnabled() is False
+    assert window.core_only_check.isChecked() is False
+
+    # Switching to single_radio enables core_only_check
+    window.single_radio.setChecked(True)
+    assert window.core_only_check.isEnabled() is True
+
+    # Checking core_only_check
+    window.core_only_check.setChecked(True)
+    assert window.core_only_check.isChecked() is True
+
+    # Switching back to vault_radio disables and unchecks core_only_check
+    window.vault_radio.setChecked(True)
+    assert window.core_only_check.isEnabled() is False
+    assert window.core_only_check.isChecked() is False
+
+    # Set up conversion with single document and core_only
+    window.single_radio.setChecked(True)
+    window.core_only_check.setChecked(True)
+
+    dummy_pdf = tmp_path / "gui_test.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4 test")
+    window.pdf_path_edit.setText(str(dummy_pdf))
+    window.output_dir_edit.setText(str(tmp_path / "gui_out"))
+
+    window.on_convert_clicked()
+
+    # Verify worker was passed single_file=True and core_only=True
+    assert len(fake_worker.instances) == 1
+    worker = fake_worker.instances[0]
+    assert worker.single_file is True
+    assert worker.core_only is True
+
+    # Test on_finished updates UI appropriately
+    res = ConversionResult(
+        success=True,
+        output_dir=tmp_path / "gui_out" / "gui_test",
+        single_file=True,
+        core_only=True,
+        pages=5,
+        chapters=3,
+        footnotes=2,
+        images=1,
+    )
+    worker.emit_finished(res)
+    assert "Single Document (.md) [Core Only]" in window.summary_label.text()
+    assert window.open_vault_button.text() == "Open File"

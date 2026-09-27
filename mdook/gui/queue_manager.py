@@ -25,6 +25,7 @@ class QueueItem:
     status: QueueStatus = "pending"
     llm_config: object = None
     single_file: bool = False
+    core_only: bool = False
     id: int = field(default_factory=lambda: next(_id_counter))
 
     @property
@@ -49,6 +50,7 @@ class QueueManager:
         profile: str,
         llm_config: object = None,
         single_file: bool = False,
+        core_only: bool = False,
     ) -> QueueItem:
         item = QueueItem(
             pdf_path=pdf_path,
@@ -56,6 +58,7 @@ class QueueManager:
             profile=profile,
             llm_config=llm_config,
             single_file=single_file,
+            core_only=core_only,
         )
         self._items.append(item)
         return item

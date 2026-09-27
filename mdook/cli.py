@@ -120,6 +120,15 @@ Examples:
         help="Output a single continuous Markdown file instead of a chapter-split modular library.",
     )
     convert_parser.add_argument(
+        "--core-only",
+        "--chapters-only",
+        dest="core_only",
+        action="store_true",
+        help="In single document mode, export only core chapters (Chapter 1 to end), "
+        "omitting front matter (prefaces, dedications) and back matter (indices). "
+        "Automatically enables single document output.",
+    )
+    convert_parser.add_argument(
         "--ai",
         action="store_true",
         default=None,
@@ -259,11 +268,19 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
             overall_exit_code = 1
             continue
 
+        core_only_active = getattr(args, "core_only", False)
+        single_file_active = getattr(args, "single_file", False) or core_only_active
+
         if not args.quiet:
             ai_status = (
                 f" | AI: [cyan]{llm_config.model}[/cyan]" if llm_config.enabled else ""
             )
-            mode_status = "Single Document" if args.single_file else "Modular Library"
+            if core_only_active:
+                mode_status = "Single Document (Core Chapters Only)"
+            elif single_file_active:
+                mode_status = "Single Document"
+            else:
+                mode_status = "Modular Library"
             panel_text = (
                 f"[bold #f59e0b] ╭───╮   ╭───╮[/]   [bold white]Mdook[/]  [dim]v{__version__}[/]\n"
                 f"[bold #f59e0b] │ ≡ ╰─┬─╯ ≡ │[/]   Converting "
@@ -281,7 +298,8 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                     profile=args.profile,
                     on_progress=None,
                     llm_config=llm_config,
-                    single_file=args.single_file,
+                    single_file=single_file_active,
+                    core_only=core_only_active,
                 )
             else:
                 with Progress(
@@ -304,14 +322,15 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                         profile=args.profile,
                         on_progress=on_progress,
                         llm_config=llm_config,
-                        single_file=args.single_file,
+                        single_file=single_file_active,
+                        core_only=core_only_active,
                     )
 
             if not args.quiet:
                 table_title = (
                     f"Document Generated: {res.manifest.title}"
                     if res.single_file
-                    else f"Vault Generated: {res.manifest.title}"
+                    else f"Library Generated: {res.manifest.title}"
                 )
                 table = Table(
                     title=table_title,
@@ -321,11 +340,16 @@ def run_convert(args: argparse.Namespace, console: Console) -> int:
                 table.add_column("Metric", style="dim")
                 table.add_column("Value", style="bold")
                 if res.single_file:
-                    table.add_row("Output Mode", "Single Document (.md)")
+                    mode_desc = (
+                        "Single Document (.md) [Core Only]"
+                        if res.core_only
+                        else "Single Document (.md)"
+                    )
+                    table.add_row("Output Mode", mode_desc)
                     table.add_row("Output File", str(res.output_dir / f"{res.manifest.title}.md"))
                 else:
-                    table.add_row("Output Mode", "Modular Vault")
-                    table.add_row("Vault Directory", str(res.output_dir))
+                    table.add_row("Output Mode", "Modular Library")
+                    table.add_row("Library Directory", str(res.output_dir))
                 table.add_row(
                     "Pages",
                     f"{res.pages}"
@@ -468,6 +492,7 @@ def run_interactive(
         output=cfg.output_dir,
         profile=cfg.profile,
         single_file=cfg.single_file,
+        core_only=cfg.core_only,
         ai=cfg.ai_enabled,
         no_ai=not cfg.ai_enabled,
         ai_model=cfg.ai_model,

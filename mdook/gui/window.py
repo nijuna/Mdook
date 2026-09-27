@@ -166,8 +166,12 @@ class MainWindow(QMainWindow):
     def _apply_config_defaults(self) -> None:
         if self.config.output_mode == "single_document":
             self.single_radio.setChecked(True)
+            self.core_only_check.setEnabled(True)
+            self.core_only_check.setChecked(getattr(self.config, "core_only", False))
         else:
             self.vault_radio.setChecked(True)
+            self.core_only_check.setEnabled(False)
+            self.core_only_check.setChecked(False)
 
         if self.config.output_dir:
             self.output_dir_edit.setText(self.config.output_dir)
@@ -206,8 +210,12 @@ class MainWindow(QMainWindow):
 
         if config.output_mode == "single_document":
             self.single_radio.setChecked(True)
+            self.core_only_check.setEnabled(True)
+            self.core_only_check.setChecked(getattr(config, "core_only", False))
         else:
             self.vault_radio.setChecked(True)
+            self.core_only_check.setEnabled(False)
+            self.core_only_check.setChecked(False)
 
         if not self.output_dir_edit.text() and config.output_dir:
             self.output_dir_edit.setText(config.output_dir)
@@ -311,14 +319,22 @@ class MainWindow(QMainWindow):
         out_mode_label.setObjectName("FieldLabel")
         out_mode_label.setFixedWidth(110)
 
-        self.vault_radio = QRadioButton("Modular Vault")
+        self.vault_radio = QRadioButton("Modular Library")
         self.vault_radio.setToolTip(
-            "Multi-file vault with linked chapter notes, TOC, and attachments"
+            "Multi-file library with linked chapter notes, TOC, and attachments"
         )
         self.single_radio = QRadioButton("Single Document (.md)")
         self.single_radio.setToolTip(
             "Single continuous 1:1 book copy with universal standard image links"
         )
+        self.core_only_check = QCheckBox("Core chapters only")
+        self.core_only_check.setToolTip(
+            "Omit front matter (prefaces, dedications) and back matter (indices), "
+            "exporting strictly from Chapter 1 to final chapter"
+        )
+        self.core_only_check.setEnabled(False)
+        self.single_radio.toggled.connect(self._on_single_file_toggled)
+
         self.out_mode_group = QButtonGroup(self)
         self.out_mode_group.addButton(self.vault_radio)
         self.out_mode_group.addButton(self.single_radio)
@@ -327,6 +343,7 @@ class MainWindow(QMainWindow):
         out_mode_layout.addWidget(out_mode_label)
         out_mode_layout.addWidget(self.vault_radio)
         out_mode_layout.addWidget(self.single_radio)
+        out_mode_layout.addWidget(self.core_only_check)
         out_mode_layout.addStretch()
         form_layout.addWidget(out_mode_row)
 
@@ -621,13 +638,24 @@ class MainWindow(QMainWindow):
         profile = self.selected_profile()
         llm_config = self.get_current_llm_config()
         single_file = self.single_radio.isChecked()
+        core_only = self.core_only_check.isChecked() if single_file else False
 
         for pdf_path in pdf_paths:
             self.queue_manager.add(
-                pdf_path, output_dir, profile, llm_config=llm_config, single_file=single_file
+                pdf_path,
+                output_dir,
+                profile,
+                llm_config=llm_config,
+                single_file=single_file,
+                core_only=core_only,
             )
         self._refresh_queue_list()
         self._start_next_queue_item()
+
+    def _on_single_file_toggled(self, checked: bool) -> None:
+        self.core_only_check.setEnabled(checked)
+        if not checked:
+            self.core_only_check.setChecked(False)
 
     def _toggle_ai_settings(self, checked: bool) -> None:
         self.ai_settings_widget.setVisible(checked)
@@ -746,12 +774,14 @@ class MainWindow(QMainWindow):
             return
 
         single_file = self.single_radio.isChecked()
+        core_only = self.core_only_check.isChecked() if single_file else False
         self.queue_manager.add(
             Path(pdf_path_str),
             Path(output_dir_str),
             self.selected_profile(),
             llm_config=self.get_current_llm_config(),
             single_file=single_file,
+            core_only=core_only,
         )
         self._refresh_queue_list()
         self._start_next_queue_item()
@@ -786,6 +816,7 @@ class MainWindow(QMainWindow):
             profile=next_item.profile,
             llm_config=next_item.llm_config,
             single_file=next_item.single_file,
+            core_only=next_item.core_only,
             parent=self,
         )
         self.worker.progress_updated.connect(self.on_progress)
@@ -823,7 +854,13 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Complete!")
         self._last_output_dir = result.output_dir
 
-        mode_str = "Single Document (.md)" if result.single_file else "Modular Vault"
+        if result.single_file:
+            mode_str = (
+                "Single Document (.md)"
+                + (" [Core Only]" if getattr(result, "core_only", False) else "")
+            )
+        else:
+            mode_str = "Modular Library"
         summary_text = (
             f"Pages: {result.pages}    "
             f"Chapters: {result.chapters}    "
@@ -843,7 +880,7 @@ class MainWindow(QMainWindow):
             self.summary_note_label.setVisible(False)
 
         self.summary_card.setVisible(True)
-        self.open_vault_button.setText("Open File" if result.single_file else "Open Vault")
+        self.open_vault_button.setText("Open File" if result.single_file else "Open Library")
         self.open_vault_button.setVisible(result.success)
 
         if self._active_item is not None:

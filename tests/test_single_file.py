@@ -339,12 +339,21 @@ def test_cli_parser_single_file_flag() -> None:
     parser = build_parser()
     args = parser.parse_args(["convert", "book.pdf", "-s"])
     assert args.single_file is True
+    assert args.core_only is False
 
     args_long = parser.parse_args(["convert", "book.pdf", "--single-file"])
     assert args_long.single_file is True
+    assert args_long.core_only is False
+
+    args_core = parser.parse_args(["convert", "book.pdf", "--core-only"])
+    assert args_core.core_only is True
+
+    args_chapters = parser.parse_args(["convert", "book.pdf", "--chapters-only"])
+    assert args_chapters.core_only is True
 
     args_default = parser.parse_args(["convert", "book.pdf"])
     assert args_default.single_file is False
+    assert args_default.core_only is False
 
 
 def test_render_single_file_core_only_omits_front_and_back_matter(tmp_path: Path) -> None:

@@ -31,6 +31,7 @@ class WizardConfig:
     output_dir: Path
     profile: str = "auto"
     single_file: bool = False
+    core_only: bool = False
     ai_enabled: bool = False
     ai_model: str | None = None
     ai_base_url: str | None = None
@@ -235,7 +236,18 @@ def interactive_wizard(
     c.print("  [2] Single Document (Single continuous Markdown file)")
     mode_choice = _prompt_user("Select mode", default="1", console=c, input_fn=input_fn)
     single_file = mode_choice.strip() == "2"
-    mode_label = "Single Document" if single_file else "Modular Library"
+    core_only = False
+    if single_file:
+        c.print("[bold cyan]Single Document Scope:[/bold cyan]")
+        c.print("  [1] Full Document (Include prefaces, front matter, and back matter indices)")
+        c.print("  [2] Core Chapters Only (Strictly Chapter 1 to final chapter)")
+        scope_choice = _prompt_user("Select scope", default="1", console=c, input_fn=input_fn)
+        core_only = scope_choice.strip() == "2"
+        mode_label = (
+            "Single Document (Core Chapters Only)" if core_only else "Single Document (Full)"
+        )
+    else:
+        mode_label = "Modular Library"
     c.print(f"[green]Mode:[/green] {mode_label}")
     c.print()
 
@@ -359,6 +371,7 @@ def interactive_wizard(
         output_dir=output_dir,
         profile=profile,
         single_file=single_file,
+        core_only=core_only,
         ai_enabled=ai_enabled,
         ai_model=ai_model,
         ai_base_url=ai_base_url,

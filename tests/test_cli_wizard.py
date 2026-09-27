@@ -133,6 +133,7 @@ def test_interactive_wizard_flow_single_file_custom(tmp_path: Path) -> None:
     inputs = [
         "1",           # Step 1: select book 1
         "2",           # Step 2: single document mode
+        "1",           # Step 2b: full document scope
         "2",           # Step 3: literature profile
         str(tmp_path / "custom_lib"),  # Step 4: dest dir
         "n",           # Step 5: no AI
@@ -150,8 +151,38 @@ def test_interactive_wizard_flow_single_file_custom(tmp_path: Path) -> None:
     assert cfg is not None
     assert cfg.books == [pdf1.resolve()]
     assert cfg.single_file is True
+    assert cfg.core_only is False
     assert cfg.profile == "literature"
     assert cfg.output_dir == (tmp_path / "custom_lib").resolve()
+
+
+def test_interactive_wizard_flow_single_file_core_only(tmp_path: Path) -> None:
+    pdf1 = _create_sample_pdf(tmp_path / "core_doc.pdf")
+    console = Console(record=True)
+
+    inputs = [
+        "1",           # Step 1: select book 1
+        "2",           # Step 2: single document mode
+        "2",           # Step 2b: core chapters only scope
+        "1",           # Step 3: auto profile
+        str(tmp_path / "core_out"),  # Step 4: dest dir
+        "n",           # Step 5: no AI
+        "y",           # Step 6: confirm
+    ]
+    input_idx = 0
+
+    def mock_input(prompt: str) -> str:
+        nonlocal input_idx
+        val = inputs[input_idx]
+        input_idx += 1
+        return val
+
+    cfg = interactive_wizard(console=console, start_dir=tmp_path, input_fn=mock_input)
+    assert cfg is not None
+    assert cfg.books == [pdf1.resolve()]
+    assert cfg.single_file is True
+    assert cfg.core_only is True
+    assert cfg.output_dir == (tmp_path / "core_out").resolve()
 
 
 def test_interactive_wizard_flow_ai_ollama(tmp_path: Path) -> None:

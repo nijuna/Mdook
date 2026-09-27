@@ -16,6 +16,7 @@ class GUIConfig:
     theme_family: str = "library"  # "library" | "amethyst" | "carbon"
     color_mode: str = "dark"  # "dark" | "light"
     output_mode: str = "vault"  # "vault" | "single_document"
+    core_only: bool = False
     profile: str = "auto"  # "auto" | "literature" | "technical"
     output_dir: str = ""
     ai_enabled: bool = False
