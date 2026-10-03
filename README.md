@@ -10,8 +10,26 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-366%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-369%20passed-brightgreen.svg)](https://github.com/nijuna/Mdook/actions)
 
+<p align="center">
+  <a href="https://github.com/nijuna/Mdook/releases/latest/download/Mdook-Setup-x64.exe">
+    <img src="https://img.shields.io/badge/Windows-Download%20Installer%20(.exe)-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download Mdook for Windows (.exe)" />
+  </a>
+  <a href="https://github.com/nijuna/Mdook/releases/latest/download/mdook_2.0.1_amd64.deb">
+    <img src="https://img.shields.io/badge/Linux-Download%20(.deb)-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download Mdook for Linux (.deb)" />
+  </a>
+  <a href="https://github.com/nijuna/Mdook/releases/latest/download/Mdook-2.0.1.dmg">
+    <img src="https://img.shields.io/badge/macOS-Download%20(.dmg)-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download Mdook for macOS (.dmg)" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Linux 1-Line Terminal Install:</strong> <code>curl -fsSL https://raw.githubusercontent.com/nijuna/Mdook/main/packaging/linux/install.sh | bash</code>
+  <br />
+  <a href="https://github.com/nijuna/Mdook/releases/latest">View All Releases & Checksums</a> &bull;
+  <a href="#installation--1-click-setup">Installation Instructions</a>
+</p>
 
 </div>
 
@@ -23,30 +41,71 @@ Most document-to-Markdown tools produce a single, messy text dump with broken pa
 
 **Mdook** is an application engineered specifically for **books**. It ingests PDF documents, EPUB3 publications, and Word (DOCX) manuscripts, analyzes typography and document structure through deterministic heuristics or native container markup, and generates either an **interlinked, chapter-split Markdown library** or a verbatim **Single Document** (`.md`) ready for reading and personal knowledge management.
 
-```text
-Input: Book (.pdf / .epub / .docx)
-   │
-   ├── [PDF Path] ──────────► [Stage 1: Intake] ──► [Stage 2: Extraction] ──► [Stage 3: Semantics]
-   │                                                                               │
-   ├── [EPUB3 Path] ────────► Direct XHTML & TOC Parsing into DocumentTree ────────┤
-   │                                                                               │
-   └── [DOCX Path] ─────────► Direct OpenXML & Styles Parsing into DocumentTree ───┤
-                                                                                   ▼
-                                                                       [Stage 4: Rendering]
-                                                                       ┌───────────┴───────────┐
-                                                                       ▼                       ▼
-                                                                [Modular Library]      [Single Document]
-                                                                       │                       │
-                                                                       ▼                       ▼
-                                                                  [Stage 5: Validation Audit]
-                                                                       │                       │
-                                                                       ▼                       ▼
-                                                            /My-Book-Library/        /My-Book/
-                                                            ├── Title - Index.md     ├── Title.md
-                                                            ├── 00 - Front Matter.md └── attachments/
-                                                            ├── 01 - Chapter 1.md
-                                                            ├── Appendix.md
-                                                            └── attachments/
+```mermaid
+flowchart TD
+    subgraph Intake["Book Intake Formats"]
+        PDF["PDF (.pdf)"]
+        EPUB["EPUB3 (.epub)"]
+        DOCX["Word (.docx)"]
+    end
+
+    subgraph Pipeline["Semantic Processing Pipeline"]
+        S1["Stage 1: Intake & Geometry"]
+        S2["Stage 2: Extraction & OCR"]
+        S3["Stage 3: Typography & Semantics"]
+        E1["Direct XHTML & TOC Parsing"]
+        D1["Direct OpenXML & Styles Parsing"]
+        Tree["Canonical DocumentTree"]
+    end
+
+    PDF --> S1
+    S1 --> S2
+    S2 --> S3
+    EPUB --> E1
+    DOCX --> D1
+    S3 --> Tree
+    E1 --> Tree
+    D1 --> Tree
+
+    subgraph Rendering["Stage 4: Rendering Engine"]
+        Split{"Output Mode"}
+        Mod["Modular Library Engine"]
+        Single["Single Document Engine"]
+    end
+
+    Tree --> Split
+    Split -->|"Default"| Mod
+    Split -->|"--single-file"| Single
+
+    subgraph Validation["Stage 5: Validation Audit"]
+        Audit1["Structural & Link Audit"]
+        Audit2["Completeness & Footnote Audit"]
+    end
+
+    Mod --> Audit1
+    Single --> Audit2
+
+    subgraph OutMod["/My-Book-Library/"]
+        M_IDX["Title - Index.md"]
+        M_FRONT["00 - Front Matter.md"]
+        M_CH["01 - Chapter 1.md"]
+        M_APP["Appendix.md"]
+        M_ATT["attachments/"]
+    end
+
+    subgraph OutSingle["/My-Book/"]
+        S_DOC["Title.md"]
+        S_ATT["attachments/"]
+    end
+
+    Audit1 --> M_IDX
+    M_IDX --> M_FRONT
+    M_IDX --> M_CH
+    M_IDX --> M_APP
+    M_IDX --> M_ATT
+
+    Audit2 --> S_DOC
+    S_DOC --> S_ATT
 ```
 
 ---
@@ -141,19 +200,19 @@ Installs standalone binaries, system desktop launcher, high-resolution icons, an
 curl -fsSL https://raw.githubusercontent.com/nijuna/Mdook/main/packaging/linux/install.sh | bash
 ```
 
-Alternatively, download the `.deb` package from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest):
+Alternatively, download the [**mdook_2.0.1_amd64.deb**](https://github.com/nijuna/Mdook/releases/latest/download/mdook_2.0.1_amd64.deb) package:
 ```bash
 sudo dpkg -i mdook_2.0.1_amd64.deb
 ```
 
 #### Windows (1-Click Setup Installer)
-Download and run **`Mdook-Setup-x64.exe`** from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest).
+Download and run [**`Mdook-Setup-x64.exe`**](https://github.com/nijuna/Mdook/releases/latest/download/Mdook-Setup-x64.exe) (from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest)).
 - Creates Desktop and Start Menu shortcuts.
 - Registers `Mdook` and `mdook-cli` in user `PATH` environment variable.
 - Supports silent install: `Mdook-Setup-x64.exe /SILENT`.
 
 #### macOS (Drag-and-Drop Disk Image)
-Download **`Mdook.dmg`** from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest), open the disk image, and drag `Mdook.app` to your `/Applications` folder.
+Download [**`Mdook-2.0.1.dmg`**](https://github.com/nijuna/Mdook/releases/latest/download/Mdook-2.0.1.dmg) (from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest)), open the disk image, and drag `Mdook.app` to your `/Applications` folder.
 
 #### Python Package (`pip` / `uv`)
 ```bash
