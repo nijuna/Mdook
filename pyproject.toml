@@ -50,7 +50,10 @@ dev = [
 ]
 
 [project.scripts]
+Mdook = "mdook.gui.window:launch_gui_entry"
+mdook-cli = "mdook.cli:run_cli_entry"
 mdook = "mdook.__main__:main"
+
 
 [build-system]
 requires = ["hatchling"]

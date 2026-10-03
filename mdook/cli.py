@@ -506,15 +506,9 @@ def run_interactive(
 def launch_gui(console: Console | None = None) -> int:
     """Launches the PySide6 desktop GUI."""
     try:
-        from PySide6.QtWidgets import QApplication
+        from mdook.gui.window import launch_gui_entry
 
-        from mdook.gui.window import MainWindow
-
-        app = QApplication(sys.argv[:1])
-        app.setApplicationName("Mdook")
-        window = MainWindow()
-        window.show()
-        return app.exec()
+        return launch_gui_entry()
     except Exception as e:
         c = console or Console(stderr=True)
         c.print(f"[bold red]Could not launch desktop GUI:[/bold red] {e}")
@@ -525,12 +519,13 @@ def run_cli(
     argv: list[str] | None = None,
     console: Console | None = None,
     input_fn: Callable[[str], str] | None = None,
+    allow_gui: bool = True,
 ) -> int:
     """Main CLI dispatch entry point.
 
     Handles argument pre-processing (e.g. shorthand `mdook book.pdf` -> `mdook convert book.pdf`),
     subcommand execution, interactive wizard launches, and automatic GUI launching when
-    invoked with no arguments on a desktop.
+    invoked with no arguments on a desktop (if allow_gui is True).
     """
     c = console or Console()
     args_list = list(sys.argv[1:] if argv is None else argv)
@@ -545,7 +540,7 @@ def run_cli(
 
     # If no arguments provided:
     if not args_list:
-        if is_gui_available():
+        if allow_gui and is_gui_available():
             return launch_gui(c)
         print_brand_header(c)
         c.print()
@@ -598,6 +593,12 @@ def run_cli(
     return 0
 
 
+def run_cli_entry() -> int:
+    """Console script entry point for the headless mdook-cli command."""
+    return run_cli(sys.argv[1:], allow_gui=False)
+
+
 def main() -> int:
     """Entry point for console scripts (`mdook = 'mdook.cli:main'`)."""
-    sys.exit(run_cli())
+    return run_cli()
+

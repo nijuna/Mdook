@@ -929,3 +929,26 @@ class MainWindow(QMainWindow):
         if self.model_worker is not None and self.model_worker.isRunning():
             self.model_worker.wait(300)
         super().closeEvent(event)
+
+
+def launch_gui_entry(argv: list[str] | None = None) -> int:
+    """Entry point for launching the Mdook graphical desktop application."""
+    args = sys.argv[:1] if argv is None else argv
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(args)
+    app.setApplicationName("Mdook")
+    app.setApplicationDisplayName("Mdook")
+
+    icon_path = _get_asset_path("icon.png")
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
+
+    window = MainWindow()
+    window.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(launch_gui_entry())
+
