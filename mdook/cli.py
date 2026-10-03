@@ -234,6 +234,12 @@ Examples:
         action="store_true",
         help="Bypass the 24-hour cache and perform an immediate network check.",
     )
+    update_parser.add_argument(
+        "--install",
+        action="store_true",
+        help="Download, verify SHA-256 integrity, and install the latest update.",
+    )
+
 
     # `version` subcommand
     subparsers.add_parser(
@@ -524,7 +530,11 @@ def run_interactive(
     return run_convert(convert_args, console=console)
 
 
-def run_update(args: argparse.Namespace, console: Console | None = None) -> int:
+def run_update(
+    args: argparse.Namespace,
+    console: Console | None = None,
+    input_fn: Callable[[str], str] | None = None,
+) -> int:
     """Handles the `update` subcommand."""
     c = console or Console()
     from mdook.core.updater.checker import check_for_updates
@@ -535,26 +545,70 @@ def run_update(args: argparse.Namespace, console: Console | None = None) -> int:
         c.print("[bold red]Unable to retrieve update information.[/bold red]")
         return 1
 
-    if info.has_update:
-        table = Table(box=box.ROUNDED, show_header=False, expand=False)
-        table.add_column("Key", style="bold yellow")
-        table.add_column("Value")
-        table.add_row("Current Version", f"v{info.current_version}")
-        table.add_row("Latest Version", f"v{info.latest_version}")
-        table.add_row("Release URL", info.release_url)
-        if info.published_at:
-            table.add_row("Published", info.published_at)
-        c.print(Panel(table, title="[bold green]Update Available[/bold green]"))
-        if info.release_notes:
-            c.print("\n[bold]Release Notes:[/bold]")
-            c.print(info.release_notes)
-        c.print("\nVisit the release URL or use your package manager to update.")
-    else:
+    if not info.has_update:
         c.print(f"[bold green]Mdook is up to date.[/bold green] (v{__version__})")
-    return 0
+        return 0
+
+    table = Table(box=box.ROUNDED, show_header=False, expand=False)
+    table.add_column("Key", style="bold yellow")
+    table.add_column("Value")
+    table.add_row("Current Version", f"v{info.current_version}")
+    table.add_row("Latest Version", f"v{info.latest_version}")
+    table.add_row("Release URL", info.release_url)
+    if info.published_at:
+        table.add_row("Published", info.published_at)
+    c.print(Panel(table, title="[bold green]Update Available[/bold green]"))
+    if info.release_notes:
+        c.print("\n[bold]Release Notes:[/bold]")
+        c.print(info.release_notes)
+
+    should_install = getattr(args, "install", False)
+    if not should_install and (input_fn is not None or sys.stdin.isatty()):
+        prompt_str = f"Install Mdook v{info.latest_version} now? [y/N]: "
+        c.print(prompt_str, end="")
+        if input_fn is not None:
+            resp = input_fn(prompt_str).strip().lower()
+            c.print(resp)
+        else:
+            resp = c.input().strip().lower()
+        if resp in ("y", "yes"):
+            should_install = True
+
+    if not should_install:
+        c.print(
+            "\nRun [bold green]mdook update --install[/bold green] "
+            "to download and install this update."
+        )
+
+        return 0
+
+    from mdook.core.updater.installer import install_update
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=c,
+    ) as progress:
+        task = progress.add_task("Preparing update...", total=100)
+
+        def on_status(msg: str, pct: int) -> None:
+            progress.update(task, description=msg, completed=pct)
+
+        success, msg = install_update(info, on_status=on_status)
+
+    if success:
+        c.print(f"[bold green]Update complete:[/bold green] {msg}")
+        return 0
+    else:
+        c.print(f"[bold red]Update failed:[/bold red] {msg}")
+        return 1
 
 
 def launch_gui(console: Console | None = None) -> int:
+
 
     """Launches the PySide6 desktop GUI."""
     try:
@@ -647,7 +701,8 @@ def run_cli(
     if parsed_args.subcommand == "gui":
         return launch_gui(c)
     if parsed_args.subcommand == "update":
-        return run_update(parsed_args, c)
+        return run_update(parsed_args, c, input_fn=input_fn)
+
     if parsed_args.subcommand == "version":
         print_brand_header(c)
         return 0

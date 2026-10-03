@@ -148,3 +148,27 @@ class UpdateCheckWorker(QThread):
         except Exception as exc:  # noqa: BLE001
             self.check_failed.emit(str(exc))
 
+
+class InstallWorker(QThread):
+    """Background worker to download, verify, and apply updates."""
+
+    status_updated = Signal(str, int)  # (status_message, percent)
+    install_finished = Signal(bool, str)  # (success, message)
+
+    def __init__(self, update_info, parent=None) -> None:
+        super().__init__(parent)
+        self.update_info = update_info
+
+    def run(self) -> None:
+        from mdook.core.updater.installer import install_update
+
+        try:
+            success, msg = install_update(
+                self.update_info,
+                on_status=lambda message, pct: self.status_updated.emit(message, pct),
+            )
+            self.install_finished.emit(success, msg)
+        except Exception as exc:  # noqa: BLE001
+            self.install_finished.emit(False, str(exc))
+
+

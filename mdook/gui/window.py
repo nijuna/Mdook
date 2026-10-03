@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -46,6 +47,7 @@ from mdook.gui.theme import get_stylesheet
 from mdook.gui.worker import (
     ConnectionTestWorker,
     ConversionWorker,
+    InstallWorker,
     ModelFetchWorker,
     UpdateCheckWorker,
 )
@@ -139,7 +141,9 @@ class MainWindow(QMainWindow):
         self.conn_worker: ConnectionTestWorker | None = None
         self.model_worker: ModelFetchWorker | None = None
         self.update_worker: UpdateCheckWorker | None = None
+        self.install_worker: InstallWorker | None = None
         self._active_item: QueueItem | None = None
+
         self._last_output_dir: Path | None = None
         self._default_llm_config = (
             LLMConfig(
@@ -973,14 +977,45 @@ class MainWindow(QMainWindow):
         self.update_banner_label.setText(
             f"A new version of Mdook (v{info.latest_version}) is available."
         )
+        self.update_banner_btn.setText("Install Update")
         try:
             self.update_banner_btn.clicked.disconnect()
         except (RuntimeError, TypeError):
             pass
-        self.update_banner_btn.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl(info.release_url))
-        )
+        self.update_banner_btn.clicked.connect(lambda: self._install_update_now(info))
         self.update_banner.setVisible(True)
+
+    def _install_update_now(self, info: UpdateInfo) -> None:
+        if self.install_worker is not None and self.install_worker.isRunning():
+            return
+        self.update_banner_btn.setEnabled(False)
+        self.update_banner_label.setText("Preparing update download...")
+        self.install_worker = InstallWorker(info, parent=self)
+        self.install_worker.status_updated.connect(
+            lambda msg, pct: self.update_banner_label.setText(f"{msg} ({pct}%)")
+        )
+        self.install_worker.install_finished.connect(self._on_install_finished)
+        self.install_worker.start()
+
+    def _on_install_finished(self, success: bool, message: str) -> None:
+        self.update_banner_btn.setEnabled(True)
+        if success:
+            self.update_banner_label.setText(
+                f"Update complete: {message} Please restart Mdook."
+            )
+            self.update_banner_btn.setText("Restart")
+            try:
+                self.update_banner_btn.clicked.disconnect()
+            except (RuntimeError, TypeError):
+                pass
+            self.update_banner_btn.clicked.connect(self._restart_app)
+        else:
+            self.update_banner_label.setText(f"Update failed: {message}")
+            self.update_banner_btn.setText("Retry")
+
+    def _restart_app(self) -> None:
+        QApplication.quit()
+        subprocess.Popen([sys.executable] + sys.argv)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self.conn_worker is not None and self.conn_worker.isRunning():
@@ -989,7 +1024,10 @@ class MainWindow(QMainWindow):
             self.model_worker.wait(300)
         if self.update_worker is not None and self.update_worker.isRunning():
             self.update_worker.wait(300)
+        if self.install_worker is not None and self.install_worker.isRunning():
+            self.install_worker.wait(500)
         super().closeEvent(event)
+
 
 
 
