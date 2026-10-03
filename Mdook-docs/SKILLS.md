@@ -53,9 +53,10 @@ What building Mdook requires and develops — framed for portfolio value and AI 
 - Clean project structure with `pyproject.toml`, proper package layout
 - PySide6 GUI design: signal/slot wiring, background `QThread` workers so the UI never blocks, tokenized QSS theming across 3 theme families
 - Rich terminal CLI & Interactive Wizard: animated progress bars, live stage indicators, interactive prompts via Questionary, and directory scanning
-- Standalone PyInstaller compilation (`mdook.spec`) and Linux FreeDesktop integration (`packaging/linux/`)
+- Command separation architecture: discrete entry points for Desktop GUI (`Mdook`), headless command line (`mdook-cli`), and universal launcher (`mdook`)
+- Cross-platform distribution: Windows Inno Setup compiler (`Mdook-Setup-x64.exe`), Linux 1-line native bash installer (`install.sh`) + `.deb`, and macOS DMG packager (`Mdook-2.0.1.dmg`)
+- Automated CI/CD release workflow: GitHub Actions matrix pipeline with cryptographic SHA-256 verification and in-place auto-updater
 - Dependency management: core vs. optional (OCR engine) vs. dev dependencies
-- Entry point distribution: `pip install mdook` → `mdook` launches the app (GUI or CLI based on display context)
 
 ### Data Modeling
 

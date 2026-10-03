@@ -12,9 +12,9 @@ the code and its accompanying test suite (`tests/`) serve as the source of truth
 
 ```bash
 uv sync --extra dev      # installs runtime + dev deps (pytest, ruff)
-uv run pytest -q         # should show 336 passed
+uv run pytest -q         # should show 369 passed
 uv run ruff check .      # should show "All checks passed!"
-uv run python -m mdook   # launches the GUI (or: uv run mdook convert ...)
+uv run Mdook             # launches the PySide6 GUI (or: uv run mdook-cli convert ...)
 ```
 
 If any of these don't match, the environment differs from what this
@@ -22,20 +22,24 @@ handoff describes — figure out why before trusting the rest of this file.
 
 ### Quick facts
 
-- **Desktop GUI, Headless CLI, and Wizard** — PySide6 GUI (`mdook`, `mdook gui`,
-  `python -m mdook`), Rich headless CLI (`mdook convert book.pdf -o ./output/`),
-  and interactive terminal wizard (`mdook interactive` / `mdook -i`).
+- **Separated Commands Architecture** — `Mdook` (capitalized) directly launches
+  the PySide6 Desktop GUI; `mdook-cli` executes headless pipeline operations;
+  `mdook` serves as the universal dispatcher and terminal wizard.
 - **Publication Scanner Engine** — Recursive pre-flight document discovery for
   PDF, EPUB, and DOCX publications via `mdook/core/scanner.py` (`mdook scan`).
 - **Multi-Format Ingestion** — Direct XHTML/TOC parsing for EPUB3 (`epub.py`)
   and OpenXML/Styles parsing for DOCX (`docx.py`) directly into `DocumentTree`.
-- **Dual Output Modes** — Modular Library (multi-file chapter hierarchy with
-  Index) or verbatim Single Document mode (`-s` / `--single-file` emitting `Title.md`).
+- **Dual Output Modes & Core Scoping** — Modular Library (multi-file chapter hierarchy with
+  Index) or verbatim Single Document mode (`-s` / `--single-file` emitting `Title.md`),
+  with optional core-only chapter scoping (`--core-only` / `--chapters-only`) omitting apparatus clutter.
 - **OCR engine is Tesseract** (a system package, not pip-installed —
   `sudo dnf install tesseract` / `sudo apt install tesseract-ocr`),
   routed per-page, not per-book.
-- **Standalone Packaging & OS Integration** — PyInstaller compilation (`mdook.spec`)
-  and Linux desktop integration (`packaging/linux/install-desktop.sh`).
+- **Cross-Platform 1-Click Installers** — Windows Inno Setup (`Mdook-Setup-x64.exe`),
+  Linux native 1-line shell installer (`packaging/linux/install.sh`) and `.deb` package,
+  and macOS drag-and-drop disk image (`Mdook-2.0.1.dmg`).
+- **Verified In-Place Auto-Updater** — Built-in `mdook update` checking GitHub Releases API
+  with 24-hour rate throttling and SHA-256 manifest verification against `SHA256SUMS.txt`.
 - **AI Structure Review** — Implemented in Phase 5 via `mdook/core/llm/`
   with zero-dependency OpenAI-compatible client, `/models` discovery,
   and connection test latency measurement.
@@ -53,7 +57,7 @@ handoff describes — figure out why before trusting the rest of this file.
   drop-shadow span deduplication (`extraction.py`), 12% outer side margin watermark suppression
   (`headers_footers.py`), micro-raster printer dingbat filtering (`extraction.py`), and DTP/download
   metadata sanitization (`intake.py`, `scanner.py`).
-- **336 tests, `ruff` clean**, all passing offscreen.
+- **369 tests, `ruff` clean**, all passing offscreen.
 
 
 ---

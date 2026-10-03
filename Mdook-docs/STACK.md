@@ -124,10 +124,10 @@ Stored as separate files in a `prompts/` directory. Versioned and testable indep
 ### pytest
 Unit tests for each pipeline stage. Integration tests that run a known PDF through the full pipeline and diff the output against an expected Markdown library.
 
-> **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 336 tests as of Sprint 2.0.1, including multi-book regression suites covering line-level zone signals, drop-shadow span deduplication, margin watermark filtering, and micro-raster suppression written directly against real books from the user's collection (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
+> **Update: this is exactly what happened**, and it grew well past "unit tests for each stage" — 369 tests as of Sprint 2.2.0 (v2.0.1), including multi-book regression suites covering line-level zone signals, drop-shadow span deduplication, margin watermark filtering, and micro-raster suppression written directly against real books from the user's collection (see `Mdook-docs/RULES.md`'s evolution notes for specific examples).
 
 ### Rich
-Terminal UI for the headless CLI (`mdook convert`) — provides animated progress bars across conversion stages, colored status indicators, and formatted summary/validation tables.
+Terminal UI for the headless CLI (`mdook-cli`) — provides animated progress bars across conversion stages, colored status indicators, and formatted summary/validation tables.
 
 ```bash
 pip install rich
@@ -142,13 +142,15 @@ pip install rich
 
 ## Standalone Packaging & Desktop Integration
 
-### PyInstaller
+### Multi-Target PyInstaller Specification
 **Role:** Standalone executable compilation.
-**Why:** Freezes the complete Python 3.12 runtime, PySide6 Qt libraries, PyMuPDF, and all dependencies into a standalone distribution directory (`dist/mdook/`) via `mdook.spec`. Allows users to execute Mdook without configuring a Python virtual environment.
+**Why:** Freezes the complete Python 3.12 runtime, PySide6 Qt libraries, PyMuPDF, and all dependencies into discrete executables (`dist/Mdook`, `dist/mdook-cli`, `dist/mdook`) via `mdook.spec`. Allows users to execute Mdook without configuring a Python virtual environment.
 
-### Linux FreeDesktop Integration
-**Role:** OS application menu, icon, and MIME-type handling.
-**Why:** `packaging/linux/install-desktop.sh` installs `mdook.desktop` into application launchers, installs `mdook.svg` into system icon paths, and registers MIME-type associations for `.pdf`, `.epub`, and `.docx` documents.
+### Cross-Platform Packaging & 1-Click Installers
+- **Windows (Inno Setup)**: `packaging/windows/mdook-setup.iss` compiles `Mdook-Setup-x64.exe` with desktop shortcut, Start Menu folder, uninstaller, and user `PATH` environment variable registration.
+- **Linux (Native Shell & Debian)**: `packaging/linux/install.sh` provides a 1-line script installer (`curl ... | bash`), `packaging/linux/build-deb.sh` builds native `.deb` packages, and `packaging/linux/install-desktop.sh` integrates `mdook.desktop` into application launchers with MIME-type handling.
+- **macOS (DMG Image)**: `packaging/macos/build-dmg.sh` packages `Mdook.app` bundle and generates drag-and-drop disk images (`Mdook-2.0.1.dmg`).
+- **In-Place Auto-Updater**: `mdook/core/updater/` queries GitHub Releases API with 24-hour rate throttling, streaming progress, and cryptographic SHA-256 verification against `SHA256SUMS.txt`.
 
 ---
 

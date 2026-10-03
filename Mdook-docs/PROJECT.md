@@ -106,13 +106,16 @@ Detailed task and milestone tracking is maintained in `Mdook-docs/ROADMAP.md`:
 
 ## Project Status
 
-**Release 0.2.0:** Multi-format book conversion engine:
+**Release 2.0.1:** Cross-platform desktop application and book conversion engine:
+- **Separated Command Architecture**: `Mdook` (capitalized) to launch the PySide6 Desktop GUI, `mdook-cli` for headless pipeline scripts and automation, and `mdook` as universal entry point and terminal wizard.
+- **Cross-Platform 1-Click Installers**: `Mdook-Setup-x64.exe` for Windows with PATH registration and Start Menu shortcuts, 1-line native Linux shell installer (`packaging/linux/install.sh`) + `.deb` package, and macOS drag-and-drop disk image (`Mdook-2.0.1.dmg`).
+- **Verified In-Place Auto-Updater**: Built-in update engine querying GitHub Releases API with 24-hour rate throttling, cryptographic SHA-256 manifest verification, and platform in-place application.
 - **Multi-Format Input Support**: Ingests PDF documents, EPUB3 / EPUB2 publications, and Word DOCX manuscripts into a unified `DocumentTree` contract.
-- **Dual Output Formats**: Supports chapter-split **Modular Libraries** (with Part hierarchies, attachments, and navigation indexes) and **Single Continuous Documents** (1:1 reading copy with standard image links and consolidated notes).
+- **Dual Output Formats & Core Scoping**: Supports chapter-split **Modular Libraries** (with Part hierarchies, attachments, and navigation indexes) and **Single Continuous Documents** (1:1 reading copy with standard image links and consolidated notes), with optional **Core Chapters Only** scoping (`--core-only` / `--chapters-only`).
 - **Directory Publication Scanner**: `mdook scan` inspects directories for supported documents with pre-flight metadata extraction.
 - **Interactive Terminal Wizard**: `mdook interactive` (`mdook -i`) provides a terminal-based guided conversion experience.
-- **Official Obsidian Desktop Plugin (`obsidian-plugin/`)**: Direct in-vault conversion of `.pdf`, `.epub`, and `.docx` books, folder batch processing, destination picker, context menus, and live status bar progress.
-- **Standalone Packaging**: PyInstaller build specification (`mdook.spec`) and Linux desktop integration script (`packaging/linux/install-desktop.sh`).
+- **Official Obsidian Desktop Plugin (`obsidian-plugin/`)**: Direct in-app conversion of `.pdf`, `.epub`, and `.docx` books, folder batch processing, destination picker, context menus, and live status bar progress.
+- **Standalone Packaging**: PyInstaller multi-target build specification (`mdook.spec`), FreeDesktop Linux integration, and automated GitHub Actions release matrix.
 - **Profile Auto-Detection**: Heuristic signal classifier evaluating table density, numbered headings (`1.2.3`), code blocks, and math density.
 - **Rich Book Typography & Semantics**: Footnotes and endnotes with block anchors, numeric citation-to-bibliography links, callouts (`> [!note]`), MathJax equations (`$$...$$`), table extraction with merged-cell complexity classification, caption association, and RTL script reading order.
 - **Hybrid OCR Fallback**: Automated per-page text-quality evaluation routing scanned pages to Tesseract OCR with fuzzy header deduplication.
@@ -120,6 +123,6 @@ Detailed task and milestone tracking is maintained in `Mdook-docs/ROADMAP.md`:
 - **Poetry & Verse Preservation (Rule 9.2)**: Exact lineation preservation with markdown double trailing spaces, blockquote rendering, stanza spacing clustering, and author attributions.
 - **Dedicated Back-Matter Files & Structured Glossaries (Rule 9.6)**: Split back-matter files (`Notes.md`, `Bibliography.md`, `Glossary.md`, `Appendix.md`) with term-definition parsing and alphabetical dividers (`## A`, `## B`).
 - **Desktop GUI & Headless CLI**: PySide6 dark/light interface with drag-and-drop queue, paired with a standalone headless CLI (`mdook convert`) featuring Rich terminal progress bars and validation tables.
-- **Quality & Testing**: 324 unit and integration tests passing, clean Ruff linting, active Git repository with continuous integration.
+- **Quality & Testing**: 369 unit and integration tests passing, clean Ruff linting, active Git repository with multi-platform continuous integration.
 
 See `Mdook-docs/ROADMAP.md` for phase-by-phase task tracking, and `Mdook-docs/RULES.md` for the semantic detection rules catalog.

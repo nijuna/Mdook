@@ -442,11 +442,18 @@ Mdook/
 │       ├── queue_manager.py    # Sequential queue state
 │       └── worker.py           # Background QThread workers
 │
-├── packaging/                  # Standalone distribution & OS integration
-│   └── linux/
-│       ├── install-desktop.sh  # Desktop entry & mime-type installer
-│       ├── mdook.desktop       # FreeDesktop entry
-│       └── mdook.svg           # Application vector icon
+├── packaging/                  # Standalone cross-platform distribution
+│   ├── linux/
+│   │   ├── install.sh          # 1-line native bash installer
+│   │   ├── build-deb.sh        # Debian package generator
+│   │   ├── install-desktop.sh  # Desktop entry & mime-type installer
+│   │   ├── mdook.desktop       # FreeDesktop entry
+│   │   └── mdook.svg           # Application vector icon
+│   ├── windows/
+│   │   └── mdook-setup.iss     # Inno Setup 1-click Windows installer script
+│   └── macos/
+│       ├── build-dmg.sh        # macOS bundle and DMG packager
+│       └── Info.plist          # Bundle property list
 │
 ├── mdook.spec                  # PyInstaller standalone build specification
 ├── obsidian-plugin/            # Official Obsidian desktop companion plugin
@@ -454,7 +461,7 @@ Mdook/
 │   ├── manifest.json
 │   └── package.json
 │
-├── tests/                      # Pytest test suite (324 passing tests)
+├── tests/                      # Pytest test suite (369 passing tests)
 ├── Mdook-docs/                 # Architectural specifications & rules catalog
 ├── pyproject.toml
 ├── uv.lock
