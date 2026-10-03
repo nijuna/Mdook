@@ -711,5 +711,42 @@ See Rule 2.3's OCR & Script Considerations above. `mdook/core/rules/scripts.py`'
 
 `mdook/core/stages/rendering.py`'s `render_single_file`.
 
+---
+
+## 21. Command Separation, Application Packaging, and Update Rules
+
+**Goal:** Provide predictable cross-platform execution ergonomics, non-blocking update checking, and tamper-resistant in-place self-updating.
+
+### Rule 21.1 — Dual Command Separation
+- **Condition:** Command execution from terminal or system desktop shell.
+- **Action:**
+  - `Mdook` (capitalized): Dedicated entry point that launches the PySide6 Desktop GUI directly without evaluating CLI positional parameters.
+  - `mdook-cli`: Dedicated entry point for headless terminal conversions, scanners, and wizards. Invoking with no arguments displays brand header and help or prompts for wizard; never auto-launches the desktop GUI.
+  - `mdook`: Universal backward-compatible entry point. On desktop environments with no arguments, launches GUI; with arguments or headless, runs CLI commands.
+
+### Rule 21.2 — Non-Blocking Update Throttling
+- **Condition:** Automated background update checks on application launch.
+- **Action:**
+  - Cache query timestamp in `~/.config/mdook/update_cache.json`.
+  - Enforce a 24-hour network query throttle (`CACHE_EXPIRY_SECONDS = 86400`). Subsequent launches within 24 hours use cached metadata with zero startup latency and zero GitHub API consumption.
+  - Interactive `--force` flags and manual Settings dialog triggers bypass the cache.
+
+### Rule 21.3 — Cryptographic Checksum Verification
+- **Condition:** In-place update download.
+- **Action:**
+  - Compute SHA-256 in 64KB streaming blocks.
+  - Compare actual hash against `SHA256SUMS.txt` published alongside the release assets.
+  - Any mismatch immediately deletes the temporary download and aborts installation, preventing corrupted or tampered binary execution.
+
+### Rule 21.4 — Safe Platform In-Place Application
+- **Condition:** Applying verified update payload.
+- **Action:**
+  - **Linux:** Standalone binaries replace `~/.local/bin/Mdook` and `~/.local/bin/mdook-cli` atomically; `.deb` packages launch `pkexec dpkg -i`.
+  - **Windows:** Because running `.exe` binaries are locked by the Windows NT kernel, downloads route to `%TEMP%` and spawn the Inno Setup installer (`Mdook-Setup-x64.exe /SILENT`) as a detached process before exiting.
+  - **macOS:** Disk image (`.dmg`) is mounted via `open` or `hdiutil` for drag-and-drop replacement into `/Applications`.
+
+`mdook/core/updater/checker.py` and `mdook/core/updater/installer.py`.
+
+
 
 

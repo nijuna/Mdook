@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dual Command Separation Architecture (`Mdook` & `mdook-cli`)**:
+  - Registered dedicated entry points: `Mdook` for directly launching the PySide6 Desktop GUI, and `mdook-cli` for running headless CLI conversions without GUI fallback.
+  - Retained `mdook` as the universal entry point with auto-detection for terminal or graphical environments.
+  - Updated PyInstaller specification (`mdook.spec`) to generate standalone binaries for `Mdook`, `mdook-cli`, and `mdook`.
+- **Release Update Checker & Notification Engine**:
+  - Added `mdook/core/updater/checker.py` querying GitHub Releases API with semver comparison.
+  - Implemented 24-hour rate throttling to preserve GitHub API limits and eliminate startup latency.
+  - Added non-blocking `UpdateCheckWorker` in `mdook/gui/worker.py` and dismissible update notification banner in `MainWindow`.
+  - Added update preference toggle and manual "Check Now" controls in `SettingsDialog`.
+  - Added `mdook update --check` command for inspecting release status from terminal.
+- **Verified In-Place Auto-Installer**:
+  - Added `mdook/core/updater/installer.py` with streaming download progress and SHA-256 integrity verification against release manifests (`SHA256SUMS.txt`).
+  - Added platform-specific application logic: atomic user binary replacement on Linux, silent installer execution on Windows, and disk image mount on macOS.
+  - Added interactive user confirmation prompt in `mdook update --install` and 1-click update flow in the GUI.
+- **Cross-Platform Packaging & 1-Click Installers**:
+  - Windows: Added Inno Setup script (`packaging/windows/mdook-setup.iss`) compiling `Mdook-Setup-x64.exe` with desktop shortcut, Start Menu entries, and PATH environment variable registration.
+  - Linux: Added 1-line native bash installer (`packaging/linux/install.sh`), updated desktop launcher (`mdook.desktop`), and added Debian package build script (`packaging/linux/build-deb.sh`).
+  - macOS: Added application bundle plist (`packaging/macos/Info.plist`) and DMG packager (`packaging/macos/build-dmg.sh`).
+- **Automated CI/CD Release Pipeline**:
+  - Created `.github/workflows/release.yml` with a multi-platform matrix (`ubuntu-latest`, `windows-latest`, `macos-latest`).
+  - Automatically compiles standalone executables, Debian packages, Inno Setup installers, and macOS bundles, calculates SHA-256 checksums, and publishes GitHub Releases on tag push.
 - **Core-Only Single Document Scoping (`--core-only` / `--chapters-only`)**:
   - Implemented focused reading scope for single document conversions (`render_single_file` with `core_only=True`).
   - Omits front matter (copyright pages, prefaces, dedications, notices) and back matter (indices, bibliographies, appendices), rendering strictly from Chapter 1 through the final chapter.
@@ -21,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `Core chapters only` checkbox to the desktop GUI output mode selector, enabled conditionally when Single Document mode is active.
   - Added core-only default preference support in the Settings dialog and persisted configuration (`gui_config.json`).
   - Updated conversion queue management, status indicators, and completion actions to reflect library and single-document modes.
+
 
 ## [2.0.1] - 2026-09-23
 

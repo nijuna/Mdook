@@ -10,7 +10,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PySide6](https://img.shields.io/badge/GUI-PySide6-41cd52.svg)](https://pypi.org/project/PySide6/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-336%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-366%20passed-brightgreen.svg)]()
+
 
 </div>
 
@@ -130,11 +131,74 @@ Manage theme palettes, default output modes, extraction profiles, and live LLM r
 
 ---
 
-## Installation & Quickstart
+## Installation & 1-Click Setup
 
-Mdook requires **Python 3.11+** and uses [Astral `uv`](https://docs.astral.sh/uv/) for dependency management.
+### 1-Click Platform Installers (< 3 Minutes)
 
-### 1. Prerequisites
+#### Linux (1-Line Native Shell Installer)
+Installs standalone binaries, system desktop launcher, high-resolution icons, and shell PATH integration in under 60 seconds:
+```bash
+curl -fsSL https://raw.githubusercontent.com/nijuna/Mdook/main/packaging/linux/install.sh | bash
+```
+
+Alternatively, download the `.deb` package from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest):
+```bash
+sudo dpkg -i mdook_2.0.1_amd64.deb
+```
+
+#### Windows (1-Click Setup Installer)
+Download and run **`Mdook-Setup-x64.exe`** from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest).
+- Creates Desktop and Start Menu shortcuts.
+- Registers `Mdook` and `mdook-cli` in user `PATH` environment variable.
+- Supports silent install: `Mdook-Setup-x64.exe /SILENT`.
+
+#### macOS (Drag-and-Drop Disk Image)
+Download **`Mdook.dmg`** from [GitHub Releases](https://github.com/nijuna/Mdook/releases/latest), open the disk image, and drag `Mdook.app` to your `/Applications` folder.
+
+#### Python Package (`pip` / `uv`)
+```bash
+# Via uv tool (recommended):
+uv tool install mdook
+
+# Via pipx:
+pipx install mdook
+
+# Via standard pip:
+pip install --user mdook
+```
+
+---
+
+## Command Architecture
+
+Mdook provides dedicated, separated command entry points:
+
+| Command | Environment | Description |
+| :--- | :--- | :--- |
+| **`Mdook`** | Desktop GUI | Directly launches the typography-first PySide6 desktop interface. |
+| **`mdook-cli`** | Terminal CLI | Dedicated headless command line for pipeline operations, directory scanning, and conversion scripts without GUI fallback. |
+| **`mdook`** | Universal | Universal entry point: automatically opens the GUI when run without arguments on a desktop, or executes CLI subcommands when arguments are passed. |
+
+---
+
+## Automatic Update Engine
+
+Mdook includes a non-blocking background update checker and in-place installer:
+- **24-Hour Throttled Checks**: Automatically queries GitHub Releases API on startup at most once every 24 hours to prevent rate limits and eliminate startup latency.
+- **GUI Notification Banner**: Displays an interactive notification when a new version is available, with a 1-click verified install button.
+- **Settings Dialog**: Toggle automatic updates or click **Check Now** for on-demand checks.
+- **CLI Update Commands**:
+  ```bash
+  # Check for updates from terminal:
+  mdook-cli update --check
+
+  # In-place update with SHA-256 integrity verification:
+  mdook-cli update --install
+  ```
+
+---
+
+## Prerequisites (For Scanned PDF OCR)
 
 For scanned PDF OCR support, install the Tesseract system binary:
 
@@ -155,24 +219,28 @@ For scanned PDF OCR support, install the Tesseract system binary:
   sudo pacman -S tesseract tesseract-data-eng
   ```
 
-### 2. Install Mdook
+---
 
-Clone the repository and sync dependencies:
+## Developer Setup
 
 ```bash
 git clone https://github.com/nijuna/Mdook.git
 cd Mdook
 uv sync --extra dev
+uv run pytest -q
 ```
 
-### 3. Usage
+---
 
-#### Desktop GUI
-Launch the PySide6 application:
+## Usage Guide
+
+### Desktop GUI
+Launch the PySide6 application directly:
 ```bash
-uv run mdook
-# or: uv run python -m mdook
+Mdook
+# or: uv run Mdook
 ```
+
 
 #### Interactive CLI & Publication Scanner
 Discover books or run the guided interactive conversion wizard:

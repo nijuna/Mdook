@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            tesseract-ocr \
+            tesseract-ocr-eng \
+            libgl1 \
+            libegl1 \
+            libxkbcommon-x11-0 \
+            binutils
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build standalone executables with PyInstaller
+        run: uv run pyinstaller --clean -y mdook.spec
+
+      - name: Package Linux Standalone Tarball
+        run: |
+          mkdir -p dist/packages
+          tar -czf dist/packages/mdook-linux-x86_64.tar.gz -C dist Mdook mdook-cli mdook
+
+      - name: Build Debian Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          bash packaging/linux/build-deb.sh "${VERSION:-2.0.1}"
+          cp dist/*.deb dist/packages/
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: dist/packages/*
+
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build standalone executables with PyInstaller
+        run: uv run pyinstaller --clean -y mdook.spec
+
+      - name: Compile Inno Setup Installer
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          iscc "/DMyAppVersion=${VERSION:-2.0.1}" packaging/windows/mdook-setup.iss
+          mkdir -p dist/packages
+          cp dist/installer/Mdook-Setup-x64.exe dist/packages/
+          7z a dist/packages/mdook-windows-x64.zip ./dist/Mdook.exe ./dist/mdook-cli.exe ./dist/mdook.exe
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: dist/packages/*
+
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build standalone executables with PyInstaller
+        run: uv run pyinstaller --clean -y mdook.spec
+
+      - name: Build macOS Application Bundle and DMG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          bash packaging/macos/build-dmg.sh "${VERSION:-2.0.1}"
+          mkdir -p dist/packages
+          cp dist/Mdook-*.dmg dist/packages/ || cp dist/Mdook-macos-*.zip dist/packages/
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: dist/packages/*
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate SHA-256 Checksums
+        run: |
+          cd release-assets
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false

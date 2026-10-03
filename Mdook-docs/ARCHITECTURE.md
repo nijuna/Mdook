@@ -528,16 +528,52 @@ The official Obsidian companion plugin (`obsidian-plugin/`) runs directly within
 
 ---
 
-## Standalone Packaging & Desktop Integration Architecture
+## Standalone Packaging, Command Separation, and Update Architecture
 
-Mdook provides a standalone binary packaging layer enabling distribution without requiring a pre-existing Python environment:
+Mdook provides a production-grade application distribution layer supporting dual command entry points, cross-platform 1-click installers, and an automated in-place update engine:
 
-### 1. PyInstaller Standalone Build (`mdook.spec`)
-- Freezes Python 3.12, PySide6 Qt binaries, PyMuPDF, and all dependencies into a standalone distribution directory (`dist/mdook/`).
-- Includes application metadata, icons, and dynamic shared library bindings.
+### 1. Dual Command Separation Architecture
+- **Desktop Launcher (`Mdook`)**:
+  - Registered as `Mdook = "mdook.gui.window:launch_gui_entry"` in `pyproject.toml`.
+  - Directly initializes `QApplication` and displays the PySide6 `MainWindow` without parsing CLI positional tokens.
+- **Headless Terminal (`mdook-cli`)**:
+  - Registered as `mdook-cli = "mdook.cli:run_cli_entry"` in `pyproject.toml`.
+  - Dispatches subcommands (`convert`, `scan`, `interactive`, `update`, `version`) headlessly. When invoked with no parameters, renders the brand header and formatted help text without ever launching the GUI.
+- **Universal Entry Point (`mdook`)**:
+  - Retained for backward compatibility. Auto-detects desktop environments to launch the GUI when invoked without arguments, while routing subcommands to the CLI.
 
-### 2. Linux Desktop Integration (`packaging/linux/`)
-- **Desktop Entry (`mdook.desktop`)**: Registers Mdook in application launchers and desktop environments.
-- **MIME Associations**: Associates Mdook with `.pdf` (`application/pdf`), `.epub` (`application/epub+zip`), and `.docx` (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`).
-- **Installer Script (`install-desktop.sh`)**: Deploys the desktop launcher and scalable SVG icon into user (`~/.local/share/applications`) or system (`/usr/share/applications`) paths.
+### 2. Multi-Target PyInstaller Specification (`mdook.spec`)
+- Freezes Python 3.12, PySide6 Qt binaries, PyMuPDF, and runtime dependencies.
+- Generates three discrete target executables in `dist/`:
+  - `dist/Mdook`: Desktop GUI binary (windowed mode on Windows).
+  - `dist/mdook-cli`: Console binary for terminal pipelines.
+  - `dist/mdook`: Universal console binary.
+
+### 3. Update Checker & Notification Engine (`mdook/core/updater/checker.py`)
+- **Query Mechanism**: Queries `https://api.github.com/repos/nijuna/Mdook/releases/latest` using `urllib.request`.
+- **24-Hour Throttling**: Checks are cached at `~/.config/mdook/update_cache.json` with timestamp expiration (`CACHE_EXPIRY_SECONDS = 86400`). Subsequent launches run without network calls or startup delays.
+- **Non-Blocking Worker**: `UpdateCheckWorker(QThread)` in `mdook/gui/worker.py` runs checks asynchronously, emitting `update_found(UpdateInfo)`.
+- **UI Notifications**: Displays an interactive, dismissible notification banner in `MainWindow` and provides manual "Check Now" controls in `SettingsDialog`.
+- **CLI Inspection**: `mdook update --check` presents version differences, published dates, and release notes via Rich tables.
+
+### 4. Verified In-Place Auto-Installer (`mdook/core/updater/installer.py`)
+- **Streaming Download**: Downloads release assets with continuous chunk-level progress tracking.
+- **Cryptographic Verification**: Computes SHA-256 in 64KB blocks and verifies against `SHA256SUMS.txt` published alongside the release assets. Corrupt or tampered files are discarded immediately.
+- **Platform In-Place Application**:
+  - **Linux**: Standalone binaries replace `~/.local/bin/Mdook` and `~/.local/bin/mdook-cli` atomically; `.deb` packages launch `pkexec dpkg -i`.
+  - **Windows**: Downloads the installer to `%TEMP%` and spawns `Mdook-Setup-x64.exe /SILENT` as a detached process before exiting.
+  - **macOS**: Mounts disk image (`.dmg`) via `open` or `hdiutil` for drag-and-drop replacement into `/Applications`.
+- **Interactive Verification**: Prompting in `mdook update --install` requests explicit user confirmation before applying updates.
+
+### 5. Cross-Platform 1-Click Installers (`packaging/`)
+- **Windows (`packaging/windows/mdook-setup.iss`)**: Compiles `Mdook-Setup-x64.exe` using Inno Setup with LZMA2 compression, Desktop icon, Start Menu shortcuts, uninstaller, and user `PATH` environment variable registration.
+- **Linux 1-Click Script (`packaging/linux/install.sh`)**: 1-line native bash installer (`curl -fsSL ... | bash`) setting up binaries, `~/.local/share/applications/mdook.desktop`, high-resolution icons, and shell PATH integration in under 60 seconds.
+- **Debian Package (`packaging/linux/build-deb.sh`)**: Assembles standard Debian `.deb` packages for Ubuntu and Debian distributions.
+- **macOS Disk Image (`packaging/macos/build-dmg.sh`)**: Bundles `Mdook.app` with `Info.plist` and compiles `Mdook-2.0.1.dmg` for drag-and-drop installation.
+
+### 6. Automated GitHub Actions Release Workflow (`.github/workflows/release.yml`)
+- Multi-platform matrix build across `ubuntu-latest`, `windows-latest`, and `macos-latest`.
+- Automatically compiles standalone binaries, Inno Setup installers, Debian packages, and DMG images on git tag push (`v*`).
+- Generates `SHA256SUMS.txt` and publishes verified release assets to GitHub Releases.
+
 

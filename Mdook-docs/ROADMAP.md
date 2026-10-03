@@ -179,7 +179,20 @@ Concrete task breakdown by phase. Each task is scoped to a single coding session
 - [x] **Unified CLI & Interactive Wizard Scope Controls** — Integrated `--core-only` and `--chapters-only` flags into `mdook convert` and added guided scope prompting (`Full Document` vs `Core Chapters Only`) when Single Document format is selected in the interactive terminal wizard.
 - [x] **Desktop GUI Scope Toggle** — Added interactive `Core chapters only` checkbox under Output Mode, enabled conditionally when Single Document mode is active, integrated into background conversion queues and settings persistence.
 
+---
+
+## Sprint 2.2.0 — Cross-Platform Packaging, Command Separation, and Auto-Update Engine (Complete)
+
+**Goal:** Transform Mdook into a 1-click installed desktop application across Linux, Windows, and macOS with command separation and automated in-place updates.
+
+- [x] **Dual Command Separation Architecture (`Mdook` & `mdook-cli`)** — Established command entry points: `Mdook` (capitalized) to launch the PySide6 Desktop GUI, and `mdook-cli` to execute headless CLI operations, with `mdook` retained as universal dispatcher. Updated PyInstaller specification (`mdook.spec`) to bundle all targets.
+- [x] **Update Checker & Notification Engine** — Implemented `mdook.core.updater.checker` querying GitHub Releases API with 24-hour rate throttling, semver comparison, non-blocking `UpdateCheckWorker`, GUI notification banner, and CLI `mdook update --check`.
+- [x] **User-Approved In-Place Auto-Installer** — Built `mdook.core.updater.installer` with streaming download progress, SHA-256 verification against `SHA256SUMS.txt`, platform-specific binary replacement (Linux atomic replace, Windows silent setup launcher, macOS disk image mount), interactive CLI approval prompt, and 1-click GUI install flow.
+- [x] **Cross-Platform Packaging & 1-Click Installers** — Created Inno Setup script (`packaging/windows/mdook-setup.iss`) compiling `Mdook-Setup-x64.exe` with desktop shortcut and PATH registration, 1-line native bash installer (`packaging/linux/install.sh`), Debian package generator (`packaging/linux/build-deb.sh`), and macOS bundle/DMG packager (`packaging/macos/build-dmg.sh`).
+- [x] **Multi-Platform CI/CD Release Pipeline** — Created `.github/workflows/release.yml` automating multi-platform builds across `ubuntu-latest`, `windows-latest`, and `macos-latest`, producing verified release artifacts with SHA-256 manifests.
+
 ## Testing Strategy Across Phases
+
 
 ### Test Library
 
