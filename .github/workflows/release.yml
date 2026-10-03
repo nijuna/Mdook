@@ -86,12 +86,12 @@ jobs:
         run: uv run pyinstaller --clean -y mdook.spec
 
       - name: Compile Inno Setup Installer
-        shell: bash
+        shell: pwsh
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          iscc "/DMyAppVersion=${VERSION:-2.0.1}" packaging/windows/mdook-setup.iss
-          mkdir -p dist/packages
-          cp dist/installer/Mdook-Setup-x64.exe dist/packages/
+          $ver = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME.TrimStart('v') } else { "2.0.1" }
+          iscc "/DMyAppVersion=$ver" packaging/windows/mdook-setup.iss
+          New-Item -ItemType Directory -Force -Path dist/packages
+          Copy-Item dist/installer/Mdook-Setup-x64.exe dist/packages/
           7z a dist/packages/mdook-windows-x64.zip ./dist/Mdook.exe ./dist/mdook-cli.exe ./dist/mdook.exe
 
       - name: Upload Windows Artifacts
@@ -127,7 +127,8 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           bash packaging/macos/build-dmg.sh "${VERSION:-2.0.1}"
           mkdir -p dist/packages
-          cp dist/Mdook-*.dmg dist/packages/ || cp dist/Mdook-macos-*.zip dist/packages/
+          cp dist/Mdook-*.dmg dist/packages/ 2>/dev/null || true
+          cp dist/Mdook-macos-*.zip dist/packages/ 2>/dev/null || true
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
