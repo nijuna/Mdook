@@ -92,7 +92,7 @@ jobs:
           iscc "/DMyAppVersion=$ver" packaging/windows/mdook-setup.iss
           New-Item -ItemType Directory -Force -Path dist/packages
           Copy-Item dist/installer/Mdook-Setup-x64.exe dist/packages/
-          7z a dist/packages/mdook-windows-x64.zip ./dist/Mdook.exe ./dist/mdook-cli.exe ./dist/mdook.exe
+          7z a dist/packages/mdook-windows-x64.zip ./dist/Mdook.exe ./dist/mdook-cli.exe
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4

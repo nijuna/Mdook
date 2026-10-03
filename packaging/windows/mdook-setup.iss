@@ -39,7 +39,6 @@ Name: "addtopath"; Description: "Add Mdook to user PATH environment variable"; G
 [Files]
 Source: "..\..\dist\Mdook.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\dist\mdook-cli.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\..\dist\mdook.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\assets\icons\mdook.ico"; DestDir: "{app}\assets"; Flags: ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 
