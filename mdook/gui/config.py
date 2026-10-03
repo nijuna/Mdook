@@ -23,6 +23,10 @@ class GUIConfig:
     ai_model: str = ""
     ai_base_url: str = ""
     ai_api_key: str = ""
+    check_updates: bool = True
+    last_update_check: str = ""
+    latest_known_version: str = ""
+
 
     @classmethod
     def get_config_dir(cls) -> Path:

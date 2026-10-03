@@ -114,3 +114,37 @@ class ModelFetchWorker(QThread):
             self.models_ready.emit(models, "")
         except Exception as exc:  # noqa: BLE001
             self.models_ready.emit([], str(exc))
+
+
+class UpdateCheckWorker(QThread):
+    """Background thread to query GitHub Releases for available updates.
+
+    Ensures zero blocking on application startup or settings interaction.
+    """
+
+    update_found = Signal(object)  # UpdateInfo
+    no_update = Signal(str)  # latest_version
+    check_failed = Signal(str)  # error_message
+
+    def __init__(
+        self,
+        force: bool = False,
+        parent=None,
+    ) -> None:
+        super().__init__(parent)
+        self.force = force
+
+    def run(self) -> None:
+        from mdook.core.updater.checker import check_for_updates
+
+        try:
+            info = check_for_updates(force=self.force)
+            if info is None:
+                self.check_failed.emit("Could not fetch release information.")
+            elif info.has_update:
+                self.update_found.emit(info)
+            else:
+                self.no_update.emit(info.latest_version)
+        except Exception as exc:  # noqa: BLE001
+            self.check_failed.emit(str(exc))
+

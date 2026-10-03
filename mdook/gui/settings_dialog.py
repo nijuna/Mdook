@@ -27,10 +27,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from mdook import __version__
 from mdook.core.llm import LLMConfig
 from mdook.core.llm.client import OpenAICompatibleClient
 from mdook.gui.config import GUIConfig
 from mdook.gui.theme import get_stylesheet
+from mdook.gui.worker import UpdateCheckWorker
 
 
 class ConnectionTestWorker(QObject):
@@ -246,10 +248,39 @@ class SettingsDialog(QDialog):
         test_row.addWidget(self.test_btn)
         test_row.addWidget(self.test_status_label)
         test_row.addStretch()
+
         ai_fields_layout.addLayout(test_row)
 
         ai_layout.addWidget(self.ai_fields_widget)
         main_layout.addWidget(ai_card)
+
+
+        # -------------------------------------------------------------------
+        # 4. Updates Section
+        # -------------------------------------------------------------------
+        updates_card = QFrame()
+        updates_card.setObjectName("Card")
+        updates_layout = QVBoxLayout(updates_card)
+        updates_layout.setContentsMargins(16, 16, 16, 16)
+        updates_layout.setSpacing(12)
+
+        updates_title = QLabel("Software Updates")
+        updates_title.setObjectName("FieldLabel")
+        updates_layout.addWidget(updates_title)
+
+        self.check_updates_cb = QCheckBox("Check for updates automatically on startup")
+        updates_layout.addWidget(self.check_updates_cb)
+
+        check_row = QHBoxLayout()
+        self.check_now_btn = QPushButton("Check Now")
+        self.check_now_btn.clicked.connect(self._check_for_updates_now)
+        self.update_status_label = QLabel(f"Current version: v{__version__}")
+        self.update_status_label.setStyleSheet("color: #8a8a8e;")
+        check_row.addWidget(self.check_now_btn)
+        check_row.addWidget(self.update_status_label, stretch=1)
+        updates_layout.addLayout(check_row)
+
+        main_layout.addWidget(updates_card)
 
         # -------------------------------------------------------------------
         # Footer Action Buttons
@@ -267,6 +298,7 @@ class SettingsDialog(QDialog):
         footer_layout.addWidget(self.save_btn)
 
         main_layout.addLayout(footer_layout)
+
 
     def _load_values(self) -> None:
         # Appearance
@@ -300,6 +332,9 @@ class SettingsDialog(QDialog):
         self.ai_key_input.setText(self.config.ai_api_key)
         self._toggle_ai_fields(self.config.ai_enabled)
 
+        # Updates
+        self.check_updates_cb.setChecked(getattr(self.config, "check_updates", True))
+
     def _apply_theme(self, family: str, mode: str) -> None:
         qss = get_stylesheet(family, mode)
         app = QApplication.instance()
@@ -321,6 +356,32 @@ class SettingsDialog(QDialog):
 
     def _toggle_ai_fields(self, enabled: bool) -> None:
         self.ai_fields_widget.setEnabled(enabled)
+
+    def _check_for_updates_now(self) -> None:
+        self.check_now_btn.setEnabled(False)
+        self.update_status_label.setText("Checking GitHub Releases...")
+        self.update_status_label.setStyleSheet("color: #8a8a8e;")
+
+        self._update_worker = UpdateCheckWorker(force=True, parent=self)
+        self._update_worker.update_found.connect(
+            lambda info: self._on_update_result(
+                f"Update available: v{info.latest_version}", success=True
+            )
+        )
+
+        self._update_worker.no_update.connect(
+            lambda ver: self._on_update_result(f"Up to date (v{ver})", success=True)
+        )
+        self._update_worker.check_failed.connect(
+            lambda msg: self._on_update_result(f"Check failed: {msg}", success=False)
+        )
+        self._update_worker.start()
+
+    def _on_update_result(self, message: str, success: bool) -> None:
+        self.check_now_btn.setEnabled(True)
+        self.update_status_label.setText(message)
+        color = "#10b981" if success else "#f43f5e"
+        self.update_status_label.setStyleSheet(f"color: {color}; font-weight: 500;")
 
     def _test_ai_connection(self) -> None:
         self.test_btn.setEnabled(False)
@@ -370,6 +431,7 @@ class SettingsDialog(QDialog):
         ai_model = self.ai_model_input.text().strip()
         ai_base_url = self.ai_url_input.text().strip()
         ai_api_key = self.ai_key_input.text().strip()
+        check_updates = self.check_updates_cb.isChecked()
 
         self.config.theme_family = family
         self.config.color_mode = mode
@@ -383,8 +445,10 @@ class SettingsDialog(QDialog):
         self.config.ai_model = ai_model
         self.config.ai_base_url = ai_base_url
         self.config.ai_api_key = ai_api_key
+        self.config.check_updates = check_updates
 
         self.config.save()
         self._apply_theme(family, mode)
         self.settings_saved.emit(self.config)
         self.accept()
+

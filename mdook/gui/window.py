@@ -38,11 +38,17 @@ from PySide6.QtWidgets import (
 
 from mdook.core.llm import LLMConfig
 from mdook.core.models import ConversionResult
+from mdook.core.updater import UpdateInfo
 from mdook.gui.config import GUIConfig
 from mdook.gui.queue_manager import QueueItem, QueueManager
 from mdook.gui.settings_dialog import SettingsDialog
 from mdook.gui.theme import get_stylesheet
-from mdook.gui.worker import ConnectionTestWorker, ConversionWorker, ModelFetchWorker
+from mdook.gui.worker import (
+    ConnectionTestWorker,
+    ConversionWorker,
+    ModelFetchWorker,
+    UpdateCheckWorker,
+)
 
 PROFILE_CHOICES = [
     ("Auto-Detect", "auto"),
@@ -132,6 +138,7 @@ class MainWindow(QMainWindow):
         self.worker: ConversionWorker | None = None
         self.conn_worker: ConnectionTestWorker | None = None
         self.model_worker: ModelFetchWorker | None = None
+        self.update_worker: UpdateCheckWorker | None = None
         self._active_item: QueueItem | None = None
         self._last_output_dir: Path | None = None
         self._default_llm_config = (
@@ -147,6 +154,9 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
         self._apply_config_defaults()
+        if getattr(self.config, "check_updates", True):
+            self._start_update_check(force=False)
+
 
     # -- UI construction ---------------------------------------------------
 
@@ -270,7 +280,36 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(header_row)
 
+        # Update Banner (starts hidden)
+        self.update_banner = QFrame()
+        self.update_banner.setObjectName("UpdateBanner")
+        self.update_banner.setStyleSheet(
+            "QFrame#UpdateBanner {"
+            " background: rgba(59, 130, 246, 0.15);"
+            " border: 1px solid #3b82f6;"
+            " border-radius: 6px;"
+            " padding: 6px 12px;"
+            "}"
+        )
+
+        banner_layout = QHBoxLayout(self.update_banner)
+        banner_layout.setContentsMargins(8, 6, 8, 6)
+        banner_layout.setSpacing(10)
+        self.update_banner_label = QLabel("A new version of Mdook is available.")
+        self.update_banner_label.setStyleSheet("color: #93c5fd; font-weight: 500;")
+        self.update_banner_btn = QPushButton("View Release")
+        self.update_banner_btn.setFixedHeight(26)
+        self.update_banner_dismiss = QPushButton("Dismiss")
+        self.update_banner_dismiss.setFixedHeight(26)
+        self.update_banner_dismiss.clicked.connect(lambda: self.update_banner.setVisible(False))
+        banner_layout.addWidget(self.update_banner_label, stretch=1)
+        banner_layout.addWidget(self.update_banner_btn)
+        banner_layout.addWidget(self.update_banner_dismiss)
+        self.update_banner.setVisible(False)
+        layout.addWidget(self.update_banner)
+
         # Form card
+
         form_card = QFrame()
         form_card.setObjectName("Card")
         self.form_card = form_card
@@ -923,12 +962,35 @@ class MainWindow(QMainWindow):
             glyph = QUEUE_STATUS_GLYPH.get(item.status, "")
             self.queue_list.addItem(f"{glyph}  {item.pdf_path.name}")
 
+    def _start_update_check(self, force: bool = False) -> None:
+        if self.update_worker is not None and self.update_worker.isRunning():
+            return
+        self.update_worker = UpdateCheckWorker(force=force, parent=self)
+        self.update_worker.update_found.connect(self._on_update_found)
+        self.update_worker.start()
+
+    def _on_update_found(self, info: UpdateInfo) -> None:
+        self.update_banner_label.setText(
+            f"A new version of Mdook (v{info.latest_version}) is available."
+        )
+        try:
+            self.update_banner_btn.clicked.disconnect()
+        except (RuntimeError, TypeError):
+            pass
+        self.update_banner_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl(info.release_url))
+        )
+        self.update_banner.setVisible(True)
+
     def closeEvent(self, event: QCloseEvent) -> None:
         if self.conn_worker is not None and self.conn_worker.isRunning():
             self.conn_worker.wait(300)
         if self.model_worker is not None and self.model_worker.isRunning():
             self.model_worker.wait(300)
+        if self.update_worker is not None and self.update_worker.isRunning():
+            self.update_worker.wait(300)
         super().closeEvent(event)
+
 
 
 def launch_gui_entry(argv: list[str] | None = None) -> int:

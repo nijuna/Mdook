@@ -217,6 +217,24 @@ Examples:
         description="Launch the typography-first PySide6 desktop interface.",
     )
 
+    # `update` subcommand
+    update_parser = subparsers.add_parser(
+        "update",
+        help="Check for updates and inspect release status.",
+        description="Query GitHub Releases for newer versions of Mdook.",
+    )
+    update_parser.add_argument(
+        "--check",
+        action="store_true",
+        default=True,
+        help="Check whether a newer version is available without installing.",
+    )
+    update_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Bypass the 24-hour cache and perform an immediate network check.",
+    )
+
     # `version` subcommand
     subparsers.add_parser(
         "version",
@@ -224,6 +242,9 @@ Examples:
     )
 
     return parser
+
+
+
 
 
 def print_brand_header(console: Console) -> None:
@@ -503,7 +524,38 @@ def run_interactive(
     return run_convert(convert_args, console=console)
 
 
+def run_update(args: argparse.Namespace, console: Console | None = None) -> int:
+    """Handles the `update` subcommand."""
+    c = console or Console()
+    from mdook.core.updater.checker import check_for_updates
+
+    c.print(f"[bold cyan]Checking for updates...[/bold cyan] (Current: v{__version__})")
+    info = check_for_updates(force=getattr(args, "force", False))
+    if info is None:
+        c.print("[bold red]Unable to retrieve update information.[/bold red]")
+        return 1
+
+    if info.has_update:
+        table = Table(box=box.ROUNDED, show_header=False, expand=False)
+        table.add_column("Key", style="bold yellow")
+        table.add_column("Value")
+        table.add_row("Current Version", f"v{info.current_version}")
+        table.add_row("Latest Version", f"v{info.latest_version}")
+        table.add_row("Release URL", info.release_url)
+        if info.published_at:
+            table.add_row("Published", info.published_at)
+        c.print(Panel(table, title="[bold green]Update Available[/bold green]"))
+        if info.release_notes:
+            c.print("\n[bold]Release Notes:[/bold]")
+            c.print(info.release_notes)
+        c.print("\nVisit the release URL or use your package manager to update.")
+    else:
+        c.print(f"[bold green]Mdook is up to date.[/bold green] (v{__version__})")
+    return 0
+
+
 def launch_gui(console: Console | None = None) -> int:
+
     """Launches the PySide6 desktop GUI."""
     try:
         from mdook.gui.window import launch_gui_entry
@@ -533,8 +585,18 @@ def run_cli(
     # Shorthand rule: if user runs `mdook book.pdf ...`, auto-prepend `convert`
     if args_list and not args_list[0].startswith("-"):
         first_token = args_list[0]
-        if first_token not in ("convert", "gui", "version", "help", "scan", "interactive"):
+        valid_commands = (
+            "convert",
+            "gui",
+            "version",
+            "help",
+            "scan",
+            "interactive",
+            "update",
+        )
+        if first_token not in valid_commands:
             candidate = Path(first_token)
+
             if candidate.suffix.lower() in (".pdf", ".epub", ".docx") or candidate.exists():
                 args_list.insert(0, "convert")
 
@@ -584,9 +646,12 @@ def run_cli(
         return run_scan(parsed_args, c)
     if parsed_args.subcommand == "gui":
         return launch_gui(c)
+    if parsed_args.subcommand == "update":
+        return run_update(parsed_args, c)
     if parsed_args.subcommand == "version":
         print_brand_header(c)
         return 0
+
 
     # Default fallback
     c.print(parser.format_help())
