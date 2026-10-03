@@ -23,13 +23,14 @@ echo "Installing Mdook desktop assets to: ${PREFIX}"
 
 mkdir -p "${BIN_DIR}" "${APPS_DIR}"
 
-# 1. Install binary if present in dist/
-if [[ -f "${REPO_ROOT}/dist/mdook" ]]; then
-    echo "Installing binary: ${REPO_ROOT}/dist/mdook -> ${BIN_DIR}/mdook"
-    install -m 755 "${REPO_ROOT}/dist/mdook" "${BIN_DIR}/mdook"
-else
-    echo "Notice: dist/mdook binary not found. You can build it with 'pyinstaller mdook.spec'."
-fi
+# 1. Install binaries if present in dist/
+for BIN in Mdook mdook-cli mdook; do
+    if [[ -f "${REPO_ROOT}/dist/${BIN}" ]]; then
+        echo "Installing binary: ${REPO_ROOT}/dist/${BIN} -> ${BIN_DIR}/${BIN}"
+        install -m 755 "${REPO_ROOT}/dist/${BIN}" "${BIN_DIR}/${BIN}"
+    fi
+done
+
 
 # 2. Install desktop entry
 echo "Installing desktop entry -> ${APPS_DIR}/mdook.desktop"
